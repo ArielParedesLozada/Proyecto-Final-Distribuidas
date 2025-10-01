@@ -1,5 +1,5 @@
 using Grpc.Core;
-using AuthService;
+using Protos;
 
 namespace AuthService.Services;
 
@@ -15,7 +15,7 @@ public class GreeterService : Greeter.GreeterBase
     {
         return Task.FromResult(new HelloReply
         {
-            Message = "Hello " + request.Name
+            Message = "Auth " + request.Name
         });
     }
 }
