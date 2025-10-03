@@ -7,12 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Protos\greet.proto" GrpcServices="Server" ProtoRoot="..\Protos" />
-    <Protobuf Include="..\Protos\google\api\annotations.proto" GrpcServices="Server" ProtoRoot="..\Protos" />
-    <Protobuf Include="..\Protos\google\api\http.proto" GrpcServices="Server" ProtoRoot="..\Protos" />
+    <Protobuf Include="Protos\auth.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
     <PackageReference Include="Microsoft.AspNetCore.Grpc.JsonTranscoding" Version="8.0.10" />
@@ -20,6 +19,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
-
+  
 </Project>

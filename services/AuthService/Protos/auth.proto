@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option csharp_namespace = "AuthService";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+package auth;
+
+
+//Requests
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+//Replies
+message LoginReply {
+  string email = 1;
+  string roles = 2;
+  string token = 3;
+}
+
+message MeReply {
+  string email = 1;
+  string roles = 2;
+  string name = 3;
+}
+
+message Null {}
+
+service AuthService {
+  rpc Login (LoginRequest) returns (LoginReply){
+    option (google.api.http) = {
+      post: "/login/"
+      body: "*"
+    };
+  }
+
+  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty){
+    option (google.api.http) = {
+      post: "/logout/"
+    };
+  }
+
+  rpc Me (LoginRequest) returns (MeReply){
+    option (google.api.http) = {
+      post: "/me/"
+      body: "*"
+    };
+  }
+}
