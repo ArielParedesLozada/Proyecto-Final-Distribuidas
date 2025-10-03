@@ -31,21 +31,14 @@ message Null {}
 service AuthService {
   rpc Login (LoginRequest) returns (LoginReply){
     option (google.api.http) = {
-      post: "/login/"
+      post: "/login"
       body: "*"
     };
   }
 
-  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty){
+  rpc Me (google.protobuf.Empty) returns (MeReply){
     option (google.api.http) = {
-      post: "/logout/"
-    };
-  }
-
-  rpc Me (LoginRequest) returns (MeReply){
-    option (google.api.http) = {
-      post: "/me/"
-      body: "*"
+      get: "/me"
     };
   }
 }

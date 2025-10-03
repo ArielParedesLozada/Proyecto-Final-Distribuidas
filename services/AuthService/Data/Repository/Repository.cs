@@ -1,14 +1,15 @@
 using System.Linq.Expressions;
+using AuthService.Data.Databases;
 using Microsoft.EntityFrameworkCore;
 
 namespace AuthService.Data.Repository;
 
 public class Repository<T> : IRepository<T> where T : class
 {
-    protected readonly DbContext _context;
+    protected readonly AppDatabase _context;
     protected readonly DbSet<T> _dbSet;
 
-    public Repository(DbContext context)
+    public Repository(AppDatabase context)
     {
         _context = context;
         _dbSet = context.Set<T>();

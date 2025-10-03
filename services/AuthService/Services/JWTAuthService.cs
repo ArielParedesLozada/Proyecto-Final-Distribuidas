@@ -5,6 +5,7 @@ using AuthService.Data.Repository;
 using AuthService.Domain;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace AuthService.Services;
@@ -31,7 +32,8 @@ public class JWTAuthService : AuthService.AuthServiceBase
         {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
         new Claim(JwtRegisteredClaimNames.Email, user.Email),
-        new Claim(ClaimTypes.Role, user.Roles)
+        new Claim(ClaimTypes.Role, user.Roles),
+        new Claim(ClaimTypes.Name, user.Nombre)
     };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JWT_SECRET));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -65,14 +67,27 @@ public class JWTAuthService : AuthService.AuthServiceBase
             Token = _token,
         };
     }
-
-    public override Task<Empty> Logout(Empty request, ServerCallContext context)
+    [Authorize]
+    public override async Task<MeReply> Me(Empty request, ServerCallContext context)
     {
-        return base.Logout(request, context);
+        var httpContext = context.GetHttpContext();
+        var userClaims =  httpContext.User;
+
+        if (userClaims.Identity?.IsAuthenticated != true)
+        {
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "User not authenticated"));
+        }
+
+        var email = userClaims.FindFirst(ClaimTypes.Email)?.Value;
+        var roles = userClaims.FindFirst(ClaimTypes.Role)?.Value;
+        var name = userClaims.FindFirst(ClaimTypes.Name)?.Value;
+
+        return new MeReply
+        {
+            Email = email,
+            Name = name,
+            Roles = roles
+        };
     }
 
-    public override Task<MeReply> Me(LoginRequest request, ServerCallContext context)
-    {
-        return base.Me(request, context);
-    }
 }
