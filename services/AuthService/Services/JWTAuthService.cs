@@ -33,7 +33,7 @@ public class JWTAuthService : AuthService.AuthServiceBase
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
         new Claim(JwtRegisteredClaimNames.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Roles),
-        new Claim(ClaimTypes.Name, user.Nombre)
+        new Claim(ClaimTypes.Name, user.Nombre),
     };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JWT_SECRET));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -71,7 +71,7 @@ public class JWTAuthService : AuthService.AuthServiceBase
     public override async Task<MeReply> Me(Empty request, ServerCallContext context)
     {
         var httpContext = context.GetHttpContext();
-        var userClaims =  httpContext.User;
+        var userClaims = httpContext.User;
 
         if (userClaims.Identity?.IsAuthenticated != true)
         {
@@ -81,12 +81,14 @@ public class JWTAuthService : AuthService.AuthServiceBase
         var email = userClaims.FindFirst(ClaimTypes.Email)?.Value;
         var roles = userClaims.FindFirst(ClaimTypes.Role)?.Value;
         var name = userClaims.FindFirst(ClaimTypes.Name)?.Value;
+        var id = userClaims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         return new MeReply
         {
             Email = email,
             Name = name,
-            Roles = roles
+            Roles = roles,
+            Id = id
         };
     }
 

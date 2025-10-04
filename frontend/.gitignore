@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 
 # COSAS MIAS DE MI
+
 .env
