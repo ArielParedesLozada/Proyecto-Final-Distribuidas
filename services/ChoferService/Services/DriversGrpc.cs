@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using Npgsql;
 
 namespace ChoferService.Services;
 
@@ -47,6 +48,13 @@ public class DriversGrpc : DriversService.DriversServiceBase
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "License number is required"));
             }
 
+            // Normalizar availability
+            var availability = request.Availability == 0 ? 1 : request.Availability;
+            if (availability < 1 || availability > 3)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Availability must be 1, 2, or 3"));
+            }
+
             var driver = new Models.Driver
             {
                 Id = Guid.NewGuid(),
@@ -54,7 +62,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
                 FullName = request.FullName,
                 LicenseNumber = request.LicenseNumber,
                 Capabilities = (short)request.Capabilities,
-                Availability = 1, // Disponible por defecto
+                Availability = (short)availability,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -72,7 +80,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
                 Driver = MapToProtoDriver(driver)
             };
         }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key") == true)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             throw new RpcException(new Status(StatusCode.AlreadyExists, "LICENSE_OR_USER_DUP"));
         }
@@ -162,6 +170,10 @@ public class DriversGrpc : DriversService.DriversServiceBase
     {
         try
         {
+            // Normalizar paginación
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var size = request.PageSize <= 0 ? 20 : Math.Min(request.PageSize, 100);
+
             var query = _context.Drivers.AsNoTracking();
 
             // Filtrar por availability si se proporciona
@@ -181,17 +193,17 @@ public class DriversGrpc : DriversService.DriversServiceBase
             // Aplicar paginación y ordenamiento
             var drivers = await query
                 .OrderBy(d => d.FullName)
-                .Skip((request.Page - 1) * request.PageSize)
-                .Take(request.PageSize)
+                .Skip((page - 1) * size)
+                .Take(size)
                 .ToListAsync();
 
-            var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
+            var totalPages = (int)Math.Ceiling((double)totalCount / size);
 
             var response = new ListDriversResponse
             {
                 TotalCount = totalCount,
-                Page = request.Page,
-                PageSize = request.PageSize,
+                Page = page,
+                PageSize = size,
                 TotalPages = totalPages
             };
 
@@ -232,6 +244,17 @@ public class DriversGrpc : DriversService.DriversServiceBase
             if (driver == null)
             {
                 throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+            }
+
+            // Autorizar "dueño o admin"
+            var httpContext = context.GetHttpContext();
+            var sub = httpContext.User.FindFirst("sub")?.Value;
+            var isOwner = Guid.TryParse(sub, out var uid) && driver.UserId == uid;
+            var canUpdateAny = httpContext.User.HasClaim("scope", "drivers:update:any");
+            
+            if (!isOwner && !canUpdateAny)
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "FORBIDDEN"));
             }
 
             driver.Availability = (short)request.Availability;
