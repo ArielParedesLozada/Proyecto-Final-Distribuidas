@@ -27,19 +27,12 @@ const LoginPage: React.FC = () => {
 
   return (
     <ScrollableContainer>
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        padding: '1rem', 
-        position: 'relative'
-      }}>
+      <div className="login-page-container">
         {/* Efectos de fondo */}
         <BackgroundEffects />
         
         {/* Contenido principal */}
-        <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '36rem' }}>
+        <div className="login-content">
           <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
           
           {/* Mensaje de error */}
