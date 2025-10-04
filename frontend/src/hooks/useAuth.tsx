@@ -1,13 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+import type { IUser } from '../interfaces/IUser';
 
 interface AuthContextType {
-  user: User | null;
+  user: IUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<void>;
@@ -21,7 +16,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -59,10 +54,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     
     // Simular usuario autenticado
-    const mockUser: User = {
+    const mockUser: IUser = {
       id: '1',
       email: credentials.email,
-      name: credentials.email.split('@')[0]
+      name: credentials.email.split('@')[0],
+      roles: 'user'
     };
     
     const mockToken = 'mock-jwt-token-' + Date.now();

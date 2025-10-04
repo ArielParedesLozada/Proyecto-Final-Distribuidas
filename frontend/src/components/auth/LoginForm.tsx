@@ -31,7 +31,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
       <div className="login-header">
         <div className="login-logo-container">
           <Fuel 
-            style={{ width: '2.5rem', height: '2.5rem', color: 'white' }}
+            style={{ width: '2rem', height: '2rem', color: 'white' }}
           />
         </div>
         <h1 className="login-title">
@@ -90,7 +90,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
                 onChange={handleChange}
                 placeholder="••••••••"
                 className="fuel-input login-input"
-                style={{ paddingRight: '2.5rem' }}
+                style={{ paddingRight: '2.75rem' }}
               />
               <button
                 type="button"
@@ -98,9 +98,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
                 className="login-password-toggle"
               >
                 {showPassword ? (
-                  <EyeOff style={{ height: '1.25rem', width: '1.25rem', color: '#94a3b8' }} />
+                  <EyeOff style={{ height: '1.5rem', width: '1.5rem', color: '#94a3b8' }} />
                 ) : (
-                  <Eye style={{ height: '1.25rem', width: '1.25rem', color: '#94a3b8' }} />
+                  <Eye style={{ height: '1.5rem', width: '1.5rem', color: '#94a3b8' }} />
                 )}
               </button>
             </div>
