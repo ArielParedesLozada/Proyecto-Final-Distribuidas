@@ -6,14 +6,30 @@ import driversRouter from "./routes/drivers.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Necesario para las rutas de drivers
+// 👀 NO uses express.json() globalmente porque rompe el streaming hacia el proxy
 
+// 🔥 Middleware para reinyectar el body en el proxy
+const proxyWithBody = (target, pathRewrite) =>
+  createProxyMiddleware({
+    target,
+    changeOrigin: true,
+    pathRewrite,
+    selfHandleResponse: false,
+    onProxyReq: (proxyReq, req, res) => {
+      if (req.body) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader("Content-Type", "application/json");
+        proxyReq.write(bodyData);
+      }
+    },
+  });
+
+// Rutas proxys
 app.use(
   "/auth",
-  createProxyMiddleware({
-    target: process.env.AUTH_SERVICE || "http://localhost:5121",
-    changeOrigin: true,
-    pathRewrite: { "^/auth": "" },
+  proxyWithBody(process.env.AUTH_SERVICE || "http://localhost:5121", {
+    "^/auth": "",
   })
 );
 
