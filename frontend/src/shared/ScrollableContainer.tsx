@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ScrollableContainerProps {
   children: React.ReactNode;
@@ -6,30 +6,30 @@ interface ScrollableContainerProps {
   style?: React.CSSProperties;
 }
 
-const ScrollableContainer: React.FC<ScrollableContainerProps> = ({ 
-  children, 
-  className = '', 
-  style = {} 
+const ScrollableContainer: React.FC<ScrollableContainerProps> = ({
+  children,
+  className = "",
+  style = {},
 }) => {
+  const cls = `no-scrollbar overflow-y-auto overflow-x-hidden ${className}`;
+
   return (
-    <div 
-      className={className}
-      style={{
-        height: '100vh',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        scrollbarWidth: 'none', // Firefox
-        msOverflowStyle: 'none', // IE/Edge
-        ...style
-      }}
-      css={{
-        '&::-webkit-scrollbar': {
-          display: 'none' // Chrome, Safari, Opera
+    <>
+      {/* Estilos scoped para ocultar scrollbar solo en .no-scrollbar */}
+      <style>{`
+        .no-scrollbar {
+          scrollbar-width: none;        /* Firefox */
+          -ms-overflow-style: none;     /* IE/Edge */
         }
-      }}
-    >
-      {children}
-    </div>
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;                /* Chrome, Safari, Opera */
+        }
+      `}</style>
+
+      <div className={cls} style={style}>
+        {children}
+      </div>
+    </>
   );
 };
 

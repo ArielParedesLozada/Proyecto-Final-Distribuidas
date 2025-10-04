@@ -4,26 +4,36 @@ import { AuthProvider } from "./hooks/useAuth";
 import LoginPage from "./pages/auth/LoginPage";
 import DriverPage from "./pages/drivers/DriverPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DriverDashboard from "./components/drivers/DriverDashboard";
+import DriverTrips from "./components/drivers/DriverTrips";
+import DriverVehicle from "./components/drivers/DriverVehicle";
+import DriverProfile from "./components/drivers/DriverProfile";
 import "./App.css";
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              path="/driver/*"
-              element={
-                <ProtectedRoute>
-                  <DriverPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/driver" replace />} />
-          </Routes>
+          <Route
+            path="/driver/*"
+            element={
+              <ProtectedRoute>
+                <DriverPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DriverDashboard />} />
+
+            <Route path="trips" element={<DriverTrips trips={[]} />} />
+            <Route path="vehicle" element={<DriverVehicle />} />
+            <Route path="profile" element={<DriverProfile />} />
+          </Route>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/driver" replace />} />
+        </Routes>
       </Router>
     </AuthProvider>
   );
