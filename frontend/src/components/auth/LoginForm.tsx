@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Fuel } from 'lucide-react';
 
 interface LoginFormProps {
   onSubmit: (formData: { email: string; password: string }) => void;
@@ -33,20 +33,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '4rem',
-          height: '4rem',
+          width: '5rem',
+          height: '5rem',
           background: 'linear-gradient(135deg, #60a5fa 0%, #06b6d4 100%)',
-          borderRadius: '1rem',
+          borderRadius: '1.25rem',
           boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.5)',
           marginBottom: '1rem'
         }}>
-          <svg 
-            style={{ width: '2rem', height: '2rem', color: 'white' }}
-            fill="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-          </svg>
+          <Fuel 
+            style={{ width: '2.5rem', height: '2.5rem', color: 'white' }}
+          />
         </div>
         <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
           Fuel Manager
