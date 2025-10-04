@@ -26,53 +26,41 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '36rem', margin: '0 auto', padding: '0 1rem' }}>
+    <div className="login-container">
       {/* Logo y Título */}
-      <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '5rem',
-          height: '5rem',
-          background: 'linear-gradient(135deg, #60a5fa 0%, #06b6d4 100%)',
-          borderRadius: '1.25rem',
-          boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.5)',
-          marginBottom: '1rem'
-        }}>
+      <div className="login-header">
+        <div className="login-logo-container">
           <Fuel 
             style={{ width: '2.5rem', height: '2.5rem', color: 'white' }}
           />
         </div>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
+        <h1 className="login-title">
           Fuel Manager
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1.125rem' }}>
+        <p className="login-subtitle">
           Sistema de Gestión de Combustible
         </p>
       </div>
 
       {/* Tarjeta de Login */}
-      <div className="fuel-card" style={{ padding: '3.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>
+      <div className="fuel-card login-card">
+        <div className="login-card-header">
+          <h2 className="login-card-title">
             Iniciar Sesión
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '1.125rem' }}>
+          <p className="login-card-subtitle">
             Ingresa tus credenciales para acceder
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.25rem' }}>
+        <form onSubmit={handleSubmit} className="login-form">
           {/* Campo Email */}
-          <div>
-            <label htmlFor="email" style={{ display: 'block', fontSize: '1.125rem', fontWeight: '500', color: 'white', marginBottom: '0.75rem', textAlign: 'left' }}>
+          <div className="login-field">
+            <label htmlFor="email" className="login-label">
               Correo Electrónico
             </label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '0.75rem', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                <Mail style={{ height: '1.25rem', width: '1.25rem', color: '#94a3b8' }} />
-              </div>
+            <div className="login-input-container">
+              <Mail className="login-input-icon" />
               <input
                 id="email"
                 name="email"
@@ -81,21 +69,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="usuario@ejemplo.com"
-                className="fuel-input"
-                style={{ paddingLeft: '2.5rem', width: '100%' }}
+                className="fuel-input login-input"
               />
             </div>
           </div>
 
           {/* Campo Contraseña */}
-          <div>
-            <label htmlFor="password" style={{ display: 'block', fontSize: '1.125rem', fontWeight: '500', color: 'white', marginBottom: '0.75rem', textAlign: 'left' }}>
+          <div className="login-field">
+            <label htmlFor="password" className="login-label">
               Contraseña
             </label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '0.75rem', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                <Lock style={{ height: '1.25rem', width: '1.25rem', color: '#94a3b8' }} />
-              </div>
+            <div className="login-input-container">
+              <Lock className="login-input-icon" />
               <input
                 id="password"
                 name="password"
@@ -104,13 +89,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="fuel-input"
-                style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', width: '100%' }}
+                className="fuel-input login-input"
+                style={{ paddingRight: '2.5rem' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', top: '50%', right: '0.75rem', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}
+                className="login-password-toggle"
               >
                 {showPassword ? (
                   <EyeOff style={{ height: '1.25rem', width: '1.25rem', color: '#94a3b8' }} />
@@ -122,20 +107,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
           </div>
 
           {/* Link Olvidé mi contraseña */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="login-forgot-link">
             <button
               type="button"
-              style={{ 
-                color: '#60a5fa', 
-                fontSize: '1rem', 
-                fontWeight: '500', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseOver={(e) => (e.target as HTMLButtonElement).style.color = '#93c5fd'}
-              onMouseOut={(e) => (e.target as HTMLButtonElement).style.color = '#60a5fa'}
+              className="login-forgot-button"
             >
               ¿Olvidaste tu contraseña?
             </button>
@@ -145,12 +120,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
           <button
             type="submit"
             disabled={isLoading}
-            className="fuel-button"
-            style={{ 
-              width: '100%', 
-              opacity: isLoading ? 0.5 : 1, 
-              cursor: isLoading ? 'not-allowed' : 'pointer' 
-            }}
+            className="fuel-button login-submit-button"
           >
             {isLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
