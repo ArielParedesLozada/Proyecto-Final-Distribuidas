@@ -5,6 +5,8 @@ using ChoferService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace ChoferService.Services;
 
@@ -24,9 +26,12 @@ public class DriversGrpc : DriversService.DriversServiceBase
     {
         try
         {
+            _logger.LogInformation("CreateDriver called with UserId: {UserId}", request.UserId);
+            
             // Validar user_id como Guid
             if (!Guid.TryParse(request.UserId, out var userId))
             {
+                _logger.LogWarning("Invalid user_id format: {UserId}", request.UserId);
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid user_id format"));
             }
 
@@ -54,10 +59,13 @@ public class DriversGrpc : DriversService.DriversServiceBase
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 
+            _logger.LogInformation("Adding driver to context");
             _context.Drivers.Add(driver);
+            
+            _logger.LogInformation("Saving changes to database");
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Driver created with ID {DriverId} for user {UserId}", driver.Id, driver.UserId);
+            _logger.LogInformation("Driver created successfully with ID {DriverId} for user {UserId}", driver.Id, driver.UserId);
 
             return new DriverResponse
             {
@@ -74,8 +82,8 @@ public class DriversGrpc : DriversService.DriversServiceBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating driver for user {UserId}", request.UserId);
-            throw new RpcException(new Status(StatusCode.Internal, "Internal server error"));
+            _logger.LogError(ex, "Error creating driver for user {UserId}: {Message}", request.UserId, ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
         }
     }
 
@@ -114,7 +122,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
         }
     }
 
-    // [Authorize] // Temporarily disabled for testing
+    [Authorize]
     public override async Task<DriverResponse> GetDriverByUserId(GetDriverByUserIdRequest request, ServerCallContext context)
     {
         try
@@ -246,6 +254,51 @@ public class DriversGrpc : DriversService.DriversServiceBase
         {
             _logger.LogError(ex, "Error updating driver availability {DriverId}", request.Id);
             throw new RpcException(new Status(StatusCode.Internal, "Internal server error"));
+        }
+    }
+
+    [Authorize(Policy = "DriversReadOwn")]
+    public override async Task<DriverResponse> GetMyDriver(Empty request, ServerCallContext context)
+    {
+        try
+        {
+            // Obtener el userId desde el token JWT
+            var httpContext = context.GetHttpContext();
+            var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Invalid or missing user ID in token");
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid user token"));
+            }
+
+            _logger.LogInformation("GetMyDriver called for user {UserId}", userId);
+
+            var driver = await _context.Drivers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+
+            if (driver == null)
+            {
+                _logger.LogWarning("Driver not found for user {UserId}", userId);
+                throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
+            }
+
+            _logger.LogInformation("Driver found for user {UserId}: {DriverId}", userId, driver.Id);
+
+            return new DriverResponse
+            {
+                Driver = MapToProtoDriver(driver)
+            };
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting my driver: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
         }
     }
 

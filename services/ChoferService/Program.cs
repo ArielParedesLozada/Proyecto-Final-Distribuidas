@@ -1,5 +1,6 @@
 using ChoferService.Services;
 using ChoferService.Data;
+using ChoferService.Data.Seed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -17,33 +18,40 @@ builder.Services.AddGrpcReflection();
 builder.Services.AddDbContext<DriversDb>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DriversDb")));
 
-// Add Authentication (temporarily disabled for testing)
-// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//     .AddJwtBearer(options =>
-//     {
-//         options.Authority = builder.Configuration["Jwt:Authority"];
-//         options.TokenValidationParameters = new TokenValidationParameters
-//         {
-//             ValidateAudience = false
-//         };
-//     });
+// Add Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Jwt:Authority"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false
+        };
+    });
 
-// Add Authorization with policies (temporarily disabled for testing)
-// builder.Services.AddAuthorization(options =>
-// {
-//     options.AddPolicy("DriversCreate", policy =>
-//         policy.RequireClaim("scope", "drivers:create"));
-//     options.AddPolicy("DriversReadAll", policy =>
-//         policy.RequireClaim("scope", "drivers:read:all"));
-//     options.AddPolicy("DriversReadOwn", policy =>
-//         policy.RequireClaim("scope", "drivers:read:own"));
-// });
+// Add Authorization with policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("DriversCreate", policy =>
+        policy.RequireClaim("scope", "drivers:create"));
+    options.AddPolicy("DriversReadAll", policy =>
+        policy.RequireClaim("scope", "drivers:read:all"));
+    options.AddPolicy("DriversReadOwn", policy =>
+        policy.RequireClaim("scope", "drivers:read:own"));
+});
 
 var app = builder.Build();
 
+// Seed database if empty
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DriversDb>();
+    await DriversSeeder.SeedAsync(db);
+}
+
 // Configure the HTTP request pipeline.
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure gRPC health check service
 var health = new HealthServiceImpl();

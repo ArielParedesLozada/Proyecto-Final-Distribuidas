@@ -5,6 +5,7 @@ package drivers.v1;
 option csharp_namespace = "ChoferService.Proto";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 // Servicio de conductores
 service DriversService {
@@ -22,6 +23,9 @@ service DriversService {
   
   // Actualizar disponibilidad del conductor
   rpc UpdateAvailability (UpdateAvailabilityRequest) returns (DriverResponse);
+  
+  // Obtener mi propio registro de conductor
+  rpc GetMyDriver (google.protobuf.Empty) returns (DriverResponse);
 }
 
 // Mensaje principal del conductor
