@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import API from "../api/api"
 import type { IUser } from "../interfaces/IUser"
+import Logout from "../components/Logout"
 
 function MePage() {
     const [me, setMe] = useState<IUser | null>(null)
@@ -44,6 +45,7 @@ function MePage() {
             <p><strong>Email:</strong> {me.email}</p>
             <p><strong>Roles:</strong> {me.roles}</p>
             <p><strong>ID:</strong> {me.id}</p>
+            <Logout />
         </div>
     )
 }
