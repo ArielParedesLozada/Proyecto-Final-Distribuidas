@@ -5,24 +5,24 @@ interface ScrollableContainerProps {
   className?: string;
   style?: React.CSSProperties;
 }
-
 const ScrollableContainer: React.FC<ScrollableContainerProps> = ({
   children,
   className = "",
   style = {},
 }) => {
-  const cls = `no-scrollbar overflow-y-auto overflow-x-hidden ${className}`;
+  const cls = `no-scrollbar overflow-y-auto overflow-x-hidden scroll-smooth ${className}`;
 
   return (
     <>
-      {/* Estilos scoped para ocultar scrollbar solo en .no-scrollbar */}
       <style>{`
         .no-scrollbar {
-          scrollbar-width: none;        /* Firefox */
-          -ms-overflow-style: none;     /* IE/Edge */
+          scrollbar-width: none;       
+          -ms-overflow-style: none;    
+          scroll-behavior: smooth;      
+          transition: all 0.3s ease-in-out;
         }
         .no-scrollbar::-webkit-scrollbar {
-          display: none;                /* Chrome, Safari, Opera */
+          display: none;               
         }
       `}</style>
 
