@@ -1,9 +1,8 @@
+import 'dotenv/config';
 import express from "express";
 import cors from "cors";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import dotenv from "dotenv";
-
-dotenv.config();
+import driversRouter from "./routes/drivers.js";
 
 const app = express();
 app.use(cors());
@@ -18,18 +17,12 @@ app.use(
   })
 );
 
-app.use(
-  "/chofer",
-  createProxyMiddleware({
-    target: process.env.CHOFER_SERVICE || "http://localhost:5122",
-    changeOrigin: true,
-    pathRewrite: { "^/chofer": "" },
-  })
-);
-
 app.get("/", (req, res) => {
   res.json({ message: "API Gateway funcionando 🚀" });
 });
+
+// Usar las rutas de conductores en lugar del proxy
+app.use("/", driversRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
