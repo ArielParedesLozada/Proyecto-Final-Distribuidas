@@ -5,28 +5,31 @@ const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #020617 0%, rgba(30, 58, 138, 0.2) 50%, #020617 100%)',
-      padding: '2rem'
-    }}>
+    <div 
+      className="dashboard-container fuel-gradient"
+      style={{
+        minHeight: '100vh',
+        padding: '2rem',
+        boxSizing: 'border-box'
+      }}
+    >
       <div style={{
         maxWidth: '1200px',
-        margin: '0 auto'
+        margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2rem',
-          padding: '1.5rem',
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(30, 41, 59, 0.5)',
-          borderRadius: '1rem',
-          boxShadow: '0 25px 50px -12px rgba(59, 130, 246, 0.1)'
-        }}>
+        <div 
+          className="fuel-card dashboard-header"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '2rem',
+            padding: '1.5rem'
+          }}
+        >
           <div>
             <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
               Dashboard
@@ -45,12 +48,15 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Métricas */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
+        <div 
+          className="dashboard-metrics"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1.5rem',
+            marginBottom: '2rem'
+          }}
+        >
           {[
             { title: 'Total de Vehículos', value: '24', change: '+12%', color: '#10b981' },
             { title: 'Combustible Consumido', value: '1,250 L', change: '+8%', color: '#f59e0b' },
@@ -93,7 +99,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Contenido principal */}
-        <div className="fuel-card" style={{ padding: '2rem' }}>
+        <div className="fuel-card dashboard-main-content" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>
             Sistema de Gestión de Combustible
           </h2>

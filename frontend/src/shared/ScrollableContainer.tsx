@@ -13,21 +13,42 @@ const ScrollableContainer: React.FC<ScrollableContainerProps> = ({
 }) => {
   return (
     <div 
-      className={className}
+      className={`scrollable-container ${className}`}
       style={{
-        height: '100vh',
+        minHeight: '100vh',
+        height: 'auto',
+        width: '100%',
         overflowY: 'auto',
         overflowX: 'hidden',
         scrollbarWidth: 'none', // Firefox
         msOverflowStyle: 'none', // IE/Edge
+        boxSizing: 'border-box',
         ...style
       }}
-      css={{
-        '&::-webkit-scrollbar': {
-          display: 'none' // Chrome, Safari, Opera
-        }
-      }}
     >
+      <style>{`
+        .scrollable-container::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+        
+        .scrollable-container {
+          box-sizing: border-box;
+        }
+        
+        @media (max-width: 768px) {
+          .scrollable-container {
+            min-height: 100vh;
+            height: auto;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .scrollable-container {
+            min-height: 100vh;
+            height: auto;
+          }
+        }
+      `}</style>
       {children}
     </div>
   );
