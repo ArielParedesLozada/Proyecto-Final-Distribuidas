@@ -17,15 +17,17 @@ builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddSingleton<HealthServiceImpl>();
 
-// ---------- DB ----------
+// -- Variables de entorno (POR AMOR DE DIOS USENLAS. NO PONGAN TODO EN APPSETTINGS. TODOS LO VEN)
 var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!;
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? builder.Configuration["Jwt:Secret"];
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"];
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"];
+
+// ---------- DB ----------
 builder.Services.AddDbContext<DriversDb>(options =>
     options.UseNpgsql(CONNECTION_STRING));
 
 // ---------- JWT CONFIG (HS256) ----------
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "http://localhost:5121";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "http://localhost:5121";
 
 if (string.IsNullOrWhiteSpace(jwtSecret))
     throw new InvalidOperationException("JWT secret no configurado. Define Jwt:Secret en appsettings.json o JWT_SECRET en variables de entorno.");
