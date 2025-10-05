@@ -7,9 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="../Protos/user.proto" ProtoRoot="../Protos" GrpcServices="Client" />
-    <Protobuf Include="../Protos/google/api/annotations.proto" ProtoRoot="../Protos" />
-    <Protobuf Include="../Protos/google/api/http.proto" ProtoRoot="../Protos" />  
+    <Protobuf Include="../Protos/user.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos" />
     <Protobuf Include="Protos/adminuser.proto" ProtoRoot="Protos" GrpcServices="Server" AdditionalImportDirs="../Protos" />
   </ItemGroup>
   
@@ -22,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
   </ItemGroup>
 
 </Project>
