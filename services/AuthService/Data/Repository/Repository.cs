@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuthService.Data.Repository;
 
-public class Repository<T> : IRepository<T> where T : class
+public class Repository<T, TKey> : IRepository<T, TKey> where T : class
 {
     protected readonly AppDatabase _context;
     protected readonly DbSet<T> _dbSet;
@@ -37,7 +37,7 @@ public class Repository<T> : IRepository<T> where T : class
     {
         return await _dbSet.ToListAsync();
     }
-    public async Task<T?> GetByIdAsync(int id)
+    public async Task<T?> GetByIdAsync(TKey id)
     {
         return await _dbSet.FindAsync(id);
     }

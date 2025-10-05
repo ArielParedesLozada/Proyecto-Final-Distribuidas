@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option csharp_namespace = "UserServices";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+package user;
+
+//Requests
+message CreateUser {
+  string email = 1;
+  string password = 2;
+  string nombre = 3;
+  string roles = 4;
+}
+
+message ReadUser {
+  string id = 1;
+  string email = 2;
+  string nombre = 3;
+  string roles = 4;
+}
+
+message UserCreateRequest {
+  CreateUser user = 1;
+}
+
+message UserGetByIdRequest {
+  string id = 1;
+}
+message UserGetByEmailRequest {
+  string email = 1;
+}
+
+message UserUpdateRequest {
+  string id = 1;
+  CreateUser user = 2;
+}
+
+//Replies
+message UserResponse {
+  ReadUser user = 1;
+}
+
+message ListUsersResponse {
+  repeated ReadUser users = 1;
+}
+
+//Services
+service UserProtoService {
+  rpc ListUsers(google.protobuf.Empty) returns (ListUsersResponse);
+  rpc GetUserById(UserGetByIdRequest) returns (UserResponse);
+  rpc GetUserByEmail(UserGetByEmailRequest) returns (UserResponse);
+  rpc CreateUser(UserCreateRequest) returns (UserResponse);
+  rpc UpdateUser(UserUpdateRequest) returns (UserResponse); 
+  rpc DeleteUser(UserGetByIdRequest) returns (google.protobuf.Empty);
+}

@@ -5,9 +5,16 @@ import BackgroundEffects from '../../components/auth/BackgroundEffects';
 import ScrollableContainer from '../../shared/ScrollableContainer';
 import { useAuth } from '../../hooks/useAuth';
 
+// Mapa de redirección por rol
+const homeByRole = {
+  ADMIN: '/admin/dashboard',
+  SUPERVISOR: '/supervisor/dashboard',
+  CONDUCTOR: '/drivers/dashboard'
+} as const;
+
 const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -16,10 +23,22 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      await login(formData);
-      navigate('/dashboard');
+      const authUser = await login(formData.email, formData.password);
+      
+      // Obtener el rol primario del usuario autenticado
+      const userRole = authUser.roles[0]; // Primer rol del array
+      
+      // Redirigir según el rol primario del usuario
+      if (userRole && userRole in homeByRole) {
+        const redirectPath = homeByRole[userRole];
+        navigate(redirectPath, { replace: true });
+      } else {
+        // Si no tiene rol válido, redirigir a dashboard genérico
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -33,23 +52,12 @@ const LoginPage: React.FC = () => {
         
         {/* Contenido principal */}
         <div className="login-content">
-          <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
-          
-          {/* Mensaje de error */}
           {error && (
-            <div style={{
-              marginTop: '1rem',
-              padding: '1rem',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              borderRadius: '0.75rem',
-              color: '#f87171',
-              fontSize: '0.875rem',
-              textAlign: 'center'
-            }}>
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
               {error}
             </div>
           )}
+          <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
         </div>
       </div>
     </ScrollableContainer>
