@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Altura total para que el sidebar y el layout ocupen la pantalla completa */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   background-color: #020617;
   color: white;
@@ -10,20 +17,99 @@ body {
   min-height: 100vh;
 }
 
+/* Reset de enlaces: sin subrayado ni color 'visited' morado */
+@layer base {
+  a {
+    @apply no-underline text-inherit;
+  }
+
+  a:visited {
+    color: inherit;
+  }
+}
+
 /* Scroll invisible para todos los navegadores */
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
 
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
+/* === Tus utilidades existentes === */
 .glassmorphism {
   background-color: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(30, 41, 59, 0.5);
+}
+
+/* Sidebar específico con estilos forzados */
+.sidebar-container {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border-right: 1px solid rgba(51, 65, 85, 0.6) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(51, 65, 85, 0.1) !important;
+}
+
+.sidebar-brand-logo {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3) !important;
+}
+
+.sidebar-brand-text {
+  background: linear-gradient(90deg, #93c5fd 0%, #06b6d4 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.sidebar-nav-active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%) !important;
+  color: white !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.2) !important;
+}
+
+.sidebar-nav-inactive {
+  color: #cbd5e1 !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+}
+
+.sidebar-nav-inactive:hover {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+  color: white !important;
+  border-color: rgba(51, 65, 85, 0.5) !important;
+  box-shadow: 0 5px 15px -3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.sidebar-toggle-btn {
+  background-color: rgba(51, 65, 85, 0.3) !important;
+  border: 1px solid rgba(51, 65, 85, 0.5) !important;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+.sidebar-logout-btn {
+  color: #f87171 !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+}
+
+.sidebar-logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  box-shadow: 0 5px 15px -3px rgba(239, 68, 68, 0.3) !important;
 }
 
 .fuel-gradient {
@@ -96,19 +182,39 @@ body {
   background-color: rgba(30, 41, 59, 0.5);
 }
 
+/* Animaciones utilitarias */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Responsive Login Styles */
