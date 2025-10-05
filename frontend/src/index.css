@@ -114,30 +114,30 @@ body {
 /* Responsive Login Styles */
 .login-container {
   width: 100%;
-  max-width: 32rem;
+  max-width: 28rem;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .login-logo-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 100%);
-  border-radius: 1rem;
+  border-radius: 0.875rem;
   box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.625rem;
 }
 
 .login-title {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: bold;
   color: white;
   margin-bottom: 0.25rem;
@@ -145,34 +145,34 @@ body {
 
 .login-subtitle {
   color: #94a3b8;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .login-card {
-  padding: 2.5rem;
+  padding: 2rem;
 }
 
 .login-card-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .login-card-title {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: white;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.625rem;
 }
 
 .login-card-subtitle {
   color: #94a3b8;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
 .login-field {
@@ -419,7 +419,7 @@ body {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 32rem;
+  max-width: 28rem;
   box-sizing: border-box;
   margin: auto 0;
 }
