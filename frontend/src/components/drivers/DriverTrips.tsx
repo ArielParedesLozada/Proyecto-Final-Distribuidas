@@ -1,31 +1,115 @@
-import React, { useState } from "react";
-import { Route, Clock, CheckCircle, Play, Fuel } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Eye, CheckCircle, Play, Fuel } from "lucide-react";
+import TripModal from "./TripModal";
+import FuelRequestModal from "./FuelRequestModal";
 
 export type Trip = {
-    id: string; origen: string; destino: string;
+    id: string;
+    origen: string;
+    destino: string;
     estado: "Planificado" | "EnCurso" | "Finalizado";
-    estimado?: number; inicioAt?: number | null; finAt?: number | null;
+    estimado?: number;
+    inicioAt?: number | null;
+    finAt?: number | null;
     observations: Array<{ id: string; text: string; ts: number }>;
 };
 
 type Props = {
-    trips: Trip[];
+    trips?: Trip[]; 
     onStart?: (id: string) => void;
     onFinish?: (id: string) => void;
     onAddObs?: (tripId: string, text: string) => void;
     onAskFuel?: (tripId: string) => void;
 };
 
-const fmt = (ts?: number | null) => ts ? new Date(ts).toLocaleString() : "—";
+const now = Date.now();
+const DEMO_TRIPS: Trip[] = [
+    {
+        id: "VIA-001",
+        origen: "Ambato",
+        destino: "Quito",
+        estado: "Planificado",
+        estimado: 35,
+        inicioAt: null,
+        finAt: null,
+        observations: [
+            { id: "o1", text: "Revisar neumáticos antes de salir.", ts: now - 1000 * 60 * 60 * 5 },
+        ],
+    },
+    {
+        id: "VIA-002",
+        origen: "Latacunga",
+        destino: "Ambato",
+        estado: "EnCurso",
+        estimado: 20,
+        inicioAt: now - 1000 * 60 * 45,
+        finAt: null,
+        observations: [
+            { id: "o2", text: "Tráfico moderado en Panamericana.", ts: now - 1000 * 60 * 30 },
+            { id: "o3", text: "Clima lluvioso, conducir con precaución.", ts: now - 1000 * 60 * 10 },
+        ],
+    },
+    {
+        id: "VIA-003",
+        origen: "Riobamba",
+        destino: "Baños",
+        estado: "Finalizado",
+        estimado: 18,
+        inicioAt: now - 1000 * 60 * 60 * 3,
+        finAt: now - 1000 * 60 * 60 * 2,
+        observations: [{ id: "o4", text: "Viaje sin novedades.", ts: now - 1000 * 60 * 60 * 2 }],
+    },
+    {
+        id: "VIA-004",
+        origen: "Pelileo",
+        destino: "Puyo",
+        estado: "Planificado",
+        estimado: 28,
+        inicioAt: null,
+        finAt: null,
+        observations: [],
+    },
+    {
+        id: "VIA-005",
+        origen: "Ambato",
+        destino: "Guaranda",
+        estado: "EnCurso",
+        estimado: 22,
+        inicioAt: now - 1000 * 60 * 20,
+        finAt: null,
+        observations: [{ id: "o5", text: "Parada breve para verificar carga.", ts: now - 1000 * 60 * 12 }],
+    },
+    {
+        id: "VIA-006",
+        origen: "Tena",
+        destino: "Ambato",
+        estado: "Planificado",
+        estimado: 40,
+        inicioAt: null,
+        finAt: null,
+        observations: [],
+    },
+];
 
-const DriverTrips: React.FC<Props> = ({ trips, onStart, onFinish, onAddObs, onAskFuel }) => {
-    const [selected, setSelected] = useState<string | undefined>(trips[0]?.id);
-    const [obs, setObs] = useState("");
-    const trip = trips.find(t => t.id === selected);
+const DriverTrips: React.FC<Props> = ({
+    trips,
+    onStart,
+    onFinish,
+    onAddObs,
+    onAskFuel,
+}) => {
+    const data = useMemo(() => (trips && trips.length ? trips : DEMO_TRIPS), [trips]);
+
+    const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+    const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
+
+    const handleFuelSubmit = (_litros: number, tripId?: string) => {
+        if (tripId) onAskFuel?.(tripId);
+        setFuelTrip(null);
+    };
 
     return (
         <div className="space-y-6">
-            {/* Título con gradiente */}
             <div className="text-center">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
                     Mis Viajes
@@ -33,143 +117,91 @@ const DriverTrips: React.FC<Props> = ({ trips, onStart, onFinish, onAddObs, onAs
                 <p className="text-slate-400">Gestiona tus viajes y observaciones</p>
             </div>
 
-            <div className="grid lg:grid-cols-[320px,1fr] gap-6">
-                {/* list */}
-                <div className="fuel-card h-fit lg:h-[76vh] overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-800/60">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
-                                <Route className="w-5 h-5 text-blue-400" />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {data.map((trip) => (
+                    <div
+                        key={trip.id}
+                        className="fuel-card flex items-center justify-between p-4 hover:shadow-lg transition-all"
+                    >
+                        <div className="min-w-0">
+                            <div className="font-semibold text-white text-lg truncate">
+                                {trip.origen} → {trip.destino}
                             </div>
-                            <h3 className="text-lg font-semibold text-white">Lista de Viajes</h3>
+                            <div className="text-sm text-slate-400">ID: {trip.id}</div>
+                            <span
+                                className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${trip.estado === "Finalizado"
+                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
+                                    : trip.estado === "EnCurso"
+                                        ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
+                                        : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
+                                    }`}
+                            >
+                                {trip.estado}
+                            </span>
                         </div>
-                    </div>
-                    <div className="space-y-3 overflow-auto max-h-[66vh] px-6 pb-6">
-                        {trips.map(t => (
-                            <button key={t.id} onClick={() => setSelected(t.id)}
-                                className={`w-full text-left p-4 rounded-xl border transition-all duration-300 ${
-                                    selected === t.id 
-                                        ? "border-blue-500/50 bg-gradient-to-r from-blue-600/10 to-cyan-600/10 shadow-lg" 
-                                        : "border-slate-800 hover:bg-slate-800/40 hover:border-slate-700"
-                                }`}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="font-semibold text-white">{t.origen} → {t.destino}</div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        t.estado === "Finalizado" 
-                                            ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30" 
-                                            : t.estado === "EnCurso" 
-                                            ? "bg-blue-600/20 text-blue-400 border border-blue-600/30" 
-                                            : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
-                                    }`}>{t.estado}</span>
-                                </div>
-                                <div className="text-xs text-slate-400">ID: {t.id}</div>
+
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            <button
+                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all"
+                                title="Ver Detalle"
+                                onClick={() => setSelectedTrip(trip)}
+                            >
+                                <Eye className="w-5 h-5 text-slate-200" />
                             </button>
-                        ))}
-                    </div>
-                </div>
 
-                {/* detail */}
-                <div className="fuel-card p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="p-2 rounded-lg bg-emerald-600/20 border border-emerald-600/30">
-                                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                                </div>
-                                <h3 className="text-xl font-semibold text-white">Detalle del viaje</h3>
-                            </div>
-                            <div className="text-slate-400">{trip?.origen} → {trip?.destino}</div>
-                        </div>
-                        <div className="flex gap-3">
-                            {trip?.estado === "Planificado" && (
-                                <button className="fuel-button flex items-center gap-2" onClick={() => onStart?.(trip.id)}>
-                                    <Play className="w-4 h-4" />
-                                    Iniciar
-                                </button>
-                            )}
-                            {trip?.estado === "EnCurso" && (
-                                <button className="fuel-button-secondary flex items-center gap-2" onClick={() => onFinish?.(trip.id)}>
-                                    <CheckCircle className="w-4 h-4" />
-                                    Finalizar
-                                </button>
-                            )}
-                            {trip && (
-                                <button className="fuel-button-secondary flex items-center gap-2" onClick={() => onAskFuel?.(trip.id)}>
-                                    <Fuel className="w-4 h-4" />
-                                    Pedir gasolina
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
-                                    <Clock className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-white">Observaciones</h4>
-                            </div>
-                            <div className="space-y-3 max-h-[46vh] overflow-auto pr-1">
-                                {trip?.observations.map(o => (
-                                    <div key={o.id} className="fuel-card p-4">
-                                        <div className="text-sm text-white mb-2">{o.text}</div>
-                                        <div className="text-xs text-slate-500">{fmt(o.ts)}</div>
-                                    </div>
-                                ))}
-                                {trip && trip.observations.length === 0 && (
-                                    <div className="text-center py-8">
-                                        <Clock className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                                        <div className="text-slate-400">Sin observaciones aún</div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex gap-3">
-                                <input 
-                                    className="fuel-input flex-1" 
-                                    placeholder="Escribe una observación..." 
-                                    value={obs} 
-                                    onChange={(e) => setObs(e.target.value)} 
-                                />
-                                <button 
-                                    className="fuel-button px-6" 
-                                    onClick={() => { if (obs.trim() && trip) { onAddObs?.(trip.id, obs.trim()); setObs(""); } }}
+                            {trip.estado === "Planificado" && (
+                                <button
+                                    className="fuel-button-secondary flex items-center gap-2 px-3 py-1 text-xs"
+                                    onClick={() => onStart?.(trip.id)}
                                 >
-                                    Agregar
+                                    <Play className="w-4 h-4" /> Iniciar
                                 </button>
-                            </div>
-                        </div>
+                            )}
+                            {trip.estado === "EnCurso" && (
+                                <button
+                                    className="fuel-button flex items-center gap-2 px-3 py-1 text-xs"
+                                    onClick={() => onFinish?.(trip.id)}
+                                >
+                                    <CheckCircle className="w-4 h-4" /> Finalizar
+                                </button>
+                            )}
 
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <div className="p-2 rounded-lg bg-amber-600/20 border border-amber-600/30">
-                                    <Route className="w-5 h-5 text-amber-400" />
-                                </div>
-                                <h4 className="text-lg font-semibold text-white">Resumen</h4>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="fuel-card p-4 text-center">
-                                    <div className="text-slate-400 text-sm mb-1">Estado</div>
-                                    <div className="font-semibold text-white">{trip?.estado ?? "—"}</div>
-                                </div>
-                                <div className="fuel-card p-4 text-center">
-                                    <div className="text-slate-400 text-sm mb-1">Estimado (L)</div>
-                                    <div className="font-semibold text-blue-400">{trip?.estimado ?? "—"}</div>
-                                </div>
-                                <div className="fuel-card p-4 text-center">
-                                    <div className="text-slate-400 text-sm mb-1">Inicio</div>
-                                    <div className="font-semibold text-emerald-400">{fmt(trip?.inicioAt)}</div>
-                                </div>
-                                <div className="fuel-card p-4 text-center">
-                                    <div className="text-slate-400 text-sm mb-1">Fin</div>
-                                    <div className="font-semibold text-amber-400">{fmt(trip?.finAt)}</div>
-                                </div>
-                            </div>
+                            <button
+                                className="fuel-button-secondary flex items-center gap-2 px-3 py-1 text-xs"
+                                onClick={() => setFuelTrip(trip)}
+                            >
+                                <Fuel className="w-4 h-4" /> Gasolina
+                            </button>
                         </div>
                     </div>
-                </div>
+                ))}
+
+                {data.length === 0 && (
+                    <div className="text-center text-slate-400 col-span-full py-12">
+                        No hay viajes asignados actualmente.
+                    </div>
+                )}
             </div>
+
+            {selectedTrip && (
+                <TripModal
+                    trip={selectedTrip}
+                    onClose={() => setSelectedTrip(null)}
+                    onAddObs={onAddObs}
+                />
+            )}
+
+            {fuelTrip && (
+                <FuelRequestModal
+                    currentLevel={30}
+                    tripId={fuelTrip.id}
+                    tripEstado={fuelTrip.estado}
+                    onClose={() => setFuelTrip(null)}
+                    onSubmit={handleFuelSubmit}
+                />
+            )}
         </div>
     );
 };
+
 export default DriverTrips;

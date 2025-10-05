@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Fuel } from "lucide-react";
 import type { INavItem } from "../interfaces/INavItem";
 
 type Props = {
@@ -22,7 +22,7 @@ const Sidebar: React.FC<Props> = ({
     onMobileToggle,
     collapsedDefault = false,
     className = "",
-    desktopTopOffset = 15, 
+    desktopTopOffset = 15,
 }) => {
     const { pathname } = useLocation();
     const [collapsed, setCollapsed] = useState(collapsedDefault);
@@ -33,20 +33,18 @@ const Sidebar: React.FC<Props> = ({
     const Brand = useMemo(
         () => (
             <div
-                className="flex items-center gap-4 cursor-pointer select-none group"
+                className="flex items-center gap-3 cursor-pointer select-none group min-w-0"
                 onClick={brand.onClickBrand}
                 title={brand.full}
             >
-                <div className="sidebar-brand-logo h-12 w-12 rounded-xl grid place-content-center shadow-lg transition-all duration-300 shrink-0">
-                    {brand.logo ?? (
-                        <span className="text-blue-300 font-bold text-xl group-hover:text-blue-200">
-                            ⛽
-                        </span>
-                    )}
+                {/* Logo más pequeño */}
+                <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-gradient-to-tr from-sky-500 to-cyan-400 shadow-md shrink-0">
+                    <Fuel style={{ width: "1.25rem", height: "1.25rem", color: "white" }} />
                 </div>
 
-                <div className={["leading-tight min-w-0 block", collapsed ? "md:hidden" : "md:block"].join(" ")}>
-                    <div className="sidebar-brand-text text-lg font-bold whitespace-nowrap">
+                {/* Texto del brand (se oculta si está colapsado en desktop) */}
+                <div className={["leading-tight min-w-0", collapsed ? "md:hidden" : "md:block"].join(" ")}>
+                    <div className="sidebar-brand-text text-lg font-bold text-sky-100 truncate max-w-[9rem]">
                         {brand.full}
                     </div>
                     <div className="text-sm text-slate-400 whitespace-normal break-words">
@@ -62,6 +60,7 @@ const Sidebar: React.FC<Props> = ({
 
     return (
         <>
+            {/* Overlay móvil */}
             {isMobileOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 backdrop-blur-[1px] md:hidden z-40"
@@ -80,11 +79,14 @@ const Sidebar: React.FC<Props> = ({
                     className,
                 ].join(" ")}
             >
+                {/* Ajuste para alinear con el topbar */}
                 <div className="hidden md:block" style={{ height: desktopTopOffset }} />
 
-                <div className="h-16 px-2 md:px-2 flex items-center justify-between">
-                    <div className="pl-4">{Brand}</div>
+                {/* Header del sidebar */}
+                <div className="h-16 px-2 flex items-center justify-between">
+                    <div className="pl-4 min-w-0">{Brand}</div>
 
+                    {/* Botón expandir/contraer */}
                     <button
                         className="hidden md:inline-flex items-center justify-center h-9 w-9 mr-2 rounded-xl bg-slate-900/40 hover:bg-slate-800/60 transition-all focus:outline-none"
                         onClick={() => setCollapsed((v) => !v)}
@@ -98,6 +100,8 @@ const Sidebar: React.FC<Props> = ({
                         )}
                     </button>
                 </div>
+
+                {/* Navegación */}
                 <nav className="mt-2 flex-1 px-3 overflow-y-auto overflow-x-hidden">
                     <div className="space-y-2">
                         {items.map((it) => {
@@ -138,6 +142,7 @@ const Sidebar: React.FC<Props> = ({
                     </div>
                 </nav>
 
+                {/* Footer */}
                 <div
                     className="mt-auto px-3 py-4"
                     style={{ borderTop: "1px solid rgba(51, 65, 85, 0.5)" }}
