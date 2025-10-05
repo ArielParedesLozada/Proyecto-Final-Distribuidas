@@ -13,6 +13,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../config.env'), override: true });
 
+import AdminRoutes from "./routes/AdminRoutes.js";
+import AuthRoutes from "./routes/AuthRoutes.js";
+import ChoferRoutes from "./routes/ChoferRoutes.js";
+
 const app = express();
 
 // ✅ CORS explícito (incluye Authorization)
@@ -28,15 +32,8 @@ app.use((req, _res, next) => {
   next();
 });
 
-// 1) PROXY /auth SIN body parser antes
-app.use('/auth', createProxyMiddleware({
-  target: process.env.AUTH_SERVICE || 'http://localhost:5121',
-  changeOrigin: true,
-  // ⚠️ Desactiva pathRewrite por defecto. Actívalo SOLO si tu AuthService espera /login (sin /auth).
-  // pathRewrite: { '^/auth': '' },
-  proxyTimeout: 15000,
-  timeout: 15000,
-}));
+app.use(AuthRoutes)
+app.use(AdminRoutes)
 
 // 2) Body parser solo para tus rutas propias
 app.use(express.json());
