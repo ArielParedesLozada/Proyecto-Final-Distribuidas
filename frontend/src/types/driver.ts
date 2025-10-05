@@ -22,3 +22,11 @@ export interface DriverProfile {
   capabilities: string;
   availability: string;
 }
+
+export interface DriversListResponse {
+  drivers: Driver[];
+  total_count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

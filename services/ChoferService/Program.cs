@@ -1,7 +1,7 @@
 using ChoferService.Services;
 using ChoferService.Data;
 using ChoferService.Data.Seed;
-// using ChoferService.Middleware; // ⛔️ QUITADO para evitar doble validación JWT
+// using ChoferService.Middleware; // ⛔️ dejado fuera para evitar doble validación
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -11,10 +11,15 @@ using Grpc.Health.V1;
 using Microsoft.AspNetCore.Authentication;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------- Grpc & Health ----------
+// Mantener los claim types "crudos" (p.ej. 'sub' como 'sub')
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
+// ---------- gRPC & Health ----------
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddSingleton<Grpc.HealthCheck.HealthServiceImpl>();
@@ -24,9 +29,9 @@ builder.Services.AddDbContext<DriversDb>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DriversDb")));
 
 // ---------- JWT CONFIG (HS256) ----------
-var jwtSecret   = builder.Configuration["Jwt:Secret"]    ?? Environment.GetEnvironmentVariable("JWT_SECRET");
-var jwtIssuer   = builder.Configuration["Jwt:Issuer"]    ?? "http://localhost:5121";
-var jwtAudience = builder.Configuration["Jwt:Audience"]  ?? "http://localhost:5121";
+var jwtSecret   = builder.Configuration["Jwt:Secret"]   ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "http://localhost:5121";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "http://localhost:5121";
 
 if (string.IsNullOrWhiteSpace(jwtSecret))
     throw new InvalidOperationException("JWT secret no configurado. Define Jwt:Secret en appsettings.json o JWT_SECRET en variables de entorno.");
@@ -51,7 +56,7 @@ builder.Services
             ClockSkew = TimeSpan.FromMinutes(1),
         };
 
-        // Asegura que tome el token desde Authorization en HTTP/2 (gRPC)
+        // Leer el token desde Authorization (metadata) en gRPC
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -65,6 +70,25 @@ builder.Services
                         context.Token = auth.Substring("Bearer ".Length).Trim();
                     else
                         context.Token = auth.Trim();
+                }
+                return Task.CompletedTask;
+            },
+
+            // 🔑 Expandir "scope" en claims individuales (soporta espacios o comas)
+            OnTokenValidated = context =>
+            {
+                if (context.Principal?.Identity is ClaimsIdentity id)
+                {
+                    var scopeRaw = id.FindFirst("scope")?.Value;
+                    if (!string.IsNullOrWhiteSpace(scopeRaw) && (scopeRaw.Contains(' ') || scopeRaw.Contains(',')))
+                    {
+                        foreach (var s in scopeRaw
+                            .Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Distinct())
+                        {
+                            id.AddClaim(new Claim("scope", s));
+                        }
+                    }
                 }
                 return Task.CompletedTask;
             }
@@ -90,9 +114,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ---------- Pipeline ----------
-// ⛔️ Quita el middleware custom de JWT para evitar segunda validación con otra Authority/llave
-// app.UseMiddleware<GrpcJwtMiddleware>();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -103,7 +124,7 @@ health.SetStatus("drivers.v1.DriversService", HealthCheckResponse.Types.ServingS
 
 // ---------- gRPC Services ----------
 app.MapGrpcService<DriversGrpc>()
-   .RequireAuthorization(); // o .RequireAuthorization("DriversReadOwn") si quieres forzar ese scope a todo
+   .RequireAuthorization(); // exige JWT en todos los métodos (las policies específicas siguen en cada método)
 
 app.MapGrpcService<Grpc.HealthCheck.HealthServiceImpl>();
 

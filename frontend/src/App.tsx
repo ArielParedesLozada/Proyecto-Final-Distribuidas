@@ -1,12 +1,14 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
+import { ToastProvider } from "./shared/ToastNotification";
 import LoginPage from "./pages/auth/LoginPage";
 import NotAuthorized from "./pages/NotAuthorized";
 import AdminPage from "./pages/admin/AdminPage";
 import SupervisorPage from "./pages/supervisor/SupervisorPage";
 import DriverPage from "./pages/drivers/DriverPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminDrivers from "./pages/admin/AdminDrivers";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DriverDashboard from "./components/drivers/DriverDashboard";
@@ -21,7 +23,8 @@ import "./App.css";
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <ToastProvider>
+        <Router>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/auth/login" element={<LoginPage />} />
@@ -31,6 +34,9 @@ const App: React.FC = () => {
           <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="dashboard" element={<AdminPage />}>
               <Route index element={<AdminDashboard />} />
+            </Route>
+            <Route path="drivers" element={<AdminPage />}>
+              <Route index element={<AdminDrivers />} />
             </Route>
           </Route>
 
@@ -56,7 +62,8 @@ const App: React.FC = () => {
           <Route path="/" element={<Navigate to="/auth/login" replace />} />
           <Route path="*" element={<Navigate to="/auth/login" replace />} />
         </Routes>
-      </Router>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 };
