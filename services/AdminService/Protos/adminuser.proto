@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option csharp_namespace = "AdminUserService";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "user.proto";
+
+package adminuser;
+
+service AdminService {
+  rpc ListUsers(google.protobuf.Empty) returns (user.ListUsersResponse) {
+    option (google.api.http) = { 
+        get: "/users" 
+    };
+  }
+
+  rpc GetUserById(user.UserGetByIdRequest) returns (user.UserResponse) {
+    option (google.api.http) = { 
+        get: "/users/{id}" 
+    };
+  }
+
+  rpc GetUserByEmail(user.UserGetByEmailRequest) returns (user.UserResponse) {
+    option (google.api.http) = { 
+        get: "/users:byEmail" 
+        body:"*" 
+    };
+  }
+
+  rpc CreateUser(user.UserCreateRequest) returns (user.UserResponse) {
+    option (google.api.http) = { 
+        post: "/users" 
+        body: "*" 
+    };
+  }
+
+  rpc UpdateUser(user.UserUpdateRequest) returns (user.UserResponse) {
+    option (google.api.http) = { 
+        patch: "/users/{id}" 
+        body: "*" 
+    };
+  }
+
+  rpc DeleteUser(user.UserGetByIdRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = { 
+        delete: "/users/{id}" 
+    };
+  }
+}
