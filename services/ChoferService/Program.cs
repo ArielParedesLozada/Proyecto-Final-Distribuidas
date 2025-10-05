@@ -1,32 +1,31 @@
+
 using ChoferService.Services;
 using ChoferService.Data;
 using ChoferService.Data.Seed;
-// using ChoferService.Middleware; // ⛔️ QUITADO para evitar doble validación JWT
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Grpc.HealthCheck;
 using Grpc.Health.V1;
-using Microsoft.AspNetCore.Authentication;
-using System.Linq;
-using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+DotNetEnv.Env.Load();
 // ---------- Grpc & Health ----------
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
-builder.Services.AddSingleton<Grpc.HealthCheck.HealthServiceImpl>();
+builder.Services.AddSingleton<HealthServiceImpl>();
 
 // ---------- DB ----------
+var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!;
 builder.Services.AddDbContext<DriversDb>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DriversDb")));
+    options.UseNpgsql(CONNECTION_STRING));
 
 // ---------- JWT CONFIG (HS256) ----------
-var jwtSecret   = builder.Configuration["Jwt:Secret"]    ?? Environment.GetEnvironmentVariable("JWT_SECRET");
-var jwtIssuer   = builder.Configuration["Jwt:Issuer"]    ?? "http://localhost:5121";
-var jwtAudience = builder.Configuration["Jwt:Audience"]  ?? "http://localhost:5121";
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "http://localhost:5121";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "http://localhost:5121";
 
 if (string.IsNullOrWhiteSpace(jwtSecret))
     throw new InvalidOperationException("JWT secret no configurado. Define Jwt:Secret en appsettings.json o JWT_SECRET en variables de entorno.");
@@ -74,12 +73,22 @@ builder.Services
 // ---------- Autorización (políticas por scope) ----------
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("DriversCreate",    policy => policy.RequireClaim("scope", "drivers:create"));
-    options.AddPolicy("DriversReadAll",   policy => policy.RequireClaim("scope", "drivers:read:all"));
-    options.AddPolicy("DriversReadOwn",   policy => policy.RequireClaim("scope", "drivers:read:own"));
-    options.AddPolicy("DriversUpdateAny", policy => policy.RequireClaim("scope", "drivers:update:any"));
-});
+    options.AddPolicy("DriversCreate", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(c => c.Type == "scope" && c.Value.Contains("drivers:create"))));
 
+    options.AddPolicy("DriversReadAll", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(c => c.Type == "scope" && c.Value.Contains("drivers:read:all"))));
+
+    options.AddPolicy("DriversReadOwn", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(c => c.Type == "scope" && c.Value.Contains("drivers:read:own"))));
+
+    options.AddPolicy("DriversUpdateAny", policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.HasClaim(c => c.Type == "scope" && c.Value.Contains("drivers:update:any"))));
+});
 var app = builder.Build();
 
 // ---------- Seed ----------

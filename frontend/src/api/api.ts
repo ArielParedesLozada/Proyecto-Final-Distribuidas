@@ -9,11 +9,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   // Construir URL completa
   const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-  
+
   // Obtener token de localStorage
-  const authData = localStorage.getItem('auth');
+  const authData = localStorage.getItem('token');
   let token: string | null = null;
-  
+
   if (authData) {
     try {
       const parsed = JSON.parse(authData);
@@ -22,12 +22,12 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       console.error('Error parsing auth data:', error);
     }
   }
-  
+
   // Configurar headers por defecto
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  
+
   // Agregar Authorization header si hay token
   if (token) {
     defaultHeaders.Authorization = `Bearer ${token}`;
@@ -35,42 +35,36 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   } else {
     console.log('❌ No hay token disponible');
   }
-  
+
   // Mergear headers del init con los por defecto
   const headers = {
     ...defaultHeaders,
     ...init?.headers,
   };
-  
+
   // Configurar opciones de fetch
   const fetchOptions: RequestInit = {
     ...init,
     headers,
   };
-  
-  try {
-    const response = await fetch(fullUrl, fetchOptions);
-    
-    // Si la respuesta no es ok, lanzar error
-    if (!response.ok) {
-      try {
-        // Intentar parsear el error como JSON
-        const errorData = await response.json();
-        throw errorData;
-      } catch (jsonError) {
-        // Si no se puede parsear como JSON, lanzar error con statusText
-        throw new Error(response.statusText || `HTTP ${response.status}`);
-      }
+
+  const response = await fetch(fullUrl, fetchOptions);
+
+  // Si la respuesta no es ok, lanzar error
+  if (!response.ok) {
+    try {
+      // Intentar parsear el error como JSON
+      const errorData = await response.json();
+      throw errorData;
+    } catch (jsonError) {
+      // Si no se puede parsear como JSON, lanzar error con statusText
+      throw new Error(response.statusText || `HTTP ${response.status} error-sigma: ${jsonError}`);
     }
-    
-    // Parsear respuesta como JSON
-    const data = await response.json();
-    return data as T;
-    
-  } catch (error) {
-    // Re-lanzar el error para que sea manejado por el componente
-    throw error;
   }
+
+  // Parsear respuesta como JSON
+  const data = await response.json();
+  return data as T;
 }
 
 // Exportar también la URL base por si se necesita

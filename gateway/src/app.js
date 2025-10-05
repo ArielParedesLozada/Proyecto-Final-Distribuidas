@@ -15,7 +15,6 @@ dotenv.config({ path: path.join(__dirname, '../config.env'), override: true });
 
 import AdminRoutes from "./routes/AdminRoutes.js";
 import AuthRoutes from "./routes/AuthRoutes.js";
-import ChoferRoutes from "./routes/ChoferRoutes.js";
 
 const app = express();
 
