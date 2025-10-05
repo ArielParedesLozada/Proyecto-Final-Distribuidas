@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package drivers.v1;
+
+option csharp_namespace = "ChoferService.Proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Servicio de conductores
+service DriversService {
+  // Crear conductor
+  rpc CreateDriver (CreateDriverRequest) returns (DriverResponse);
+  
+  // Obtener conductor por ID
+  rpc GetDriver (GetDriverRequest) returns (DriverResponse);
+  
+  // Obtener conductor por User ID
+  rpc GetDriverByUserId (GetDriverByUserIdRequest) returns (DriverResponse);
+  
+  // Listar conductores con paginación y filtros
+  rpc ListDrivers (ListDriversRequest) returns (ListDriversResponse);
+  
+  // Actualizar disponibilidad del conductor
+  rpc UpdateAvailability (UpdateAvailabilityRequest) returns (DriverResponse);
+  
+  // Obtener mi propio registro de conductor
+  rpc GetMyDriver (google.protobuf.Empty) returns (DriverResponse);
+}
+
+// Mensaje principal del conductor
+message Driver {
+  string id = 1;
+  string user_id = 2;
+  string full_name = 3;
+  string license_number = 4;
+  int32 capabilities = 5; // 1=Liviana, 2=Pesada, 3=Ambas
+  int32 availability = 6; // 1=Disponible, 2=Ocupado, 3=FueraServicio
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// Request para crear conductor
+message CreateDriverRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string license_number = 3;
+  int32 capabilities = 4;
+  int32 availability = 5;
+}
+
+// Request para obtener conductor por ID
+message GetDriverRequest {
+  string id = 1;
+}
+
+// Request para obtener conductor por User ID
+message GetDriverByUserIdRequest {
+  string user_id = 1;
+}
+
+// Request para listar conductores
+message ListDriversRequest {
+  optional int32 availability = 1; // Filtro opcional por disponibilidad
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+// Request para actualizar disponibilidad
+message UpdateAvailabilityRequest {
+  string id = 1;
+  int32 availability = 2;
+}
+
+// Response con datos del conductor
+message DriverResponse {
+  Driver driver = 1;
+}
+
+// Response con lista de conductores
+message ListDriversResponse {
+  repeated Driver drivers = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
+}
