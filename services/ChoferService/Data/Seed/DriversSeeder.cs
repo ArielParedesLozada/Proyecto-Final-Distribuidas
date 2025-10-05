@@ -8,50 +8,29 @@ namespace ChoferService.Data.Seed
     {
         public static async Task SeedAsync(DriversDb db)
         {
-            // Solo insertar datos si la tabla está vacía
-            if (await db.Drivers.AnyAsync())
+            // Verificar si ya existe el conductor de prueba
+            var testDriverId = Guid.Parse("60ab533e-84f0-4c85-bdc0-003ae5e2f6e0");
+            var testDriverExists = await db.Drivers.AnyAsync(d => d.UserId == testDriverId);
+            
+            if (testDriverExists)
             {
-                return; // Ya hay datos, no insertar
+                return; // El conductor de prueba ya existe
             }
 
-            var drivers = new List<Driver>
+            // Solo insertar el conductor de prueba que necesitamos
+            var testDriver = new Driver
             {
-                new Driver
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                    FullName = "Chofer Liviana",
-                    LicenseNumber = "LIC-001",
-                    Capabilities = 1, // Liviana
-                    Availability = 1, // Disponible
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                },
-                new Driver
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                    FullName = "Chofer Pesada",
-                    LicenseNumber = "LIC-002",
-                    Capabilities = 2, // Pesada
-                    Availability = 1, // Disponible
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                },
-                new Driver
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = Guid.Parse("00000000-0000-0000-0000-000000000003"),
-                    FullName = "Chofer Ambos",
-                    LicenseNumber = "LIC-003",
-                    Capabilities = 3, // Ambas
-                    Availability = 1, // Disponible
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                }
+                Id = Guid.NewGuid(),
+                UserId = Guid.Parse("60ab533e-84f0-4c85-bdc0-003ae5e2f6e0"), // ID del conductor@conductor.com
+                FullName = "Conductor del Sistema",
+                LicenseNumber = "CON-001",
+                Capabilities = 1, // Liviana
+                Availability = 1, // Disponible
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
 
-            await db.Drivers.AddRangeAsync(drivers);
+            await db.Drivers.AddAsync(testDriver);
             await db.SaveChangesAsync();
         }
     }

@@ -8,6 +8,7 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using Npgsql;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ChoferService.Services;
 
@@ -22,13 +23,40 @@ public class DriversGrpc : DriversService.DriversServiceBase
         _logger = logger;
     }
 
+    // ==== Helper: obtiene el userId desde los claims (NameIdentifier o sub). Lanza 401 si no existe/invalid. ====
+    private Guid RequireUserId(HttpContext httpContext)
+    {
+        var user = httpContext.User;
+
+        // Orden de preferencia: NameIdentifier -> "sub" estándar (dos variantes)
+        var userIdClaim =
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+            ?? user.FindFirst("sub")?.Value;
+
+        // Logs de soporte (como tenías)
+        Console.WriteLine($"🔍 GetUserId - Authenticated: {user.Identity?.IsAuthenticated}");
+        Console.WriteLine($"🔍 GetUserId - Raw Claim Value: {userIdClaim}");
+        Console.WriteLine($"🔍 GetUserId - All claims: {string.Join(", ", user.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+
+        if (!string.IsNullOrWhiteSpace(userIdClaim) && Guid.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+
+        _logger.LogWarning("Invalid or missing user ID in token. Claims: {claims}",
+            string.Join(", ", user.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+        throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid user token"));
+    }
+
     [Authorize(Policy = "DriversCreate")]
     public override async Task<DriverResponse> CreateDriver(CreateDriverRequest request, ServerCallContext context)
     {
         try
         {
             _logger.LogInformation("CreateDriver called with UserId: {UserId}", request.UserId);
-            
+
             // Validar user_id como Guid
             if (!Guid.TryParse(request.UserId, out var userId))
             {
@@ -69,7 +97,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
             _logger.LogInformation("Adding driver to context");
             _context.Drivers.Add(driver);
-            
+
             _logger.LogInformation("Saving changes to database");
             await _context.SaveChangesAsync();
 
@@ -248,10 +276,11 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
             // Autorizar "dueño o admin"
             var httpContext = context.GetHttpContext();
-            var sub = httpContext.User.FindFirst("sub")?.Value;
-            var isOwner = Guid.TryParse(sub, out var uid) && driver.UserId == uid;
+            var callerUserId = RequireUserId(httpContext);
+
+            var isOwner = driver.UserId == callerUserId;
             var canUpdateAny = httpContext.User.HasClaim("scope", "drivers:update:any");
-            
+
             if (!isOwner && !canUpdateAny)
             {
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "FORBIDDEN"));
@@ -285,15 +314,8 @@ public class DriversGrpc : DriversService.DriversServiceBase
     {
         try
         {
-            // Obtener el userId desde el token JWT
             var httpContext = context.GetHttpContext();
-            var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-            
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            {
-                _logger.LogWarning("Invalid or missing user ID in token");
-                throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid user token"));
-            }
+            var userId = RequireUserId(httpContext);
 
             _logger.LogInformation("GetMyDriver called for user {UserId}", userId);
 

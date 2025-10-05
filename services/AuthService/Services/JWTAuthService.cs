@@ -25,15 +25,44 @@ public class JWTAuthService : AuthService.AuthServiceBase
         _issuer = issuer;
     }
 
+    private List<string> GetScopesFromRoles(string roles)
+    {
+        var scopes = new List<string>();
+        var roleList = roles.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                           .Select(r => r.Trim().ToUpper());
+
+        foreach (var role in roleList)
+        {
+            switch (role)
+            {
+                case "ADMIN":
+                    scopes.AddRange(new[] { "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update" });
+                    break;
+                case "SUPERVISOR":
+                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own" });
+                    break;
+                case "CONDUCTOR":
+                    scopes.AddRange(new[] { "drivers:read:own" });
+                    break;
+            }
+        }
+
+        return scopes.Distinct().ToList();
+    }
+
     private string GenerateToken(User user)
     {
         var expiration = DateTime.UtcNow.AddHours(_time);
+        // Mapear roles a scopes
+        var scopes = GetScopesFromRoles(user.Roles);
+        
         Claim[] claims = new[]
         {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
         new Claim(JwtRegisteredClaimNames.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Roles),
         new Claim(ClaimTypes.Name, user.Nombre),
+        new Claim("scope", string.Join(" ", scopes)), // Agregar scopes al token
     };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JWT_SECRET));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

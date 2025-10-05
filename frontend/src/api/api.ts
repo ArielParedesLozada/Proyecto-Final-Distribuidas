@@ -31,6 +31,9 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   // Agregar Authorization header si hay token
   if (token) {
     defaultHeaders.Authorization = `Bearer ${token}`;
+    console.log('🔑 Token enviado:', token.substring(0, 20) + '...');
+  } else {
+    console.log('❌ No hay token disponible');
   }
   
   // Mergear headers del init con los por defecto

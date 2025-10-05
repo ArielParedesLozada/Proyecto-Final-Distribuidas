@@ -1,80 +1,121 @@
 using ChoferService.Services;
 using ChoferService.Data;
 using ChoferService.Data.Seed;
+// using ChoferService.Middleware; // ⛔️ QUITADO para evitar doble validación JWT
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Grpc.HealthCheck;
 using Grpc.Health.V1;
+using Microsoft.AspNetCore.Authentication;
+using System.Linq;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ---------- Grpc & Health ----------
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddSingleton<Grpc.HealthCheck.HealthServiceImpl>();
 
-// Add DbContext
+// ---------- DB ----------
 builder.Services.AddDbContext<DriversDb>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DriversDb")));
 
-// Add Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// ---------- JWT CONFIG (HS256) ----------
+var jwtSecret   = builder.Configuration["Jwt:Secret"]    ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+var jwtIssuer   = builder.Configuration["Jwt:Issuer"]    ?? "http://localhost:5121";
+var jwtAudience = builder.Configuration["Jwt:Audience"]  ?? "http://localhost:5121";
+
+if (string.IsNullOrWhiteSpace(jwtSecret))
+    throw new InvalidOperationException("JWT secret no configurado. Define Jwt:Secret en appsettings.json o JWT_SECRET en variables de entorno.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = builder.Configuration["Jwt:Authority"];
-        options.RequireHttpsMetadata = false; // Para desarrollo
+        options.RequireHttpsMetadata = false; // dev
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = false
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1),
+        };
+
+        // Asegura que tome el token desde Authorization en HTTP/2 (gRPC)
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var auth = context.Request.Headers["Authorization"].FirstOrDefault()
+                           ?? context.Request.Headers["authorization"].FirstOrDefault();
+
+                if (!string.IsNullOrWhiteSpace(auth))
+                {
+                    if (auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        context.Token = auth.Substring("Bearer ".Length).Trim();
+                    else
+                        context.Token = auth.Trim();
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
-// Add Authorization with policies
+// ---------- Autorización (políticas por scope) ----------
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("DriversCreate", policy =>
-        policy.RequireClaim("scope", "drivers:create"));
-    options.AddPolicy("DriversReadAll", policy =>
-        policy.RequireClaim("scope", "drivers:read:all"));
-    options.AddPolicy("DriversReadOwn", policy =>
-        policy.RequireClaim("scope", "drivers:read:own"));
-    options.AddPolicy("DriversUpdateAny", policy =>
-        policy.RequireClaim("scope", "drivers:update:any"));
+    options.AddPolicy("DriversCreate",    policy => policy.RequireClaim("scope", "drivers:create"));
+    options.AddPolicy("DriversReadAll",   policy => policy.RequireClaim("scope", "drivers:read:all"));
+    options.AddPolicy("DriversReadOwn",   policy => policy.RequireClaim("scope", "drivers:read:own"));
+    options.AddPolicy("DriversUpdateAny", policy => policy.RequireClaim("scope", "drivers:update:any"));
 });
 
 var app = builder.Build();
 
-// Seed database if empty
+// ---------- Seed ----------
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DriversDb>();
     await DriversSeeder.SeedAsync(db);
 }
 
-// Configure the HTTP request pipeline
+// ---------- Pipeline ----------
+// ⛔️ Quita el middleware custom de JWT para evitar segunda validación con otra Authority/llave
+// app.UseMiddleware<GrpcJwtMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Configure gRPC health check service
+// ---------- Health ----------
 var health = app.Services.GetRequiredService<Grpc.HealthCheck.HealthServiceImpl>();
 health.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
 health.SetStatus("drivers.v1.DriversService", HealthCheckResponse.Types.ServingStatus.Serving);
 
-// Map gRPC services
-app.MapGrpcService<DriversGrpc>();
+// ---------- gRPC Services ----------
+app.MapGrpcService<DriversGrpc>()
+   .RequireAuthorization(); // o .RequireAuthorization("DriversReadOwn") si quieres forzar ese scope a todo
+
 app.MapGrpcService<Grpc.HealthCheck.HealthServiceImpl>();
 
-// Enable gRPC reflection solo en Development
+// ---------- Reflection (solo dev) ----------
 if (app.Environment.IsDevelopment())
 {
     app.MapGrpcReflectionService();
 }
 
-// Map HTTP endpoints
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
-app.MapGet("/healthz", () => "ok"); // Liveness probe
+// ---------- Endpoints HTTP ----------
+app.MapGet("/", () => "ChoferService gRPC");
+app.MapGet("/healthz", () => "ok");
 app.MapGet("/readyz", async (DriversDb db) =>
 {
     try
@@ -86,6 +127,6 @@ app.MapGet("/readyz", async (DriversDb db) =>
     {
         return Results.StatusCode(503);
     }
-}); // Readiness probe
+});
 
 app.Run();

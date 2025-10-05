@@ -53,13 +53,20 @@ router.get("/drivers/:id", auth, requireScopes("drivers:read:all"), (req, res) =
 
 // GET /me/driver - Obtener mi conductor
 router.get("/me/driver", auth, requireScopes("drivers:read:own"), (req, res) => {
-  const request = {};
-  
-  driversClient.GetMyDriver(request, metaFromReq(req), (err, response) => {
-    if (err) return mapGrpcError(err, res);
+  if (!req.auth) {
+    console.warn("⚠️ req.auth vacío tras auth()");
+    return res.status(401).json({ error: "Unauthorized (no auth payload)" });
+  }
+  console.log('🔍 /me/driver - User auth:', req.auth);
+  driversClient.GetMyDriver({}, metaFromReq(req), (err, response) => {
+    if (err) {
+      console.log('❌ Error en GetMyDriver:', err);
+      return mapGrpcError(err, res);
+    }
     res.json(response);
   });
 });
+
 
 // PATCH /drivers/:id/availability - Actualizar disponibilidad
 router.patch("/drivers/:id/availability", auth, (req, res) => {
