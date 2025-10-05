@@ -3,18 +3,22 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 // Tipos de roles válidos
 type UserRole = "ADMIN" | "SUPERVISOR" | "CONDUCTOR";
 
-// Interfaz del usuario autenticado
+// =====================
+// Tipos de autenticación
+// =====================
 interface AuthUser {
   token: string;
   email: string;
   roles: UserRole[];
+  name?: string; // <-- agregado
 }
 
-// Interfaz de datos persistentes en localStorage
+// Lo que persistimos en localStorage
 interface AuthData {
   token: string;
   email: string;
-  roles: string; // Se almacena como string separado por comas/espacios
+  roles: string;   // guardado como string (coma/espacios)
+  name?: string;   // <-- agregado
 }
 
 interface AuthContextType {
@@ -33,189 +37,161 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Función para parsear roles desde string
-  // Ejemplos de entrada válida:
-  // "ADMIN" → ["ADMIN"]
-  // "ADMIN,CONDUCTOR" → ["ADMIN", "CONDUCTOR"]
-  // "admin supervisor" → ["ADMIN", "SUPERVISOR"]
-  // "  CONDUCTOR , ADMIN  " → ["CONDUCTOR", "ADMIN"]
-  // "INVALID,ADMIN" → ["ADMIN"] (filtra roles inválidos)
+  // ---- helpers ----
+
+  // Parsear roles desde string (coma/espacios)
   const parseRoles = (rolesString: string): UserRole[] => {
     if (!rolesString || typeof rolesString !== 'string') return [];
-    
-    // Normalizar: convertir a string, quitar espacios extra, separar por comas o espacios
-    const normalizedString = rolesString.toString().trim();
-    if (!normalizedString) return [];
-    
-    // Separar por comas, espacios, o ambos
-    const roleParts = normalizedString
-      .split(/[,\s]+/) // Separar por coma, espacio, o ambos
-      .map(role => role.trim()) // Quitar espacios extra
-      .filter(role => role.length > 0); // Filtrar strings vacíos
-    
-    // Convertir a mayúsculas y validar
-    const validRoles: UserRole[] = [];
-    const validRoleSet = new Set(["ADMIN", "SUPERVISOR", "CONDUCTOR"]);
-    
-    for (const role of roleParts) {
-      const upperRole = role.toUpperCase() as UserRole;
-      if (validRoleSet.has(upperRole) && !validRoles.includes(upperRole)) {
-        validRoles.push(upperRole);
-      }
+    const roleParts = rolesString
+      .toString()
+      .trim()
+      .split(/[,\s]+/)
+      .map(r => r.trim())
+      .filter(Boolean);
+
+    const valid: UserRole[] = [];
+    const set = new Set<UserRole>(["ADMIN", "SUPERVISOR", "CONDUCTOR"]);
+    for (const r of roleParts) {
+      const upper = r.toUpperCase() as UserRole;
+      if (set.has(upper) && !valid.includes(upper)) valid.push(upper);
     }
-    
-    return validRoles;
+    return valid;
   };
 
-  // Función para cargar datos desde localStorage
   const loadFromStorage = (): AuthUser | null => {
     try {
-      const authData = localStorage.getItem('auth');
-      if (!authData) return null;
-      
-      const parsed: AuthData = JSON.parse(authData);
+      const raw = localStorage.getItem('auth');
+      if (!raw) return null;
+      const parsed: AuthData = JSON.parse(raw);
       if (!parsed.token || !parsed.email) return null;
-      
+
       return {
         token: parsed.token,
         email: parsed.email,
-        roles: parseRoles(parsed.roles)
+        roles: parseRoles(parsed.roles),
+        name: parsed.name, // puede venir vacío si nunca se cargó /auth/me
       };
-    } catch (error) {
-      console.error('Error parsing auth data from localStorage:', error);
+    } catch (e) {
+      console.error('Error parsing auth from storage', e);
       return null;
     }
   };
 
-  // Función para guardar datos en localStorage
   const saveToStorage = (authUser: AuthUser): void => {
-    const authData: AuthData = {
+    const data: AuthData = {
       token: authUser.token,
       email: authUser.email,
-      roles: authUser.roles.join(', ') // Guardar como string separado por comas
+      roles: authUser.roles.join(', '),
+      name: authUser.name,
     };
-    localStorage.setItem('auth', JSON.stringify(authData));
+    localStorage.setItem('auth', JSON.stringify(data));
   };
 
-  // Función para limpiar datos del storage
   const clearStorage = (): void => {
     localStorage.removeItem('auth');
   };
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const storedUser = loadFromStorage();
-      
-      if (storedUser) {
-        try {
-          // Verificar si el token es válido obteniendo datos del usuario
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/auth/me`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${storedUser.token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            // Actualizar con datos del servidor si es necesario
-            const updatedUser: AuthUser = {
-              token: storedUser.token,
-              email: userData.email || storedUser.email,
-              roles: parseRoles(userData.roles || storedUser.roles.join(', '))
-            };
-            setUser(updatedUser);
-            saveToStorage(updatedUser);
-          } else {
-            // Token inválido, limpiar
-            clearStorage();
-            setUser(null);
-          }
-        } catch (error) {
-          console.error('Error loading user:', error);
-          // En caso de error, limpiar datos
-          clearStorage();
-          setUser(null);
-        }
+  // Llama /auth/me para completar name (y roles si aplica)
+  const fetchMe = async (token: string, fallback?: { email?: string; roles?: UserRole[] }): Promise<AuthUser> => {
+    // aseguramos que el Authorization lo ponga fetch
+    const resp = await fetch(`${API_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!resp.ok) {
+      // si falla, devolvemos con fallback (sin name)
+      if (fallback?.email && fallback?.roles) {
+        return { token, email: fallback.email, roles: fallback.roles };
       }
-      
-      setIsLoading(false);
-    };
-    
-    loadUser();
+      throw new Error(`ME failed: ${resp.status}`);
+    }
+
+    const me = await resp.json() as { id?: string; email?: string; roles?: string; name?: string };
+    const parsedRoles = parseRoles(me.roles ?? (fallback?.roles?.join(', ') || ''));
+    const email = me.email ?? fallback?.email ?? '';
+    const u: AuthUser = { token, email, roles: parsedRoles, name: me.name };
+
+    setUser(u);
+    saveToStorage(u);
+    return u;
+  };
+
+  // ---- efectos ----
+
+  useEffect(() => {
+    (async () => {
+      const stored = loadFromStorage();
+      if (!stored) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // refresca y completa name desde /auth/me
+        await fetchMe(stored.token, { email: stored.email, roles: stored.roles });
+      } catch (e) {
+        console.warn('Error refreshing /auth/me, clearing auth', e);
+        clearStorage();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
+  // ---- acciones ----
+
   const login = async (email: string, password: string): Promise<AuthUser> => {
-    try {
-      // Validación básica
-      if (!email || !password) {
-        throw new Error('Email y contraseña son requeridos');
-      }
-      
-      if (password.length < 6) {
-        throw new Error('La contraseña debe tener al menos 6 caracteres');
-      }
-      
-      // Llamada al backend a través del gateway
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.token || !data.email || !data.roles) {
-        throw new Error('Respuesta del servidor incompleta');
-      }
-      
-      // Parsear roles desde string
-      const parsedRoles = parseRoles(data.roles);
-      
-      // Crear objeto usuario autenticado
-      const authUser: AuthUser = {
-        token: data.token,
-        email: data.email,
-        roles: parsedRoles
-      };
-      
-      // Guardar en localStorage y estado
-      saveToStorage(authUser);
-      setUser(authUser);
-      
-      return authUser;
-    } catch (error) {
-      console.error('Error en login:', error);
-      throw error;
+    if (!email || !password) throw new Error('Email y contraseña son requeridos');
+    if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || `Error ${response.status}: ${response.statusText}`);
     }
+
+    const data = await response.json() as { token?: string; email?: string; roles?: string };
+    if (!data.token || !data.email || !data.roles) throw new Error('Respuesta del servidor incompleta');
+
+    const parsedRoles = parseRoles(data.roles);
+
+    // Primero guardamos token mínimo, luego /auth/me para traer name
+    const provisional: AuthUser = { token: data.token, email: data.email, roles: parsedRoles };
+    setUser(provisional);
+    saveToStorage(provisional);
+
+    // Completar con name desde /auth/me (usa fallback por si /auth/me falla)
+    const fullUser = await fetchMe(data.token, { email: data.email, roles: parsedRoles });
+    return fullUser;
   };
 
   const logout = (): void => {
     clearStorage();
     setUser(null);
-    // Navegar al login después del logout
     window.location.href = '/auth/login';
   };
 
-  // Función para verificar si el usuario tiene alguno de los roles especificados
   const hasRole = (...roles: UserRole[]): boolean => {
     if (!user || !user.roles.length) return false;
-    return roles.some(role => user.roles.includes(role));
+    return roles.some(r => user.roles.includes(r));
   };
 
-  // Función para obtener el rol primario (primer rol o null)
   const primaryRole: UserRole | null = user?.roles[0] || null;
 
   const value: AuthContextType = {
@@ -236,9 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 };
 
 export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (ctx === undefined) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };

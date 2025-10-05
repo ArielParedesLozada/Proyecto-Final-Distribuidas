@@ -5,30 +5,36 @@ import ScrollableContainer from "../../shared/ScrollableContainer";
 import { driverNavItems } from "../../utils/driverNav";
 import { useAuth } from "../../hooks/useAuth";
 import BackgroundEffects from "../../components/auth/BackgroundEffects";
-import { User, Loader2 } from "lucide-react";
+import { User, Menu, Loader2 } from "lucide-react";
 import { api } from "../../api/api";
 import type { DriverResponse } from "../../types/driver";
 
 const DriverPage: React.FC = () => {
     const navigate = useNavigate();
     const { logout, user } = useAuth();
-    const [driverData, setDriverData] = useState<any>(null);
+
+    // Estado para datos del conductor (tu parte)
+    const [driverData, setDriverData] = useState<DriverResponse["driver"] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string>('');
+    const [error, setError] = useState<string>("");
+
+    // Estado para menú móvil (parte de tu amigo)
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     // Obtener datos del conductor
     useEffect(() => {
         const fetchDriverData = async () => {
             try {
                 setIsLoading(true);
-                setError('');
-                
-                // Obtener datos del conductor desde el gateway
-                const response = await api<DriverResponse>('/me/driver');
+                setError("");
+
+                const response = await api<DriverResponse>("/me/driver");
                 setDriverData(response.driver);
             } catch (err) {
-                console.error('Error fetching driver data:', err);
-                setError(err instanceof Error ? err.message : 'Error al cargar datos del conductor');
+                console.error("Error fetching driver data:", err);
+                setError(
+                    err instanceof Error ? err.message : "Error al cargar datos del conductor"
+                );
             } finally {
                 setIsLoading(false);
             }
@@ -37,9 +43,14 @@ const DriverPage: React.FC = () => {
         fetchDriverData();
     }, []);
 
-    const displayName = driverData?.full_name || user?.email || "Chofer";
+    const displayName =
+        driverData?.full_name?.trim() ||
+        user?.name?.trim() ||
+        user?.email ||
+        "Chofer";
 
-    // Mostrar loading mientras se cargan los datos
+
+    // Loading
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-900">
@@ -51,7 +62,7 @@ const DriverPage: React.FC = () => {
         );
     }
 
-    // Mostrar error si falla la carga
+    // Error
     if (error) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-900">
@@ -75,26 +86,44 @@ const DriverPage: React.FC = () => {
     return (
         <div className="flex h-screen text-white relative overflow-hidden">
             <BackgroundEffects />
-            <div className="relative z-10 h-full">
-                <Sidebar
-                    brand={{ full: "Fuel Manager", short: "FM", onClickBrand: () => navigate("/drivers/dashboard") }}
-                    items={driverNavItems}
-                    onSignOut={logout}
-                />
-            </div>
+
+            {/* Sidebar con soporte móvil */}
+            <Sidebar
+                brand={{
+                    full: "Fuel Manager",
+                    short: "FM",
+                    onClickBrand: () => navigate("/drivers/dashboard"),
+                }}
+                items={driverNavItems}
+                onSignOut={logout}
+                isMobileOpen={mobileOpen}
+                onMobileToggle={() => setMobileOpen((v) => !v)}
+            />
 
             <main className="flex-1 flex flex-col relative z-10">
                 <header
-                    className="sticky top-0 z-20 border-b border-slate-800/60 px-6 py-3 shadow-lg"
-                    style={{
-                        backgroundColor: "rgba(15, 23, 42, 0.95)", 
-                        backdropFilter: "blur(20px)",
-                    }}
+                    className="sticky top-0 z-20 border-b border-slate-800/60 px-4 md:px-6 py-3 shadow-lg flex items-center justify-between"
+                    style={{ backgroundColor: "rgba(15, 23, 42, 0.95)", backdropFilter: "blur(20px)" }}
                 >
-                    <div className="w-full flex items-center justify-end gap-3">
+                    {/* Botón menú móvil */}
+                    <button
+                        className="md:hidden p-2 rounded-lg border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800/60"
+                        onClick={() => setMobileOpen(true)}
+                        aria-label="Abrir menú"
+                    >
+                        <Menu className="w-5 h-5 text-slate-200" />
+                    </button>
+
+                    {/* Separador para empujar el usuario a la derecha en mobile */}
+                    <div className="flex-1" />
+
+                    {/* Usuario a la derecha */}
+                    <div className="flex items-center gap-3">
                         <div className="text-right">
-                            <div className="text-slate-400 text-sm leading-none">Bienvenido</div>
-                            <div className="font-semibold text-white leading-none">
+                            <div className="text-slate-400 text-xs md:text-sm leading-none">
+                                Bienvenido
+                            </div>
+                            <div className="font-semibold text-white leading-none truncate max-w-[40vw] md:max-w-none">
                                 {displayName}
                             </div>
                             {driverData && (
@@ -103,13 +132,14 @@ const DriverPage: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center border border-cyan-400/40">
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center border border-cyan-400/40">
                             <User className="w-5 h-5 text-white" />
                         </div>
                     </div>
                 </header>
 
-                <ScrollableContainer className="flex-1 p-6">
+                {/* Contenido con scroll; pasamos driverData por context para tus rutas hijas */}
+                <ScrollableContainer className="flex-1 p-4 md:p-6">
                     <Outlet context={{ driverData }} />
                 </ScrollableContainer>
             </main>
