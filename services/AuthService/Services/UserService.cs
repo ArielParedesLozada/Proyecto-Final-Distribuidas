@@ -15,7 +15,7 @@ namespace AuthService.Services
         {
             _repository = repository;
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<ListUsersResponse> ListUsers(Empty request, ServerCallContext context)
         {
             var users = await _repository.GetAllAsync();
@@ -29,7 +29,7 @@ namespace AuthService.Services
             }));
             return response;
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<UserResponse> GetUserById(UserGetByIdRequest request, ServerCallContext context)
         {
             var id = Guid.Parse(request.Id);
@@ -43,7 +43,7 @@ namespace AuthService.Services
             };
             return new UserResponse { User = responseUser };
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<UserResponse> GetUserByEmail(UserGetByEmailRequest request, ServerCallContext context)
         {
             var email = request.Email;
@@ -57,7 +57,7 @@ namespace AuthService.Services
             };
             return new UserResponse { User = responseUser };
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<UserResponse> CreateUser(UserCreateRequest request, ServerCallContext context)
         {
             var userReq = request.User;
@@ -80,7 +80,7 @@ namespace AuthService.Services
             };
             return new UserResponse { User = responseUser };
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<UserResponse> UpdateUser(UserUpdateRequest request, ServerCallContext context)
         {
             var id = Guid.Parse(request.Id);
@@ -104,7 +104,7 @@ namespace AuthService.Services
             };
             return new UserResponse { User = responseUser };
         }
-        [Authorize]
+        [Authorize(Roles = "ADMIN")]
         public override async Task<Empty> DeleteUser(UserGetByIdRequest request, ServerCallContext context)
         {
             var id = Guid.Parse(request.Id);

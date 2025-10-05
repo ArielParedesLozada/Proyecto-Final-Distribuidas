@@ -1,12 +1,6 @@
 using System.Text;
-using AuthService.Data.Databases;
-using AuthService.Data.Repository;
-using AuthService.Domain;
+using AuthService.Config;
 using AuthService.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,46 +8,17 @@ var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 var JWT_SECRET = Environment.GetEnvironmentVariable("JWT_SECRET")!;
 var JWT_TIME = double.Parse(Environment.GetEnvironmentVariable("JWT_TIME")!);
+var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
 var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!;
-var LOCAL_IP = Environment.GetEnvironmentVariable("LOCAL_IP")!;
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
-builder.Services.AddGrpc().AddJsonTranscoding();
-builder.Services.AddDbContext<AppDatabase>(options => options.UseNpgsql(CONNECTION_STRING));
-builder.Services.AddScoped<IRepository<User, Guid>, Repository<User, Guid>>();
-builder.Services.AddScoped<JWTAuthService>(sp =>
-{
-    var repo = sp.GetRequiredService<IRepository<User, Guid>>();
-    return new JWTAuthService(JWT_SECRET, JWT_TIME, repo, LOCAL_IP);
-});
-builder.Services.AddScoped<UserService>();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer((options) =>
-{
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-    {
-        ValidateAudience = true,
-        ValidateIssuer = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = LOCAL_IP,
-        ValidAudience = LOCAL_IP,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JWT_SECRET))
-    };
-});
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(HTTP1_PORT, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http1;
-    });
-    options.ListenLocalhost(HTTP2_PORT, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http2;
-    });
-});
 
-builder.Services.AddAuthorization();
+builder.Services
+    .AddGrpcServices()
+    .AddDatabase(CONNECTION_STRING)
+    .AddJwtAuth(JWT_SECRET, JWT_TIME, JWT_ISSUER)
+    .AddAuthorization();
+builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 
 var app = builder.Build();
 app.UseAuthentication();

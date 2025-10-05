@@ -1,10 +1,6 @@
 // using AdminService.Services;
-
-using AdminService.Clients;
+using AdminService.Configs;
 using AdminService.Services.Admin;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using UserServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,36 +11,13 @@ var AUTH_AUTHORITY = Environment.GetEnvironmentVariable("AUTH_AUTHORITY")!;
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
 
-builder.Services.AddGrpc().AddJsonTranscoding();
-builder.Services.AddGrpcClient<UserProtoService.UserProtoServiceClient>(o =>
-{
-    o.Address = new Uri(IP_USER_SERVICE);
-});
-builder.Services.AddScoped<UserClient>();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = AUTH_AUTHORITY;
-        options.RequireHttpsMetadata = false;
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-        {
-            ValidateAudience = false
-        };
-    });
+builder.Services
+    .AddGrpcWithClients(IP_USER_SERVICE)
+    .AddJwtAuthentication(AUTH_AUTHORITY)
+    .AddAuthorization();
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(HTTP1_PORT, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http1;
-    });
-    options.ListenLocalhost(HTTP2_PORT, listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http2;
-    });
-});
+builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 
-builder.Services.AddAuthorization();
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
