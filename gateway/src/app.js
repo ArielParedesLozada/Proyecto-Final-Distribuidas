@@ -11,10 +11,7 @@ app.use(cors());
 app.use('/auth', createProxyMiddleware({
   target: process.env.AUTH_SERVICE || "http://localhost:5121",
   changeOrigin: true,
-  // ❗ Normalmente NO necesitas pathRewrite; deja que pase /auth/login tal cual.
-  // Si tu servicio ASP.NET ya mapea [Route("auth")] + [HttpPost("login")],
-  // quita pathRewrite por completo.
-  // pathRewrite: { '^/auth': '' }, // <-- Usa esto SOLO si el backend espera /login (sin /auth).
+  pathRewrite: { '^/auth': '' }, // Remover /auth del path para que llegue como /login y /me
   proxyTimeout: 15000,
   timeout: 15000,
 }));
