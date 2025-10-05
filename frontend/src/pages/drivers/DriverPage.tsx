@@ -5,47 +5,47 @@ import ScrollableContainer from "../../shared/ScrollableContainer";
 import { driverNavItems } from "../../utils/driverNav";
 import { useAuth } from "../../hooks/useAuth";
 import BackgroundEffects from "../../components/auth/BackgroundEffects";
+import { User } from "lucide-react";
 
 const DriverPage: React.FC = () => {
     const navigate = useNavigate();
     const { logout, user } = useAuth();
 
-    return (
-        // Layout a pantalla completa. El scroll NO está aquí.
-        <div className="flex h-screen text-white relative overflow-hidden">
-            {/* Fondo animado (detrás de todo) */}
-            <BackgroundEffects />
+    const displayName = user?.name || "Chofer";
 
-            {/* Sidebar fijo (no scrollea) */}
+    return (
+        <div className="flex h-screen text-white relative overflow-hidden">
+            <BackgroundEffects />
             <div className="relative z-10 h-full">
                 <Sidebar
-                    brand={{
-                        full: "Fuel Manager",
-                        short: "FM",
-                        onClickBrand: () => navigate("/driver"),
-                    }}
+                    brand={{ full: "Fuel Manager", short: "FM", onClickBrand: () => navigate("/driver") }}
                     items={driverNavItems}
                     onSignOut={logout}
                 />
             </div>
 
-            {/* Panel derecho: header fijo + contenido con scroll independiente */}
             <main className="flex-1 flex flex-col relative z-10">
-                {/* Header pegajoso dentro del panel derecho */}
-                <header className="fuel-card border-b border-slate-800/60 px-6 py-4 mx-6 mt-4 mb-2 backdrop-blur flex justify-between items-center sticky top-0 z-20">
-                    <div className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                        Panel del Chofer
-                    </div>
-                    <div className="text-sm text-slate-300">
-                        Bienvenido,{" "}
-                        <span className="text-white font-semibold">
-                            {user?.name || "Usuario"}
-                        </span>
+                <header
+                    className="sticky top-0 z-20 border-b border-slate-800/60 px-6 py-3 shadow-lg"
+                    style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.95)", 
+                        backdropFilter: "blur(20px)",
+                    }}
+                >
+                    <div className="w-full flex items-center justify-end gap-3">
+                        <div className="text-right">
+                            <div className="text-slate-400 text-sm leading-none">Bienvenido</div>
+                            <div className="font-semibold text-white leading-none">
+                                {displayName}
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center border border-cyan-400/40">
+                            <User className="w-5 h-5 text-white" />
+                        </div>
                     </div>
                 </header>
 
-                {/* Contenido scrollable (solo esta área se desplaza) */}
-                <ScrollableContainer className="flex-1 px-6 pb-6">
+                <ScrollableContainer className="flex-1 p-6">
                     <Outlet />
                 </ScrollableContainer>
             </main>
