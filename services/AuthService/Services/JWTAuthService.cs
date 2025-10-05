@@ -12,10 +12,10 @@ namespace AuthService.Services;
 
 public class JWTAuthService : AuthService.AuthServiceBase
 {
-    private string _JWT_SECRET;
-    private double _time;
-    private IRepository<User, Guid> _repository;
-    private string _issuer;
+    private readonly string _JWT_SECRET;
+    private readonly double _time;
+    private readonly IRepository<User, Guid> _repository;
+    private readonly string _issuer;
 
     public JWTAuthService(string JWT_secret, double time, IRepository<User, Guid> repository, string issuer)
     {
@@ -49,13 +49,12 @@ public class JWTAuthService : AuthService.AuthServiceBase
     public override async Task<LoginReply> Login(LoginRequest request, ServerCallContext context)
     {
         var email = request.Email;
-        var password = request.Password;
         var user = await _repository.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null)
         {
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
         }
-        if (!user.Password.Equals(password))
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Wrong password"));
         }

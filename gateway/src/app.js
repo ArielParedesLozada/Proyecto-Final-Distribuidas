@@ -1,8 +1,10 @@
-// api-gateway.js
 import express from "express";
 import cors from "cors";
-import { createProxyMiddleware } from "http-proxy-middleware";
 import dotenv from "dotenv";
+import AdminRoutes from "./routes/AdminRoutes.js";
+import AuthRoutes from "./routes/AuthRoutes.js";
+import ChoferRoutes from "./routes/ChoferRoutes.js";
+
 
 dotenv.config();
 
@@ -10,36 +12,9 @@ const app = express();
 app.use(cors());
 // 👀 NO uses express.json() globalmente porque rompe el streaming hacia el proxy
 
-// 🔥 Middleware para reinyectar el body en el proxy
-const proxyWithBody = (target, pathRewrite) =>
-  createProxyMiddleware({
-    target,
-    changeOrigin: true,
-    pathRewrite,
-    selfHandleResponse: false,
-    onProxyReq: (proxyReq, req, res) => {
-      if (req.body) {
-        const bodyData = JSON.stringify(req.body);
-        proxyReq.setHeader("Content-Type", "application/json");
-        proxyReq.write(bodyData);
-      }
-    },
-  });
-
-// Rutas proxys
-app.use(
-  "/auth",
-  proxyWithBody(process.env.AUTH_SERVICE || "http://localhost:5121", {
-    "^/auth": "",
-  })
-);
-
-app.use(
-  "/chofer",
-  proxyWithBody(process.env.CHOFER_SERVICE || "http://localhost:5122", {
-    "^/chofer": "",
-  })
-);
+app.use(ChoferRoutes)
+app.use(AuthRoutes)
+app.use(AdminRoutes)
 
 // Ruta propia de prueba
 app.get("/", (req, res) => {

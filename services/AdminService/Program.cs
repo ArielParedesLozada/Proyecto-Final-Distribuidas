@@ -2,6 +2,8 @@
 
 using AdminService.Clients;
 using AdminService.Services.Admin;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using UserServices;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,14 +12,17 @@ var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE")!;
 var AUTH_AUTHORITY = Environment.GetEnvironmentVariable("AUTH_AUTHORITY")!;
+var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
+var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
+
 builder.Services.AddGrpc().AddJsonTranscoding();
 builder.Services.AddGrpcClient<UserProtoService.UserProtoServiceClient>(o =>
 {
     o.Address = new Uri(IP_USER_SERVICE);
 });
 builder.Services.AddScoped<UserClient>();
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
         options.Authority = AUTH_AUTHORITY;
         options.RequireHttpsMetadata = false;
@@ -26,6 +31,18 @@ builder.Services.AddAuthentication("Bearer")
             ValidateAudience = false
         };
     });
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(HTTP1_PORT, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1;
+    });
+    options.ListenLocalhost(HTTP2_PORT, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http2;
+    });
+});
 
 builder.Services.AddAuthorization();
 var app = builder.Build();

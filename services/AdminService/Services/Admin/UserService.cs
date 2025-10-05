@@ -17,32 +17,26 @@ public class UserService : AdminUserService.AdminService.AdminServiceBase
     {
         return ctx.GetHttpContext()?.Request.Headers["Authorization"].ToString();
     }
-    [Authorize]
     public override Task<ListUsersResponse> ListUsers(Empty request, ServerCallContext context)
     {
         return _client.ListUsersAsync(GetAuthorization(context));
     }
-    [Authorize]
     public override Task<UserResponse> GetUserById(UserGetByIdRequest request, ServerCallContext context)
     {
         return _client.GetUserByIdAsync(request.Id, GetAuthorization(context));
     }
-    [Authorize]
     public override Task<UserResponse> GetUserByEmail(UserGetByEmailRequest request, ServerCallContext context)
     {
         return _client.GetUserByEmailAsync(request.Email, GetAuthorization(context));
     }
-    [Authorize]
     public override Task<UserResponse> CreateUser(UserCreateRequest request, ServerCallContext context)
     {
         return _client.CreateUserAsync(request.User, GetAuthorization(context));
     }
-    [Authorize]
     public override Task<UserResponse> UpdateUser(UserUpdateRequest request, ServerCallContext context)
     {
         return _client.UpdateUserAsync(request.Id, request.User, GetAuthorization(context));
     }
-    [Authorize]
     public override async Task<Empty> DeleteUser(UserGetByIdRequest request, ServerCallContext context)
     {
         await _client.DeleteUserAsync(request.Id, GetAuthorization(context));
