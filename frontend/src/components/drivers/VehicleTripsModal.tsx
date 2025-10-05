@@ -20,6 +20,7 @@ type Vehicle = {
     modelo?: string;
     estado?: string;
     nivel?: number;
+    categoria?: "Liviano" | "Pesado";
 };
 
 type Props = {
@@ -28,10 +29,20 @@ type Props = {
     onClose: () => void;
 };
 
+const inferCategoria = (v: Vehicle): "Liviano" | "Pesado" => {
+    if (v.categoria) return v.categoria;
+    const t = (v.tipo ?? "").toLowerCase();
+    const pesadoKeys = ["camión", "camion", "tráiler", "trailer", "volqueta", "tracto", "pesado"];
+    const isPesado = pesadoKeys.some((k) => t.includes(k));
+    return isPesado ? "Pesado" : "Liviano";
+};
+
 const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
     const level = Math.max(0, Math.min(100, Math.round(vehicle.nivel ?? 0)));
     const barColor =
         level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
+
+    const categoria = inferCategoria(vehicle);
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -54,12 +65,13 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                             <Car className="w-5 h-5 text-emerald-400" />
                         </div>
                         <h2 className="text-lg font-semibold">
-                            Vehículo: {vehicle.alias ?? vehicle.tipo ?? "—"}{vehicle.placa ? ` · ${vehicle.placa}` : ""}
+                            Vehículo: {vehicle.alias ?? vehicle.tipo ?? "—"}
+                            {vehicle.placa ? ` · ${vehicle.placa}` : ""}
                         </h2>
                     </div>
 
-                    {/* Resumen vehículo */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* Resumen vehículo (ahora con Tipo Liviano/Pesado) */}
+                    <div className="grid grid-cols-3 gap-4 mb-4">
                         <div className="fuel-card p-4 text-center">
                             <div className="text-slate-400 text-sm mb-1">Modelo</div>
                             <div className="font-semibold">{vehicle.modelo ?? "—"}</div>
@@ -67,6 +79,10 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                         <div className="fuel-card p-4 text-center">
                             <div className="text-slate-400 text-sm mb-1">Combustible</div>
                             <div className="font-semibold">{vehicle.nivel != null ? `${level}%` : "—"}</div>
+                        </div>
+                        <div className="fuel-card p-4 text-center">
+                            <div className="text-slate-400 text-sm mb-1">Tipo</div>
+                            <div className="font-semibold">{categoria}</div>
                         </div>
                     </div>
 
@@ -97,7 +113,9 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                         {trips.map((t) => (
                             <div key={t.id} className="fuel-card p-4 flex items-center justify-between">
                                 <div className="min-w-0">
-                                    <div className="font-medium truncate">{t.origen} → {t.destino}</div>
+                                    <div className="font-medium truncate">
+                                        {t.origen} → {t.destino}
+                                    </div>
                                     <div className="text-xs text-slate-400">ID: {t.id}</div>
                                 </div>
                                 <span
@@ -134,11 +152,12 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                 <Car className="w-5 h-5 text-emerald-400" />
                             </div>
                             <h2 className="text-lg font-semibold">
-                                Vehículo: {vehicle.alias ?? vehicle.tipo ?? "—"}{vehicle.placa ? ` · ${vehicle.placa}` : ""}
+                                Vehículo: {vehicle.alias ?? vehicle.tipo ?? "—"}
+                                {vehicle.placa ? ` · ${vehicle.placa}` : ""}
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
                             <div className="fuel-card p-4 text-center">
                                 <div className="text-slate-400 text-sm mb-1">Modelo</div>
                                 <div className="font-semibold">{vehicle.modelo ?? "—"}</div>
@@ -146,6 +165,10 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                             <div className="fuel-card p-4 text-center">
                                 <div className="text-slate-400 text-sm mb-1">Combustible</div>
                                 <div className="font-semibold">{vehicle.nivel != null ? `${level}%` : "—"}</div>
+                            </div>
+                            <div className="fuel-card p-4 text-center">
+                                <div className="text-slate-400 text-sm mb-1">Tipo</div>
+                                <div className="font-semibold">{categoria}</div>
                             </div>
                         </div>
 
@@ -174,7 +197,9 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                             {trips.map((t) => (
                                 <div key={t.id} className="fuel-card p-4 flex items-center justify-between">
                                     <div className="min-w-0">
-                                        <div className="font-medium truncate">{t.origen} → {t.destino}</div>
+                                        <div className="font-medium truncate">
+                                            {t.origen} → {t.destino}
+                                        </div>
                                         <div className="text-xs text-slate-400">ID: {t.id}</div>
                                     </div>
                                     <span
