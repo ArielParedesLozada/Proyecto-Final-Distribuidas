@@ -14,10 +14,10 @@ public class JWTAuthService : AuthService.AuthServiceBase
 {
     private string _JWT_SECRET;
     private double _time;
-    private IRepository<User> _repository;
+    private IRepository<User, Guid> _repository;
     private string _issuer;
 
-    public JWTAuthService(string JWT_secret, double time, IRepository<User> repository, string issuer)
+    public JWTAuthService(string JWT_secret, double time, IRepository<User, Guid> repository, string issuer)
     {
         _JWT_SECRET = JWT_secret;
         _time = time;

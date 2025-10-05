@@ -8,9 +8,11 @@
 
   <ItemGroup>
     <Protobuf Include="Protos\auth.proto" GrpcServices="Server" />
+    <Protobuf Include="..\..\services\Protos\user.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
