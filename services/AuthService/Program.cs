@@ -21,6 +21,14 @@ builder.Services
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 
 var app = builder.Build();
+
+// ====== Seed Database ======
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AuthService.Data.Databases.AppDatabase>();
+    await AuthService.Data.Seed.UserSeeder.SeedAsync(db);
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

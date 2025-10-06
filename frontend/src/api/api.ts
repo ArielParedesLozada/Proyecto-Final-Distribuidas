@@ -1,74 +1,117 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+// src/api/api.ts
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+/** Obtiene el token desde localStorage soportando varias formas. */
+function getTokenFromStorage(): string | null {
+  try {
+    // Forma principal de tu app
+    const rawAuth = localStorage.getItem("auth");
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth); // { token, email, roles, name? }
+      if (parsed?.token && typeof parsed.token === "string") return parsed.token;
+    }
+
+    // Formas “legadas”
+    const rawToken = localStorage.getItem("token");
+    if (!rawToken) return null;
+
+    // a) token plano
+    if (!rawToken.startsWith("{")) return rawToken;
+
+    // b) objeto JSON { token: '...' }
+    const parsedLegacy = JSON.parse(rawToken);
+    if (parsedLegacy?.token && typeof parsedLegacy.token === "string") {
+      return parsedLegacy.token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Helper API que maneja automáticamente la autorización y errores
+ * Helper API que maneja automáticamente la autorización y errores.
  * @param url - URL relativa o absoluta para la petición
  * @param init - Opciones adicionales de fetch (método, body, etc.)
- * @returns Promise con la respuesta parseada como JSON
  */
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  // Construir URL completa
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
-  // Obtener token de localStorage
-  const authData = localStorage.getItem('token');
-  let token: string | null = null;
+  const token = getTokenFromStorage();
 
-  if (authData) {
-    try {
-      const parsed = JSON.parse(authData);
-      token = parsed.token;
-    } catch (error) {
-      console.error('Error parsing auth data:', error);
-    }
-  }
+  // No fuerces Content-Type si el body es FormData
+  const isFormData = init?.body instanceof FormData;
 
-  // Configurar headers por defecto
   const defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    Accept: "application/json",
   };
 
-  // Agregar Authorization header si hay token
   if (token) {
+    // Cabecera en mayúscula (el proxy ya la baja si hace falta)
     defaultHeaders.Authorization = `Bearer ${token}`;
-    console.log('🔑 Token enviado:', token.substring(0, 20) + '...');
+    console.log("🔑 Token enviado:", token.substring(0, 20) + "...");
   } else {
-    console.log('❌ No hay token disponible');
+    console.log("❌ No hay token disponible");
   }
 
-  // Mergear headers del init con los por defecto
   const headers = {
     ...defaultHeaders,
-    ...init?.headers,
+    ...(init?.headers as Record<string, string> | undefined),
   };
 
-  // Configurar opciones de fetch
   const fetchOptions: RequestInit = {
+    // No usamos cookies/sesión del navegador
+    credentials: "omit",
     ...init,
     headers,
   };
 
   const response = await fetch(fullUrl, fetchOptions);
 
-  // Si la respuesta no es ok, lanzar error
   if (!response.ok) {
+    // Si el server devolvió JSON o texto, intenta dar más contexto:
+    let details = "";
     try {
-      // Intentar parsear el error como JSON
-      const errorData = await response.json();
-      throw errorData;
-    } catch (jsonError) {
-      // Si no se puede parsear como JSON, lanzar error con statusText
-      throw new Error(response.statusText || `HTTP ${response.status} error-sigma: ${jsonError}`);
+      const ct = response.headers.get("content-type")?.toLowerCase() || "";
+      if (ct.includes("application/json")) {
+        const maybeJson = await response.json();
+        details =
+          typeof maybeJson === "string"
+            ? maybeJson
+            : maybeJson?.message || JSON.stringify(maybeJson);
+      } else {
+        details = await response.text();
+      }
+    } catch {
+      /* ignore */
     }
+
+    const msg = details
+      ? `HTTP ${response.status} ${response.statusText || ""} – ${details}`.trim()
+      : `HTTP ${response.status} ${response.statusText || ""}`.trim();
+
+    // Si es 401, borra el token corrupto para evitar loops
+    if (response.status === 401) {
+      try {
+        localStorage.removeItem("auth");
+      } catch {
+        /* ignore */
+      }
+    }
+
+    throw new Error(msg);
   }
 
-  // Parsear respuesta como JSON
-  const data = await response.json();
-  return data as T;
+  // 204 No Content
+  if (response.status === 204) return undefined as unknown as T;
+
+  const ct = response.headers.get("content-type")?.toLowerCase() || "";
+  if (ct.includes("application/json")) {
+    return (await response.json()) as T;
+  }
+  return (await response.text()) as unknown as T;
 }
 
-// Exportar también la URL base por si se necesita
 export { API_BASE_URL };
-
-// Exportar por defecto la función api para compatibilidad
 export default api;
