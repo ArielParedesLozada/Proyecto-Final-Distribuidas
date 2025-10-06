@@ -31,7 +31,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = false }) =>
       <div className="login-header">
         <div className="login-logo-container">
           <Fuel 
-            style={{ width: '2rem', height: '2rem', color: 'white' }}
+            style={{ width: '1.75rem', height: '1.75rem', color: 'white' }}
           />
         </div>
         <h1 className="login-title">
