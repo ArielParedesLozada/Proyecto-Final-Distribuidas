@@ -70,19 +70,25 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                         </h2>
                     </div>
 
-                    {/* Resumen vehículo (ahora con Tipo Liviano/Pesado) */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
+                    {/* Resumen vehículo (4 cards en la misma fila) */}
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-4">
                         <div className="fuel-card p-4 text-center">
                             <div className="text-slate-400 text-sm mb-1">Modelo</div>
                             <div className="font-semibold">{vehicle.modelo ?? "—"}</div>
                         </div>
                         <div className="fuel-card p-4 text-center">
                             <div className="text-slate-400 text-sm mb-1">Combustible</div>
-                            <div className="font-semibold">{vehicle.nivel != null ? `${level}%` : "—"}</div>
+                            <div className="font-semibold">
+                                {vehicle.nivel != null ? `${level}%` : "—"}
+                            </div>
                         </div>
                         <div className="fuel-card p-4 text-center">
                             <div className="text-slate-400 text-sm mb-1">Tipo</div>
                             <div className="font-semibold">{categoria}</div>
+                        </div>
+                        <div className="fuel-card p-4 text-center">
+                            <div className="text-slate-400 text-sm mb-1">Estado</div>
+                            <div className="font-semibold">No operativo</div>
                         </div>
                     </div>
 
@@ -157,18 +163,24 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-4">
                             <div className="fuel-card p-4 text-center">
                                 <div className="text-slate-400 text-sm mb-1">Modelo</div>
                                 <div className="font-semibold">{vehicle.modelo ?? "—"}</div>
                             </div>
                             <div className="fuel-card p-4 text-center">
                                 <div className="text-slate-400 text-sm mb-1">Combustible</div>
-                                <div className="font-semibold">{vehicle.nivel != null ? `${level}%` : "—"}</div>
+                                <div className="font-semibold">
+                                    {vehicle.nivel != null ? `${level}%` : "—"}
+                                </div>
                             </div>
                             <div className="fuel-card p-4 text-center">
                                 <div className="text-slate-400 text-sm mb-1">Tipo</div>
                                 <div className="font-semibold">{categoria}</div>
+                            </div>
+                            <div className="fuel-card p-4 text-center">
+                                <div className="text-slate-400 text-sm mb-1">Estado</div>
+                                <div className="font-semibold">No operativo</div>
                             </div>
                         </div>
 

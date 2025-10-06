@@ -12,12 +12,13 @@ const adminNavItems = [
     key: "dashboard",
     label: "Dashboard",
     to: "/admin/dashboard",
-    icon: <BarChart3 className="w-5 h-5" />
+    icon: <BarChart3 className="w-5 h-5" />,
+    exact: true
   },
   {
     key: "users",
     label: "Usuarios",
-    to: "/admin/users",
+    to: "/admin/dashboard/users",
     icon: <Users className="w-5 h-5" />
   },
   {
@@ -29,7 +30,7 @@ const adminNavItems = [
   {
     key: "settings",
     label: "Configuración",
-    to: "/admin/settings",
+    to: "/admin/dashboard/settings",
     icon: <Settings className="w-5 h-5" />
   }
 ];

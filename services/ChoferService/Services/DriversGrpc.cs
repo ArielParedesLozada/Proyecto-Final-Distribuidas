@@ -332,45 +332,8 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
             if (driver == null)
             {
-                // Verificar si el usuario tiene rol CONDUCTOR
-                if (httpUser.IsInRole("CONDUCTOR"))
-                {
-                    _logger.LogInformation("Driver not found for user {UserId}, creating new driver", userId);
-                    
-                    var newDriver = new Models.Driver
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        FullName = "Conductor del Sistema",
-                        LicenseNumber = $"CON-{userId.ToString()[..8].ToUpper()}",
-                        Capabilities = 1,
-                        Availability = 1,
-                        CreatedAt = DateTimeOffset.UtcNow,
-                        UpdatedAt = DateTimeOffset.UtcNow
-                    };
-
-                    _context.Drivers.Add(newDriver);
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                        driver = newDriver;
-                        _logger.LogInformation("Driver created for user {UserId}: {DriverId}", userId, driver.Id);
-                    }
-                    catch (DbUpdateException)
-                    {
-                        // Manejar carrera: otro proceso ya creó el driver
-                        driver = await _context.Drivers.FirstOrDefaultAsync(d => d.UserId == userId);
-                        if (driver == null)
-                        {
-                            throw new RpcException(new Status(StatusCode.Internal, "Failed to create driver"));
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("Driver not found for user {UserId} and user is not CONDUCTOR", userId);
-                    throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
-                }
+                _logger.LogWarning("Driver not found for user {UserId}", userId);
+                throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
             }
 
             _logger.LogInformation("Driver found for user {UserId}: {DriverId}", userId, driver.Id);

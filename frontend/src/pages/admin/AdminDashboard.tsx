@@ -1,7 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Users, Car, BarChart3, Settings, Shield, TrendingUp, AlertTriangle } from "lucide-react";
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const stats = [
     { title: "Total Usuarios", value: "24", icon: <Users className="w-6 h-6" />, color: "blue" },
     { title: "Conductores Activos", value: "18", icon: <Car className="w-6 h-6" />, color: "green" },
@@ -102,7 +104,10 @@ const AdminDashboard: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 gap-4">
-            <button className="fuel-button-secondary p-4 text-left flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/admin/dashboard/users')}
+              className="fuel-button-secondary p-4 text-left flex items-center gap-3"
+            >
               <Users className="w-5 h-5" />
               <div>
                 <div className="font-medium">Gestionar Usuarios</div>

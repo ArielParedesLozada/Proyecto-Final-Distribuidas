@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar, Clock, Route } from "lucide-react";
+import EmptyState from "../../shared/EmptyState";
 
 type Props = {
     stats?: { plan: number; run: number; done: number; total: number };
@@ -65,11 +66,11 @@ const DriverDashboard: React.FC<Props> = ({
             </div>
 
             {today.length === 0 ? (
-                <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-                    <p className="text-slate-400">No tienes viajes programados para hoy</p>
-                    <p className="text-slate-500 text-sm mt-1">Disfruta tu día libre</p>
-                </div>
+                <EmptyState
+                    icon={Clock}
+                    title="No tienes viajes programados para hoy"
+                    description="Disfruta tu día libre"
+                />
             ) : (
                 <div className="space-y-3">
                     {today.map((t) => (
@@ -92,10 +93,10 @@ const DriverDashboard: React.FC<Props> = ({
                             <div className="flex items-center gap-3 shrink-0">
                                 <span
                                     className={`px-3 py-1 rounded-full text-xs font-medium ${t.estado === "Finalizado"
-                                            ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
-                                            : t.estado === "EnCurso"
-                                                ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
-                                                : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
+                                        ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
+                                        : t.estado === "EnCurso"
+                                            ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
+                                            : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
                                         }`}
                                 >
                                     {t.estado}

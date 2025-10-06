@@ -27,8 +27,20 @@ const Sidebar: React.FC<Props> = ({
     const { pathname } = useLocation();
     const [collapsed, setCollapsed] = useState(collapsedDefault);
 
-    const isActive = (to: string, exact?: boolean) =>
-        exact ? pathname === to : pathname.startsWith(to);
+    const isActive = (to: string, exact?: boolean) => {
+        if (exact) {
+            return pathname === to;
+        }
+        
+        // Para rutas anidadas, necesitamos ser más específicos
+        if (to === '/admin/dashboard') {
+            // Solo activo si es exactamente dashboard o la ruta base
+            return pathname === '/admin/dashboard' || pathname === '/admin/dashboard/';
+        }
+        
+        // Para otras rutas, usar startsWith normal
+        return pathname.startsWith(to);
+    };
 
     const Brand = useMemo(
         () => (

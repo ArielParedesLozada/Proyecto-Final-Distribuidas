@@ -1,16 +1,16 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
-import { ToastProvider } from "./shared/ToastNotification";
 import LoginPage from "./pages/auth/LoginPage";
 import NotAuthorized from "./pages/NotAuthorized";
 import AdminPage from "./pages/admin/AdminPage";
 import SupervisorPage from "./pages/supervisor/SupervisorPage";
 import DriverPage from "./pages/drivers/DriverPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminDrivers from "./pages/admin/AdminDrivers";
+import UsersPage from "./pages/admin/UsersPage";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { ToastProvider } from "./shared/ToastNotification";
 import DriverDashboard from "./components/drivers/DriverDashboard";
 import DriverTrips from "./components/drivers/DriverTrips";
 import DriverVehicle from "./components/drivers/DriverVehicle";
@@ -22,23 +22,21 @@ import "./App.css";
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <ToastProvider>
+    <ToastProvider>
+      <AuthProvider>
         <Router>
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/auth/login" element={<LoginPage />} />
-          <Route path="/not-authorized" element={<NotAuthorized />} />
-          
-          {/* Rutas protegidas por rol ADMIN */}
-          <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]} />}>
-            <Route path="dashboard" element={<AdminPage />}>
-              <Route index element={<AdminDashboard />} />
+          <Routes>
+            {/* Rutas públicas */}
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/not-authorized" element={<NotAuthorized />} />
+            
+            {/* Rutas protegidas por rol ADMIN */}
+            <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]} />}>
+              <Route path="dashboard" element={<AdminPage />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UsersPage />} />
+              </Route>
             </Route>
-            <Route path="drivers" element={<AdminPage />}>
-              <Route index element={<AdminDrivers />} />
-            </Route>
-          </Route>
 
           {/* Rutas protegidas por rol SUPERVISOR */}
           <Route path="/supervisor" element={<ProtectedRoute roles={["SUPERVISOR"]} />}>
@@ -57,14 +55,14 @@ const App: React.FC = () => {
             </Route>
           </Route>
           
-          {/* Redirecciones y rutas catch-all */}
-          <Route path="/dashboard" element={<Navigate to="/drivers/dashboard" replace />} />
-          <Route path="/" element={<Navigate to="/auth/login" replace />} />
-          <Route path="*" element={<Navigate to="/auth/login" replace />} />
-        </Routes>
+            {/* Redirecciones y rutas catch-all */}
+            <Route path="/dashboard" element={<Navigate to="/drivers/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/auth/login" replace />} />
+            <Route path="*" element={<Navigate to="/auth/login" replace />} />
+          </Routes>
         </Router>
-      </ToastProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 
