@@ -9,9 +9,8 @@ type Vehicle = {
     placa: string;
     tipo: string;
     modelo?: string;
-    /** estado se mantiene por compatibilidad pero ya no se muestra */
     estado?: string;
-    nivel: number; // %
+    nivel: number; 
     alias?: string;
 };
 
@@ -41,11 +40,7 @@ const demoTrips = (from: string): Trip[] => [
 
 const PER_PAGE = 5;
 
-const DriverVehicle: React.FC<Props> = ({
-    vehicle,
-    vehicles,
-    tripsByVehicle,
-}) => {
+const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) => {
     const source: Vehicle[] = useMemo(() => {
         if (typeof vehicles !== "undefined") return vehicles;
         if (vehicle) return [vehicle];
@@ -74,7 +69,7 @@ const DriverVehicle: React.FC<Props> = ({
     }, [source.length, page]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-full px-2 sm:px-4">
             {/* Título */}
             <div className="text-center">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
@@ -83,19 +78,15 @@ const DriverVehicle: React.FC<Props> = ({
                 <p className="text-slate-400">Listado de vehículos asignados y sus viajes</p>
             </div>
 
-            {/* Lista de cards */}
-            <div className="max-w-5xl mx-auto space-y-4">
+            {/* Lista de cards (ancho fluido) */}
+            <div className="space-y-4">
                 {data.map((v) => {
                     const level = Math.max(0, Math.min(100, Math.round(v.nivel)));
-                    const barColor =
-                        level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
+                    const barColor = level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
                     const modeloToShow = v.modelo ?? v.estado ?? "—";
 
                     return (
-                        <div
-                            key={v.placa}
-                            className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all"
-                        >
+                        <div key={v.placa} className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all">
                             {/* Izquierda */}
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="font-semibold text-white text-lg truncate">
@@ -108,10 +99,7 @@ const DriverVehicle: React.FC<Props> = ({
                                     <Gauge className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div className="flex-1">
                                         <div className="w-full bg-slate-800 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full ${barColor}`}
-                                                style={{ width: `${level}%` }}
-                                            />
+                                            <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${level}%` }} />
                                         </div>
                                     </div>
                                     <span className="text-xs text-slate-300 shrink-0">{level}%</span>
@@ -133,34 +121,16 @@ const DriverVehicle: React.FC<Props> = ({
                 })}
 
                 {source.length === 0 && (
-                    <EmptyState
-                        asCard
-                        icon={Car}
-                        title="No tienes vehículos asignados"
-                        description="Cuando te asignen uno, aparecerá aquí."
-                    />
+                    <EmptyState asCard icon={Car} title="No tienes vehículos asignados" description="Cuando te asignen uno, aparecerá aquí." />
                 )}
             </div>
 
-            <div className="max-w-5xl mx-auto">
-                <Pagination
-                    page={page}
-                    perPage={PER_PAGE}
-                    total={total}
-                    onPageChange={setPage}
-                    window={2}
-                    compact
-                    className="mt-2"
-                />
+            <div>
+                <Pagination page={page} perPage={PER_PAGE} total={total} onPageChange={setPage} window={2} compact className="mt-2" />
             </div>
 
-            {/* Modal: viajes por vehículo */}
             {openVeh && (
-                <VehicleTripsModal
-                    vehicle={openVeh}
-                    trips={getTrips(openVeh.placa)}
-                    onClose={() => setOpenVeh(null)}
-                />
+                <VehicleTripsModal vehicle={openVeh} trips={getTrips(openVeh.placa)} onClose={() => setOpenVeh(null)} />
             )}
         </div>
     );

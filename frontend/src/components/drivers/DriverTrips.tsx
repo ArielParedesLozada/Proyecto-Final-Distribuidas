@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Eye, CheckCircle, Play, Fuel, Filter } from "lucide-react";
 import TripModal from "./TripModal";
 import FuelRequestModal from "./FuelRequestModal";
 import EmptyState from "../../shared/EmptyState";
+import Pagination from "../../shared/Pagination";
 import TripFilters, {
     type TripFiltersValue,
     type TripStatus,
@@ -31,6 +32,7 @@ type Props = {
 
 const now = Date.now();
 const ONE_DAY = 24 * 60 * 60 * 1000;
+const PER_PAGE = 6;
 
 const DEMO_TRIPS: Trip[] = [
     {
@@ -108,12 +110,11 @@ const DriverTrips: React.FC<Props> = ({
         [trips]
     );
 
-    // ------------ Filtros (controlados) ------------
+    // Filtros (controlados)
     const [filters, setFilters] = useState<TripFiltersValue>({ ...DEFAULT_TRIP_FILTERS });
 
     const uniqueCities = useMemo(
-        () =>
-            Array.from(new Set(allTrips.flatMap((t) => [t.origen, t.destino]))).sort(),
+        () => Array.from(new Set(allTrips.flatMap((t) => [t.origen, t.destino]))).sort(),
         [allTrips]
     );
 
@@ -147,7 +148,28 @@ const DriverTrips: React.FC<Props> = ({
         });
     }, [allTrips, filters]);
 
-    // ------------ Modales ------------
+    // Paginación
+    const [page, setPage] = useState(1);
+
+    // Si cambian los filtros, vuelve a la página 1
+    useEffect(() => {
+        setPage(1);
+    }, [filters]);
+
+    // Clamp si el total cambia y la página queda fuera de rango
+    useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredTrips.length / PER_PAGE));
+        if (page > totalPages) setPage(totalPages);
+    }, [filteredTrips.length, page]);
+
+    const { pageData, total } = useMemo(() => {
+        const total = filteredTrips.length;
+        const start = (page - 1) * PER_PAGE;
+        const end = start + PER_PAGE;
+        return { pageData: filteredTrips.slice(start, end), total };
+    }, [filteredTrips, page]);
+
+    // Modales
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
 
@@ -173,9 +195,9 @@ const DriverTrips: React.FC<Props> = ({
                 suggestions={uniqueCities}
             />
 
-            {/* Lista */}
+            {/* Lista (paginada) */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredTrips.map((trip) => (
+                {pageData.map((trip) => (
                     <div
                         key={trip.id}
                         className="fuel-card flex items-center justify-between p-4 hover:shadow-lg transition-all"
@@ -187,10 +209,10 @@ const DriverTrips: React.FC<Props> = ({
                             <div className="text-sm text-slate-400">ID: {trip.id}</div>
                             <span
                                 className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${trip.estado === "Finalizado"
-                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
-                                    : trip.estado === "EnCurso"
-                                        ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
-                                        : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
+                                        ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
+                                        : trip.estado === "EnCurso"
+                                            ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
+                                            : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
                                     }`}
                             >
                                 {trip.estado}
@@ -233,7 +255,7 @@ const DriverTrips: React.FC<Props> = ({
                     </div>
                 ))}
 
-                {filteredTrips.length === 0 && (
+                {total === 0 && (
                     <div className="col-span-full">
                         <EmptyState
                             asCard
@@ -243,6 +265,18 @@ const DriverTrips: React.FC<Props> = ({
                         />
                     </div>
                 )}
+            </div>
+
+            <div>
+                <Pagination
+                    page={page}
+                    perPage={PER_PAGE}
+                    total={total}
+                    onPageChange={setPage}
+                    window={2}
+                    compact
+                    className="mt-2"
+                />
             </div>
 
             {/* Modales */}
