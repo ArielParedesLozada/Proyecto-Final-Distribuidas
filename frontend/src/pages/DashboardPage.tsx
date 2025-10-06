@@ -35,7 +35,7 @@ const DashboardPage: React.FC = () => {
               Dashboard
             </h1>
             <p style={{ color: '#94a3b8' }}>
-              Bienvenido, {user?.name || user?.email}
+              Bienvenido, {user?.email}
             </p>
           </div>
           <button

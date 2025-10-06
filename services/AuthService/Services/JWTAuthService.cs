@@ -12,12 +12,12 @@ namespace AuthService.Services;
 
 public class JWTAuthService : AuthService.AuthServiceBase
 {
-    private string _JWT_SECRET;
-    private double _time;
-    private IRepository<User> _repository;
-    private string _issuer;
+    private readonly string _JWT_SECRET;
+    private readonly double _time;
+    private readonly IRepository<User, Guid> _repository;
+    private readonly string _issuer;
 
-    public JWTAuthService(string JWT_secret, double time, IRepository<User> repository, string issuer)
+    public JWTAuthService(string JWT_secret, double time, IRepository<User, Guid> repository, string issuer)
     {
         _JWT_SECRET = JWT_secret;
         _time = time;
@@ -25,15 +25,44 @@ public class JWTAuthService : AuthService.AuthServiceBase
         _issuer = issuer;
     }
 
+    private List<string> GetScopesFromRoles(string roles)
+    {
+        var scopes = new List<string>();
+        var roleList = roles.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                           .Select(r => r.Trim().ToUpper());
+
+        foreach (var role in roleList)
+        {
+            switch (role)
+            {
+                case "ADMIN":
+                    scopes.AddRange(new[] { "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update" });
+                    break;
+                case "SUPERVISOR":
+                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own" });
+                    break;
+                case "CONDUCTOR":
+                    scopes.AddRange(new[] { "drivers:read:own" });
+                    break;
+            }
+        }
+
+        return scopes.Distinct().ToList();
+    }
+
     private string GenerateToken(User user)
     {
         var expiration = DateTime.UtcNow.AddHours(_time);
+        // Mapear roles a scopes
+        var scopes = GetScopesFromRoles(user.Roles);
+        
         Claim[] claims = new[]
         {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
         new Claim(JwtRegisteredClaimNames.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Roles),
         new Claim(ClaimTypes.Name, user.Nombre),
+        new Claim("scope", string.Join(" ", scopes)), // Agregar scopes al token
     };
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_JWT_SECRET));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -49,13 +78,12 @@ public class JWTAuthService : AuthService.AuthServiceBase
     public override async Task<LoginReply> Login(LoginRequest request, ServerCallContext context)
     {
         var email = request.Email;
-        var password = request.Password;
         var user = await _repository.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null)
         {
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
         }
-        if (!user.Password.Equals(password))
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Wrong password"));
         }

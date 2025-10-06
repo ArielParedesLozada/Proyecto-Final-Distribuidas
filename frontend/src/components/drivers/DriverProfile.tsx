@@ -1,5 +1,7 @@
 import React from "react";
-import { User, Mail, Shield } from "lucide-react";
+import { User, Mail, Shield, Car, Calendar } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
+import type { Driver } from "../../types/driver";
 
 type Props = { profile?: { fullName: string; role: string; email?: string } };
 
@@ -51,8 +53,32 @@ const DriverProfile: React.FC<Props> = ({ profile }) => (
                     <div className="w-2 h-2 rounded-full bg-blue-400"></div>
                     <span className="text-slate-400 text-sm">Datos provenientes de AuthService (JWT)</span>
                 </div>
-            </div>
+                <div className="text-slate-400 text-sm mb-1">Estado</div>
+                <div className="font-semibold text-white text-lg">{displayProfile?.availability ?? "—"}</div>
+              </div>
+            </>
+          )}
         </div>
+        
+        <div className="mt-6 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            <span className="text-slate-400 text-sm">
+              {driverData 
+                ? "Datos obtenidos del ChoferService via Gateway" 
+                : "Datos provenientes de AuthService (JWT)"
+              }
+            </span>
+          </div>
+          {driverData && (
+            <div className="mt-2 text-xs text-slate-500">
+              Registrado el {displayProfile?.createdAt}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-);
+  );
+};
+
 export default DriverProfile;
