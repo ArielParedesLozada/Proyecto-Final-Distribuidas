@@ -93,4 +93,35 @@ router.patch("/drivers/:id/availability", auth, (req, res) => {
   });
 });
 
+/** PATCH /drivers/:id - Actualizar conductor completo */
+router.patch("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) => {
+  const { id } = req.params;
+  const { full_name, license_number, capabilities, availability } = req.body;
+
+  const request = {
+    id,
+    full_name,
+    license_number,
+    capabilities: toInt(capabilities, 1),
+    availability: toInt(availability, 1),
+  };
+
+  driversClient.UpdateDriver(request, mdFromHttp(req), (err, response) => {
+    if (err) return mapGrpcError(err, res);
+    res.json(response);
+  });
+});
+
+/** DELETE /drivers/:id - Eliminar conductor */
+router.delete("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) => {
+  const { id } = req.params;
+
+  const request = { id };
+
+  driversClient.DeleteDriver(request, mdFromHttp(req), (err, response) => {
+    if (err) return mapGrpcError(err, res);
+    res.status(204).send(); // No Content
+  });
+});
+
 export default router;
