@@ -10,7 +10,7 @@ public class GrpcJwtMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GrpcJwtMiddleware> _logger;
-    private readonly string _jwtSecret = "your-super-secret-jwt-key-here-make-it-long-and-random";
+    private readonly string _jwtSecret = "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473";
 
     public GrpcJwtMiddleware(RequestDelegate next, ILogger<GrpcJwtMiddleware> logger)
     {

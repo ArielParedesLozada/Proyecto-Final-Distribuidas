@@ -28,11 +28,7 @@ export const metaFromReq = (req) => {
 
   const raw = req.headers.authorization || req.headers.Authorization;
   if (raw) {
-    // Reenviar tal cual (o asegurar Bearer)
-    const hasBearer = /^Bearer\s+/i.test(raw);
-    const headerToSend = hasBearer ? raw : `Bearer ${raw.trim()}`;
-    metadata.add('authorization', headerToSend);
-    console.log('🔍 gRPC metadata - Authorization:', headerToSend.substring(0, 27) + '...');
+    metadata.add('authorization', raw); // minúsculas
   }
 
   return metadata;
