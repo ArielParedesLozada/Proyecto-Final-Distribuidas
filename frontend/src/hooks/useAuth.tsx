@@ -7,7 +7,6 @@ import React, {
   type ReactNode,
 } from "react";
 import { api } from "../api/api";
-// 👈 usa el helper para consistencia
 
 // Tipos de roles válidos
 type UserRole = "ADMIN" | "SUPERVISOR" | "CONDUCTOR";
@@ -47,6 +46,27 @@ interface AuthProviderProps {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+/** ===== Helpers JWT (para evitar refrescar con token vencido) ===== */
+function decodeJwtExp(token: string): number | null {
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return null;
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "===".slice((b64.length + 3) % 4);
+    const json = atob(padded);
+    const obj = JSON.parse(json) as { exp?: number };
+    return typeof obj.exp === "number" ? obj.exp : null;
+  } catch {
+    return null;
+  }
+}
+function isExpired(token: string): boolean {
+  const exp = decodeJwtExp(token);
+  if (!exp) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return now >= exp;
+}
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -91,6 +111,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const parsed: AuthData = JSON.parse(raw);
       if (!parsed.token || !parsed.email) return null;
 
+      // Evita refrescar sesión con token vencido
+      if (isExpired(parsed.token)) {
+        localStorage.removeItem("auth");
+        return null;
+      }
+
       return {
         token: parsed.token,
         email: parsed.email,
@@ -123,7 +149,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     fallback?: { email?: string; roles?: UserRole[] }
   ): Promise<AuthUser> => {
     try {
-      // usa el helper (añade Authorization con el token actual)
       const me = (await api<Record<string, unknown>>("/auth/me", {
         method: "GET",
         headers: {
@@ -141,18 +166,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       saveToStorage(u);
       return u;
     } catch (err: unknown) {
-      // Si /auth/me cae con 401, queda el provisional para no romper UX
+      // Si /auth/me devuelve 401 en arranque (token inválido/vencido), limpiamos sin loguear ruido
       const msg = String((err as Error)?.message || err || "");
-      console.warn("[auth] /auth/me fallo:", msg);
+      const is401 = msg.includes("HTTP 401");
+      if (is401) {
+        clearStorage();
+        setUser(null);
+      } else {
+        console.warn("[auth] /auth/me fallo:", msg);
+      }
       if (fallback?.email && fallback?.roles) {
         const u: AuthUser = { token, email: fallback.email, roles: fallback.roles };
         setUser(u);
         saveToStorage(u);
         return u;
       }
-      // si no había fallback, limpia estado
-      clearStorage();
-      setUser(null);
       throw err;
     }
   };
@@ -174,7 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         if (!cancelled) setUser(full);
       } catch {
-        // ya limpiamos dentro de fetchMe
+        // ya limpiamos dentro de fetchMe cuando corresponde
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -223,10 +251,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(provisional);
     saveToStorage(provisional);
 
-    // completa con /auth/me
+    // completa con /auth/me (si falla 401, mantenemos provisional)
     const fullUser = await fetchMe(token, { email: emailResp, roles: parsedRoles }).catch(() => {
-      // Si /auth/me falla (p.ej. 401 por validación en AuthService),
-      // mantenemos el provisional para no cortar el flujo.
       return provisional;
     });
 
