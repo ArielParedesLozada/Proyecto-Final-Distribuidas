@@ -122,10 +122,13 @@ const UsersPage: React.FC = () => {
     try {
       setLoading(true);
       const formData = new FormData(e.currentTarget);
+      const password = formData.get('password') as string;
+      
       const updatedUser = {
         email: formData.get('email') as string,
         nombre: formData.get('nombre') as string,
-        roles: formData.get('roles') as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR'
+        roles: formData.get('roles') as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR',
+        ...(password && password.trim() !== '' && { password })
       };
 
       const response = await api<{ user: User }>(`/admin/users/${editingUser.id}`, {
@@ -133,7 +136,13 @@ const UsersPage: React.FC = () => {
         body: JSON.stringify({ user: updatedUser })
       });
 
+      if (!response || !response.user) {
+        addToast('Error: Respuesta inválida del servidor', 'error');
+        return;
+      }
+
       setUsers(prev => prev.map(u => u.id === editingUser.id ? response.user : u));
+      
       setIsEditModalOpen(false);
       setEditingUser(null);
       addToast('Usuario actualizado exitosamente', 'success');
@@ -488,8 +497,27 @@ const UsersPage: React.FC = () => {
                     className="fuel-input pl-10 pr-4"
                     style={{ paddingLeft: '2.5rem' }}
                     required
+                    autoComplete="username"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Nueva Contraseña</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <input
+                    type="password"
+                    name="password"
+                    className="fuel-input pl-10 pr-4"
+                    style={{ paddingLeft: '2.5rem' }}
+                    placeholder="Dejar vacío para mantener la contraseña actual"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Si no ingresas una contraseña, se mantendrá la contraseña actual
+                </p>
               </div>
 
               <div>
