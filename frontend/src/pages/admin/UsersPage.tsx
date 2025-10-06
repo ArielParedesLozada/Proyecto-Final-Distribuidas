@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Users, UserPlus, Mail, Lock, Shield, UserCheck, Edit3, Trash2 } from "lucide-react";
 import { useToast } from "../../shared/ToastNotification";
 import { api } from "../../api/api";
+import Pagination from "../../shared/Pagination";
 
 interface User {
   id: string;
@@ -32,13 +33,25 @@ const UsersPage: React.FC = () => {
 
   // Estado para usuarios reales del backend
   const [users, setUsers] = useState<User[]>([]);
+  
+  // Estado de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const usersPerPage = 4;
 
   // Función para cargar usuarios desde el backend
   const loadUsers = async () => {
     try {
       setLoading(true);
       const response = await api<{ users: User[] }>('/admin/users');
-      setUsers(response.users || []);
+      const allUsers = response.users || [];
+      setTotalUsers(allUsers.length);
+      
+      // Aplicar paginación local
+      const startIndex = (currentPage - 1) * usersPerPage;
+      const endIndex = startIndex + usersPerPage;
+      const paginatedUsers = allUsers.slice(startIndex, endIndex);
+      setUsers(paginatedUsers);
     } catch (error) {
       console.error('Error cargando usuarios:', error);
       addToast('Error al cargar usuarios', 'error');
@@ -47,10 +60,22 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  // Función para manejar cambio de página
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // No necesitamos recargar desde el servidor, solo cambiar la página
+    // La paginación se maneja localmente
+  };
+
   // Cargar usuarios al montar el componente
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // Recargar usuarios cuando cambie la página
+  useEffect(() => {
+    loadUsers();
+  }, [currentPage]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,15 +326,38 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+             </tbody>
+           </table>
+         </div>
+         
+         {/* Paginación - Siempre visible */}
+         <div className="mt-6">
+           <Pagination
+             page={currentPage}
+             perPage={usersPerPage}
+             total={totalUsers}
+             onPageChange={handlePageChange}
+             className=""
+           />
+         </div>
+       </div>
 
       {/* Modal Crear Usuario */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="fuel-card p-6 w-full max-w-md">
+        <>
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+            {/* Cerrar */}
+            <button
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+              onClick={() => setIsCreateModalOpen(false)}
+              aria-label="Cerrar"
+              title="Cerrar"
+            >
+              ✕
+            </button>
+
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
                 <UserPlus className="w-6 h-6 text-blue-400" />
@@ -390,13 +438,26 @@ const UsersPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Modal Editar Usuario */}
       {isEditModalOpen && editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="fuel-card p-6 w-full max-w-md">
+        <>
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+            {/* Cerrar */}
+            <button
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+              onClick={() => setIsEditModalOpen(false)}
+              aria-label="Cerrar"
+              title="Cerrar"
+            >
+              ✕
+            </button>
+
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
                 <Edit3 className="w-6 h-6 text-blue-400" />
@@ -459,7 +520,8 @@ const UsersPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
