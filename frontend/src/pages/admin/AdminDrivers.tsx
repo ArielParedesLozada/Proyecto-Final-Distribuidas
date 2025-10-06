@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, RefreshCw, AlertCircle, Users, Car, User, Clock, CheckCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Users, Car, User, Clock, CheckCircle } from 'lucide-react';
 import { api } from '../../api/api';
 import type { Driver, DriversListResponse } from '../../types/driver';
 import { useToast } from '../../shared/ToastNotification';
@@ -288,27 +288,6 @@ const AdminDrivers: React.FC = () => {
           <p className="text-slate-400">Administra y completa los perfiles de conductores del sistema</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              fetchConductorUsers();
-              fetchDrivers();
-              fetchIncompleteUsers();
-            }}
-            className="p-2 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600/50 transition-colors"
-            title="Actualizar datos"
-          >
-            <RefreshCw className="w-5 h-5 text-slate-400" />
-          </button>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="fuel-button flex items-center gap-2"
-            disabled={users.length === 0}
-        >
-          <Plus className="w-5 h-5" />
-            {users.length === 0 ? 'No hay usuarios CONDUCTOR' : 'Completar Perfil'}
-        </button>
-        </div>
       </div>
 
       {/* Estadísticas */}
@@ -437,13 +416,20 @@ const AdminDrivers: React.FC = () => {
                     )}
                   </>
                 ) : (
-                  <div className="fuel-card p-12">
+                  <div className="fuel-card p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 rounded-lg bg-yellow-600/20 border border-yellow-600/30">
+                        <Clock className="w-6 h-6 text-yellow-400" />
+                      </div>
+                      <h2 className="text-xl font-semibold text-white">Perfiles Incompletos</h2>
+                    </div>
+                    
                     <EmptyState
                       icon={Users}
                       title="No hay usuarios CONDUCTOR"
                       description="Primero debes crear usuarios con rol CONDUCTOR en la sección de usuarios"
                       actionLabel="Ir a Usuarios"
-                      onAction={() => {/* Navigate to users page */}}
+                      onAction={() => navigate('/admin/dashboard/users')}
                     />
                   </div>
                 )}
@@ -461,18 +447,18 @@ const AdminDrivers: React.FC = () => {
                   </div>
                   
                   {drivers.length > 0 ? (
-                    <DriverTable
-                      drivers={drivers}
-                      isLoading={isLoading}
-                      onEdit={handleEditDriver}
-                    />
+                    <div className="space-y-4">
+                      <DriverTable
+                        drivers={drivers}
+                        isLoading={isLoading}
+                        onEdit={handleEditDriver}
+                      />
+                    </div>
                   ) : (
                     <EmptyState
                       icon={Car}
                       title="No hay perfiles completos"
                       description="Los conductores aparecerán aquí una vez que completen su perfil"
-                      actionLabel="Completar Primer Perfil"
-                      onAction={() => setIsModalOpen(true)}
                     />
                   )}
                 </div>
