@@ -1,7 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { Eye, CheckCircle, Play, Fuel } from "lucide-react";
+import { Eye, CheckCircle, Play, Fuel, Filter } from "lucide-react";
 import TripModal from "./TripModal";
 import FuelRequestModal from "./FuelRequestModal";
+import EmptyState from "../../shared/EmptyState";
+import TripFilters, {
+    type TripFiltersValue,
+    type TripStatus,
+    DEFAULT_TRIP_FILTERS,
+} from "../../shared/TripFilters";
 
 export type Trip = {
     id: string;
@@ -11,11 +17,12 @@ export type Trip = {
     estimado?: number;
     inicioAt?: number | null;
     finAt?: number | null;
+    programadoAt?: number | null; // para Próximas 24 h
     observations: Array<{ id: string; text: string; ts: number }>;
 };
 
 type Props = {
-    trips?: Trip[]; 
+    trips?: Trip[];
     onStart?: (id: string) => void;
     onFinish?: (id: string) => void;
     onAddObs?: (tripId: string, text: string) => void;
@@ -23,6 +30,8 @@ type Props = {
 };
 
 const now = Date.now();
+const ONE_DAY = 24 * 60 * 60 * 1000;
+
 const DEMO_TRIPS: Trip[] = [
     {
         id: "VIA-001",
@@ -30,11 +39,8 @@ const DEMO_TRIPS: Trip[] = [
         destino: "Quito",
         estado: "Planificado",
         estimado: 35,
-        inicioAt: null,
-        finAt: null,
-        observations: [
-            { id: "o1", text: "Revisar neumáticos antes de salir.", ts: now - 1000 * 60 * 60 * 5 },
-        ],
+        programadoAt: now + 2 * 60 * 60 * 1000,
+        observations: [{ id: "o1", text: "Revisar neumáticos antes de salir.", ts: now - 1000 * 60 * 60 * 5 }],
     },
     {
         id: "VIA-002",
@@ -43,7 +49,7 @@ const DEMO_TRIPS: Trip[] = [
         estado: "EnCurso",
         estimado: 20,
         inicioAt: now - 1000 * 60 * 45,
-        finAt: null,
+        programadoAt: now - 1000 * 60 * 60,
         observations: [
             { id: "o2", text: "Tráfico moderado en Panamericana.", ts: now - 1000 * 60 * 30 },
             { id: "o3", text: "Clima lluvioso, conducir con precaución.", ts: now - 1000 * 60 * 10 },
@@ -65,8 +71,7 @@ const DEMO_TRIPS: Trip[] = [
         destino: "Puyo",
         estado: "Planificado",
         estimado: 28,
-        inicioAt: null,
-        finAt: null,
+        programadoAt: now + 26 * 60 * 60 * 1000,
         observations: [],
     },
     {
@@ -76,7 +81,7 @@ const DEMO_TRIPS: Trip[] = [
         estado: "EnCurso",
         estimado: 22,
         inicioAt: now - 1000 * 60 * 20,
-        finAt: null,
+        programadoAt: now - 1000 * 60 * 40,
         observations: [{ id: "o5", text: "Parada breve para verificar carga.", ts: now - 1000 * 60 * 12 }],
     },
     {
@@ -85,8 +90,7 @@ const DEMO_TRIPS: Trip[] = [
         destino: "Ambato",
         estado: "Planificado",
         estimado: 40,
-        inicioAt: null,
-        finAt: null,
+        programadoAt: now + 5 * 60 * 60 * 1000,
         observations: [],
     },
 ];
@@ -98,8 +102,52 @@ const DriverTrips: React.FC<Props> = ({
     onAddObs,
     onAskFuel,
 }) => {
-    const data = useMemo(() => (trips && trips.length ? trips : DEMO_TRIPS), [trips]);
+    // Fuente
+    const allTrips = useMemo<Trip[]>(
+        () => (trips && trips.length ? trips : DEMO_TRIPS),
+        [trips]
+    );
 
+    // ------------ Filtros (controlados) ------------
+    const [filters, setFilters] = useState<TripFiltersValue>({ ...DEFAULT_TRIP_FILTERS });
+
+    const uniqueCities = useMemo(
+        () =>
+            Array.from(new Set(allTrips.flatMap((t) => [t.origen, t.destino]))).sort(),
+        [allTrips]
+    );
+
+    const counts = useMemo(
+        () => ({
+            Planificado: allTrips.filter((t) => t.estado === "Planificado").length,
+            EnCurso: allTrips.filter((t) => t.estado === "EnCurso").length,
+            Finalizado: allTrips.filter((t) => t.estado === "Finalizado").length,
+        }),
+        [allTrips]
+    );
+
+    const filteredTrips = useMemo(() => {
+        const q = filters.city.trim().toLowerCase();
+        const nowTs = Date.now();
+
+        return allTrips.filter((t) => {
+            if (q && !(t.origen.toLowerCase().includes(q) || t.destino.toLowerCase().includes(q)))
+                return false;
+
+            if (filters.status.length && !filters.status.includes(t.estado as TripStatus))
+                return false;
+
+            if (filters.onlyNext24h) {
+                const ts = t.programadoAt ?? t.inicioAt ?? null;
+                if (!ts) return false;
+                if (!(ts >= nowTs && ts <= nowTs + ONE_DAY)) return false;
+            }
+
+            return true;
+        });
+    }, [allTrips, filters]);
+
+    // ------------ Modales ------------
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
 
@@ -117,8 +165,17 @@ const DriverTrips: React.FC<Props> = ({
                 <p className="text-slate-400">Gestiona tus viajes y observaciones</p>
             </div>
 
+            {/* Filtros reutilizables */}
+            <TripFilters
+                value={filters}
+                onChange={setFilters}
+                counts={counts}
+                suggestions={uniqueCities}
+            />
+
+            {/* Lista */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.map((trip) => (
+                {filteredTrips.map((trip) => (
                     <div
                         key={trip.id}
                         className="fuel-card flex items-center justify-between p-4 hover:shadow-lg transition-all"
@@ -176,13 +233,19 @@ const DriverTrips: React.FC<Props> = ({
                     </div>
                 ))}
 
-                {data.length === 0 && (
-                    <div className="text-center text-slate-400 col-span-full py-12">
-                        No hay viajes asignados actualmente.
+                {filteredTrips.length === 0 && (
+                    <div className="col-span-full">
+                        <EmptyState
+                            asCard
+                            icon={Filter}
+                            title="No hay viajes que coincidan con tus filtros"
+                            description="Ajusta la ciudad, el estado o la ventana de 24 h."
+                        />
                     </div>
                 )}
             </div>
 
+            {/* Modales */}
             {selectedTrip && (
                 <TripModal
                     trip={selectedTrip}

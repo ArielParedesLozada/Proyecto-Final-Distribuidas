@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Gauge, Eye } from "lucide-react";
+import { Gauge, Eye, Car } from "lucide-react";
 import VehicleTripsModal from "./VehicleTripsModal";
 import type { Trip } from "./VehicleTripsModal";
 import Pagination from "../../shared/Pagination";
+import EmptyState from "../../shared/EmptyState";
 
 type Vehicle = {
     placa: string;
@@ -45,8 +46,8 @@ const DriverVehicle: React.FC<Props> = ({
     vehicles,
     tripsByVehicle,
 }) => {
-    const allData: Vehicle[] = useMemo(() => {
-        if (vehicles && vehicles.length) return vehicles;
+    const source: Vehicle[] = useMemo(() => {
+        if (typeof vehicles !== "undefined") return vehicles;
         if (vehicle) return [vehicle];
         return DEMO_VEHICLES;
     }, [vehicle, vehicles]);
@@ -54,11 +55,11 @@ const DriverVehicle: React.FC<Props> = ({
     const [page, setPage] = useState(1);
 
     const { data, total } = useMemo(() => {
-        const total = allData.length;
+        const total = source.length;
         const start = (page - 1) * PER_PAGE;
         const end = start + PER_PAGE;
-        return { data: allData.slice(start, end), total };
-    }, [allData, page]);
+        return { data: source.slice(start, end), total };
+    }, [source, page]);
 
     const [openVeh, setOpenVeh] = useState<Vehicle | null>(null);
 
@@ -68,9 +69,9 @@ const DriverVehicle: React.FC<Props> = ({
     };
 
     React.useEffect(() => {
-        const totalPages = Math.max(1, Math.ceil(allData.length / PER_PAGE));
+        const totalPages = Math.max(1, Math.ceil(source.length / PER_PAGE));
         if (page > totalPages) setPage(totalPages);
-    }, [allData.length, page]);
+    }, [source.length, page]);
 
     return (
         <div className="space-y-6">
@@ -130,6 +131,15 @@ const DriverVehicle: React.FC<Props> = ({
                         </div>
                     );
                 })}
+
+                {source.length === 0 && (
+                    <EmptyState
+                        asCard
+                        icon={Car}
+                        title="No tienes vehículos asignados"
+                        description="Cuando te asignen uno, aparecerá aquí."
+                    />
+                )}
             </div>
 
             <div className="max-w-5xl mx-auto">
