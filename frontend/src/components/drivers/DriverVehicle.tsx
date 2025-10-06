@@ -1,24 +1,22 @@
 import React, { useMemo, useState } from "react";
-import { Gauge, Eye } from "lucide-react";
+import { Gauge, Eye, Car } from "lucide-react";
 import VehicleTripsModal from "./VehicleTripsModal";
 import type { Trip } from "./VehicleTripsModal";
+import Pagination from "../../shared/Pagination";
+import EmptyState from "../../shared/EmptyState";
 
 type Vehicle = {
     placa: string;
     tipo: string;
     modelo?: string;
-    /** estado se mantiene por compatibilidad pero ya no se muestra */
     estado?: string;
-    nivel: number; // %
+    nivel: number; 
     alias?: string;
 };
 
 type Props = {
-    /** Si sigues usando un solo vehículo, puedes pasar 'vehicle' y se mostrará como lista de 1 */
     vehicle?: Vehicle;
-    /** Lista de vehículos */
     vehicles?: Vehicle[];
-    /** Viajes por vehículo (opcional). Si no lo pasas, se usa demo. */
     tripsByVehicle?: Record<string, Trip[]>;
 };
 
@@ -28,6 +26,9 @@ const DEMO_VEHICLES: Vehicle[] = [
     { placa: "PAC-1234", tipo: "Camioneta", modelo: "Hilux 2.8", estado: "Operativo", nivel: 32, alias: "Hilux" },
     { placa: "TBA-0987", tipo: "Furgón", modelo: "Sprinter 415", estado: "Operativo", nivel: 76 },
     { placa: "ABC-5678", tipo: "SUV", modelo: "Patrol 4.0", estado: "Taller", nivel: 58, alias: "Patrol" },
+    { placa: "PBC-1122", tipo: "Camioneta", modelo: "Dmax 3.0", estado: "Operativo", nivel: 41, alias: "D-Max" },
+    { placa: "MNO-5566", tipo: "Furgón", modelo: "Boxer", estado: "Operativo", nivel: 87 },
+    { placa: "XYZ-0001", tipo: "SUV", modelo: "Fortuner", estado: "Operativo", nivel: 63 },
 ];
 
 const demoTrips = (from: string): Trip[] => [
@@ -37,17 +38,23 @@ const demoTrips = (from: string): Trip[] => [
 ];
 /* ------------------------------------------------ */
 
-const DriverVehicle: React.FC<Props> = ({
-    vehicle,
-    vehicles,
-    tripsByVehicle,
-}) => {
-    // Fuente unificada: vehicles[] > [vehicle] > DEMO
-    const data: Vehicle[] = useMemo(() => {
-        if (vehicles && vehicles.length) return vehicles;
+const PER_PAGE = 5;
+
+const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) => {
+    const source: Vehicle[] = useMemo(() => {
+        if (typeof vehicles !== "undefined") return vehicles;
         if (vehicle) return [vehicle];
         return DEMO_VEHICLES;
     }, [vehicle, vehicles]);
+
+    const [page, setPage] = useState(1);
+
+    const { data, total } = useMemo(() => {
+        const total = source.length;
+        const start = (page - 1) * PER_PAGE;
+        const end = start + PER_PAGE;
+        return { data: source.slice(start, end), total };
+    }, [source, page]);
 
     const [openVeh, setOpenVeh] = useState<Vehicle | null>(null);
 
@@ -56,8 +63,13 @@ const DriverVehicle: React.FC<Props> = ({
         return demoTrips(placa);
     };
 
+    React.useEffect(() => {
+        const totalPages = Math.max(1, Math.ceil(source.length / PER_PAGE));
+        if (page > totalPages) setPage(totalPages);
+    }, [source.length, page]);
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-full px-2 sm:px-4">
             {/* Título */}
             <div className="text-center">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
@@ -66,44 +78,35 @@ const DriverVehicle: React.FC<Props> = ({
                 <p className="text-slate-400">Listado de vehículos asignados y sus viajes</p>
             </div>
 
-            {/* Cards: una por fila, centradas */}
-            <div className="max-w-5xl mx-auto space-y-4">
+            {/* Lista de cards (ancho fluido) */}
+            <div className="space-y-4">
                 {data.map((v) => {
                     const level = Math.max(0, Math.min(100, Math.round(v.nivel)));
-                    const barColor =
-                        level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
+                    const barColor = level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
                     const modeloToShow = v.modelo ?? v.estado ?? "—";
 
                     return (
-                        <div
-                            key={v.placa}
-                            className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all"
-                        >
-                            {/* Columna izquierda: ocupa todo el ancho disponible */}
+                        <div key={v.placa} className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all">
+                            {/* Izquierda */}
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="font-semibold text-white text-lg truncate">
                                     {v.alias ?? v.tipo} · {v.placa}
                                 </div>
 
-                                {/* Modelo */}
                                 <div className="text-sm text-slate-400">Modelo: {modeloToShow}</div>
 
-                                {/* Barra combustible a todo el ancho */}
                                 <div className="mt-3 flex items-center gap-2">
                                     <Gauge className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div className="flex-1">
                                         <div className="w-full bg-slate-800 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full ${barColor}`}
-                                                style={{ width: `${level}%` }}
-                                            />
+                                            <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${level}%` }} />
                                         </div>
                                     </div>
                                     <span className="text-xs text-slate-300 shrink-0">{level}%</span>
                                 </div>
                             </div>
 
-                            {/* Acciones (ojito) */}
+                            {/* Acciones */}
                             <div className="shrink-0">
                                 <button
                                     className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all"
@@ -116,15 +119,18 @@ const DriverVehicle: React.FC<Props> = ({
                         </div>
                     );
                 })}
+
+                {source.length === 0 && (
+                    <EmptyState asCard icon={Car} title="No tienes vehículos asignados" description="Cuando te asignen uno, aparecerá aquí." />
+                )}
             </div>
 
-            {/* Modal: viajes por vehículo */}
+            <div>
+                <Pagination page={page} perPage={PER_PAGE} total={total} onPageChange={setPage} window={2} compact className="mt-2" />
+            </div>
+
             {openVeh && (
-                <VehicleTripsModal
-                    vehicle={openVeh}
-                    trips={getTrips(openVeh.placa)}
-                    onClose={() => setOpenVeh(null)}
-                />
+                <VehicleTripsModal vehicle={openVeh} trips={getTrips(openVeh.placa)} onClose={() => setOpenVeh(null)} />
             )}
         </div>
     );
