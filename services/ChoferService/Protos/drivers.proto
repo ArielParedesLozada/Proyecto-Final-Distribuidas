@@ -24,6 +24,12 @@ service DriversService {
   // Actualizar disponibilidad del conductor
   rpc UpdateAvailability (UpdateAvailabilityRequest) returns (DriverResponse);
   
+  // Actualizar conductor completo
+  rpc UpdateDriver (UpdateDriverRequest) returns (DriverResponse);
+  
+  // Eliminar conductor
+  rpc DeleteDriver (DeleteDriverRequest) returns (google.protobuf.Empty);
+  
   // Obtener mi propio registro de conductor
   rpc GetMyDriver (google.protobuf.Empty) returns (DriverResponse);
 }
@@ -70,6 +76,20 @@ message ListDriversRequest {
 message UpdateAvailabilityRequest {
   string id = 1;
   int32 availability = 2;
+}
+
+// Request para actualizar conductor completo
+message UpdateDriverRequest {
+  string id = 1;
+  string full_name = 2;
+  string license_number = 3;
+  int32 capabilities = 4;
+  int32 availability = 5;
+}
+
+// Request para eliminar conductor
+message DeleteDriverRequest {
+  string id = 1;
 }
 
 // Response con datos del conductor

@@ -332,45 +332,8 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
             if (driver == null)
             {
-                // Verificar si el usuario tiene rol CONDUCTOR
-                if (httpUser.IsInRole("CONDUCTOR"))
-                {
-                    _logger.LogInformation("Driver not found for user {UserId}, creating new driver", userId);
-                    
-                    var newDriver = new Models.Driver
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        FullName = "Conductor del Sistema",
-                        LicenseNumber = $"CON-{userId.ToString()[..8].ToUpper()}",
-                        Capabilities = 1,
-                        Availability = 1,
-                        CreatedAt = DateTimeOffset.UtcNow,
-                        UpdatedAt = DateTimeOffset.UtcNow
-                    };
-
-                    _context.Drivers.Add(newDriver);
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                        driver = newDriver;
-                        _logger.LogInformation("Driver created for user {UserId}: {DriverId}", userId, driver.Id);
-                    }
-                    catch (DbUpdateException)
-                    {
-                        // Manejar carrera: otro proceso ya creó el driver
-                        driver = await _context.Drivers.FirstOrDefaultAsync(d => d.UserId == userId);
-                        if (driver == null)
-                        {
-                            throw new RpcException(new Status(StatusCode.Internal, "Failed to create driver"));
-                        }
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("Driver not found for user {UserId} and user is not CONDUCTOR", userId);
-                    throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
-                }
+                _logger.LogWarning("Driver not found for user {UserId}", userId);
+                throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
             }
 
             _logger.LogInformation("Driver found for user {UserId}: {DriverId}", userId, driver.Id);
@@ -387,6 +350,92 @@ public class DriversGrpc : DriversService.DriversServiceBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting my driver: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
+        }
+    }
+
+    public override async Task<DriverResponse> UpdateDriver(UpdateDriverRequest request, ServerCallContext context)
+    {
+        try
+        {
+            _logger.LogInformation("Updating driver with ID: {DriverId}", request.Id);
+
+            // Validar que el ID sea un GUID válido
+            if (!Guid.TryParse(request.Id, out var driverId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid driver ID format"));
+            }
+
+            // Buscar el conductor existente
+            var existingDriver = await _context.Drivers.FindAsync(driverId);
+            if (existingDriver == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+            }
+
+            // Actualizar los campos
+            existingDriver.FullName = request.FullName;
+            existingDriver.LicenseNumber = request.LicenseNumber;
+            existingDriver.Capabilities = (short)request.Capabilities;
+            existingDriver.Availability = (short)request.Availability;
+            existingDriver.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Guardar cambios
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Driver updated successfully: {DriverId}", request.Id);
+
+            return new DriverResponse
+            {
+                Driver = MapToProtoDriver(existingDriver)
+            };
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating driver: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
+        }
+    }
+
+    [Authorize(Policy = "DriversUpdateAny")]
+    public override async Task<Empty> DeleteDriver(DeleteDriverRequest request, ServerCallContext context)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting driver with ID: {DriverId}", request.Id);
+
+            // Validar que el ID sea un GUID válido
+            if (!Guid.TryParse(request.Id, out var driverId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid driver ID format"));
+            }
+
+            // Buscar el conductor existente
+            var existingDriver = await _context.Drivers.FindAsync(driverId);
+            if (existingDriver == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+            }
+
+            // Eliminar el conductor
+            _context.Drivers.Remove(existingDriver);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Driver deleted successfully: {DriverId}", request.Id);
+
+            return new Empty();
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting driver: {Message}", ex.Message);
             throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
         }
     }
