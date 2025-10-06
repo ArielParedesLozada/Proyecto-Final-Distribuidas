@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { User, Mail, Edit3, UserPlus } from 'lucide-react';
 import type { Driver } from '../../../types/driver';
+
+interface User {
+  id: string;
+  email: string;
+  nombre: string;
+  roles: 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR';
+}
 
 interface DriverFormModalProps {
   isOpen: boolean;
@@ -8,6 +15,8 @@ interface DriverFormModalProps {
   onSubmit: (driverData: DriverFormData) => Promise<void>;
   driver?: Driver | null;
   isLoading?: boolean;
+  users?: User[];
+  preSelectedUser?: User | null;
 }
 
 export interface DriverFormData {
@@ -23,7 +32,9 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
   onClose,
   onSubmit,
   driver,
-  isLoading = false
+  isLoading = false,
+  users = [],
+  preSelectedUser = null
 }) => {
   const [formData, setFormData] = useState<DriverFormData>({
     user_id: '',
@@ -33,31 +44,64 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
     availability: 1
   });
 
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [originalData, setOriginalData] = useState<DriverFormData | null>(null);
 
   // Reset form when modal opens/closes or driver changes
   useEffect(() => {
     if (isOpen) {
       if (driver) {
-        setFormData({
+        // Editing existing driver
+        setSelectedUser(preSelectedUser || null);
+        const driverData = {
           user_id: driver.user_id,
           full_name: driver.full_name,
           license_number: driver.license_number,
           capabilities: driver.capabilities,
           availability: driver.availability
-        });
+        };
+        setFormData(driverData);
+        setOriginalData(driverData); // Guardar datos originales
+      } else if (preSelectedUser) {
+        // Creating new driver with pre-selected user
+        setSelectedUser(preSelectedUser);
+        const newDriverData = {
+          user_id: preSelectedUser.id,
+          full_name: preSelectedUser.nombre,
+          license_number: '',
+          capabilities: 1,
+          availability: 1
+        };
+        setFormData(newDriverData);
+        setOriginalData(null); // No hay datos originales para nuevo conductor
       } else {
-        setFormData({
+        // Creating new driver without pre-selection
+        setSelectedUser(null);
+        const emptyData = {
           user_id: '',
           full_name: '',
           license_number: '',
           capabilities: 1,
           availability: 1
-        });
+        };
+        setFormData(emptyData);
+        setOriginalData(null); // No hay datos originales para nuevo conductor
       }
       setErrors({});
     }
-  }, [isOpen, driver]);
+  }, [isOpen, driver, users, preSelectedUser]);
+
+  // Función para detectar si hay cambios
+  const hasChanges = (): boolean => {
+    if (!originalData) return true; // Si no hay datos originales, es un nuevo conductor
+    return (
+      formData.full_name !== originalData.full_name ||
+      formData.license_number !== originalData.license_number ||
+      formData.capabilities !== originalData.capabilities ||
+      formData.availability !== originalData.availability
+    );
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -101,6 +145,18 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
     }
   };
 
+  const handleUserSelect = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
+      setFormData(prev => ({
+        ...prev,
+        user_id: user.id,
+        full_name: user.nombre
+      }));
+    }
+  };
+
   const handleInputChange = (field: keyof DriverFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -116,55 +172,80 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fuel-card p-6 w-full max-w-md">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
+            {driver ? <Edit3 className="w-6 h-6 text-blue-400" /> : <UserPlus className="w-6 h-6 text-blue-400" />}
+          </div>
           <h2 className="text-xl font-semibold text-white">
-            {driver ? 'Editar Conductor' : 'Nuevo Conductor'}
+            {driver ? 'Editar Perfil de Conductor' : 'Completar Perfil de Conductor'}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-            disabled={isLoading}
-          >
-            <X className="w-5 h-5 text-slate-400" />
-          </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* User ID */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              ID de Usuario *
-            </label>
-            <input
-              type="text"
-              value={formData.user_id}
-              onChange={(e) => handleInputChange('user_id', e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ingresa el ID del usuario"
-              disabled={isLoading}
-            />
-            {errors.user_id && (
-              <p className="mt-1 text-sm text-red-400">{errors.user_id}</p>
-            )}
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* User Selection - Solo mostrar si no hay usuario pre-seleccionado */}
+          {!driver && !preSelectedUser && (
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Seleccionar Usuario CONDUCTOR para Completar Perfil *
+              </label>
+              <select
+                value={formData.user_id}
+                onChange={(e) => handleUserSelect(e.target.value)}
+                className="fuel-input"
+                disabled={isLoading}
+              >
+                <option value="">Selecciona un usuario conductor para completar su perfil</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.nombre} ({user.email})
+                  </option>
+                ))}
+              </select>
+              {errors.user_id && (
+                <p className="mt-1 text-sm text-red-400">{errors.user_id}</p>
+              )}
+            </div>
+          )}
+
+          {/* Selected User Info - Mostrar siempre que haya usuario seleccionado */}
+          {selectedUser && (
+            <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
+                  <User className="w-4 h-4 text-blue-400" />
+                </div>
+                <div>
+                  <div className="font-medium text-white">{selectedUser.nombre}</div>
+                  <div className="text-sm text-slate-400 flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {selectedUser.email}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Nombre Completo *
             </label>
             <input
               type="text"
               value={formData.full_name}
               onChange={(e) => handleInputChange('full_name', e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="fuel-input"
               placeholder="Ingresa el nombre completo"
-              disabled={isLoading}
+              disabled={isLoading || (!!selectedUser && !driver)}
             />
+            {selectedUser && !driver && (
+              <p className="mt-1 text-sm text-blue-400">
+                Se llenó automáticamente con el nombre del usuario seleccionado
+              </p>
+            )}
             {errors.full_name && (
               <p className="mt-1 text-sm text-red-400">{errors.full_name}</p>
             )}
@@ -172,14 +253,14 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
 
           {/* License Number */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Número de Licencia *
             </label>
             <input
               type="text"
               value={formData.license_number}
               onChange={(e) => handleInputChange('license_number', e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="fuel-input"
               placeholder="Ingresa el número de licencia"
               disabled={isLoading}
             />
@@ -190,13 +271,13 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
 
           {/* Capabilities */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Capacidad *
             </label>
             <select
               value={formData.capabilities}
               onChange={(e) => handleInputChange('capabilities', parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="fuel-input"
               disabled={isLoading}
             >
               <option value={1}>Liviana</option>
@@ -210,13 +291,13 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
 
           {/* Availability */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Disponibilidad *
             </label>
             <select
               value={formData.availability}
               onChange={(e) => handleInputChange('availability', parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="fuel-input"
               disabled={isLoading}
             >
               <option value={1}>Disponible</option>
@@ -233,18 +314,17 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+              className="fuel-button-secondary flex-1"
               disabled={isLoading}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              disabled={isLoading}
+              className="fuel-button flex-1"
+              disabled={isLoading || (!!driver && !hasChanges())}
             >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {driver ? 'Actualizar' : 'Crear'}
+              {isLoading ? (driver ? 'Actualizando...' : 'Completando...') : (driver ? 'Actualizar' : 'Completar Perfil')}
             </button>
           </div>
         </form>

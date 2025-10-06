@@ -1,55 +1,40 @@
-import React from "react";
+import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-type IconComp = React.ComponentType<{ className?: string }>;
+interface EmptyStateProps {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  className?: string;
+}
 
-type Props = {
-    icon?: IconComp;
-    title: React.ReactNode;
-    description?: React.ReactNode;
-    action?: React.ReactNode;
-    size?: "sm" | "md" | "lg";
-    align?: "center" | "left";
-    asCard?: boolean;
-    className?: string;
-};
-
-const SIZE = {
-    sm: { icon: "w-8 h-8", title: "text-base", desc: "text-xs", pad: "py-6" },
-    md: { icon: "w-12 h-12", title: "text-lg", desc: "text-sm", pad: "py-10" },
-    lg: { icon: "w-16 h-16", title: "text-xl", desc: "text-base", pad: "py-14" },
-} as const;
-
-const EmptyState: React.FC<Props> = ({
-    icon: Icon,
-    title,
-    description,
-    action,
-    size = "md",
-    align = "center",
-    asCard = false,
-    className = "",
+const EmptyState: React.FC<EmptyStateProps> = ({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+  className = ""
 }) => {
-    const s = SIZE[size];
-
-    const inner = (
-        <div
-            className={[
-                s.pad,
-                align === "center" ? "text-center flex flex-col items-center justify-center" : "",
-                className,
-            ].join(" ")}
+  return (
+    <div className={`text-center py-12 ${className}`}>
+      <div className="p-4 rounded-full bg-slate-700/50 border border-slate-600 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+        <Icon className="w-8 h-8 text-slate-400" />
+      </div>
+      <h3 className="text-lg font-medium text-white mb-2">{title}</h3>
+      <p className="text-slate-400 mb-4">{description}</p>
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="px-4 py-2 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors text-sm font-medium"
         >
-            {Icon && <Icon className={`${s.icon} text-slate-500 mx-auto mb-3`} />}
-            <div className={`font-medium text-slate-300 ${s.title}`}>{title}</div>
-            {description && <div className={`text-slate-500 ${s.desc} mt-1`}>{description}</div>}
-            {action && <div className="mt-4">{action}</div>}
-        </div>
-    );
-
-    if (asCard) {
-        return <div className="fuel-card p-6">{inner}</div>;
-    }
-    return inner;
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
 };
 
 export default EmptyState;

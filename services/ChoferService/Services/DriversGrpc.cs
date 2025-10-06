@@ -354,6 +354,53 @@ public class DriversGrpc : DriversService.DriversServiceBase
         }
     }
 
+    public override async Task<DriverResponse> UpdateDriver(UpdateDriverRequest request, ServerCallContext context)
+    {
+        try
+        {
+            _logger.LogInformation("Updating driver with ID: {DriverId}", request.Id);
+
+            // Validar que el ID sea un GUID válido
+            if (!Guid.TryParse(request.Id, out var driverId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid driver ID format"));
+            }
+
+            // Buscar el conductor existente
+            var existingDriver = await _context.Drivers.FindAsync(driverId);
+            if (existingDriver == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+            }
+
+            // Actualizar los campos
+            existingDriver.FullName = request.FullName;
+            existingDriver.LicenseNumber = request.LicenseNumber;
+            existingDriver.Capabilities = (short)request.Capabilities;
+            existingDriver.Availability = (short)request.Availability;
+            existingDriver.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Guardar cambios
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Driver updated successfully: {DriverId}", request.Id);
+
+            return new DriverResponse
+            {
+                Driver = MapToProtoDriver(existingDriver)
+            };
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating driver: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
+        }
+    }
+
     private static ChoferService.Proto.Driver MapToProtoDriver(Models.Driver driver)
     {
         return new ChoferService.Proto.Driver

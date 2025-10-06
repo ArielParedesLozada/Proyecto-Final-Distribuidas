@@ -24,7 +24,7 @@ const adminNavItems = [
   {
     key: "drivers",
     label: "Conductores",
-    to: "/admin/drivers",
+    to: "/admin/dashboard/drivers",
     icon: <Truck className="w-5 h-5" />
   },
   {
