@@ -112,4 +112,16 @@ router.patch("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) =
   });
 });
 
+/** DELETE /drivers/:id - Eliminar conductor */
+router.delete("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) => {
+  const { id } = req.params;
+
+  const request = { id };
+
+  driversClient.DeleteDriver(request, mdFromHttp(req), (err, response) => {
+    if (err) return mapGrpcError(err, res);
+    res.status(204).send(); // No Content
+  });
+});
+
 export default router;

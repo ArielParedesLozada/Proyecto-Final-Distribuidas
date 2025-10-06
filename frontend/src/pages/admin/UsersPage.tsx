@@ -124,9 +124,41 @@ const UsersPage: React.FC = () => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
       try {
         setLoading(true);
+        
+        // Buscar el usuario para verificar su rol
+        const userToDelete = users.find(user => user.id === userId);
+        
+        // Eliminar el usuario
         await api(`/admin/users/${userId}`, {
           method: 'DELETE'
         });
+
+        // Si el usuario es CONDUCTOR, también eliminar su registro de conductor
+        if (userToDelete && userToDelete.roles === 'CONDUCTOR') {
+          try {
+            console.log('Usuario CONDUCTOR detectado, buscando conductor asociado...');
+            
+            // Primero obtener la lista de conductores para encontrar el ID del conductor
+            const driversResponse = await api('/drivers');
+            console.log('Respuesta de conductores:', driversResponse);
+            
+            const driver = driversResponse.drivers?.find((d: any) => d.user_id === userId);
+            console.log('Conductor encontrado:', driver);
+            
+            if (driver) {
+              console.log(`Eliminando conductor con ID: ${driver.id}`);
+              await api(`/drivers/${driver.id}`, {
+                method: 'DELETE'
+              });
+              console.log('Conductor eliminado exitosamente de la base de datos');
+            } else {
+              console.log('No se encontró conductor asociado para este usuario');
+            }
+          } catch (driverError) {
+            console.error('Error eliminando conductor asociado:', driverError);
+            addToast('Usuario eliminado, pero hubo un problema eliminando el conductor asociado', 'warning');
+          }
+        }
 
         setUsers(prev => prev.filter(user => user.id !== userId));
         addToast('Usuario eliminado exitosamente', 'success');

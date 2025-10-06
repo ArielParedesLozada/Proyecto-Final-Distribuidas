@@ -401,6 +401,45 @@ public class DriversGrpc : DriversService.DriversServiceBase
         }
     }
 
+    [Authorize(Policy = "DriversUpdateAny")]
+    public override async Task<Empty> DeleteDriver(DeleteDriverRequest request, ServerCallContext context)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting driver with ID: {DriverId}", request.Id);
+
+            // Validar que el ID sea un GUID válido
+            if (!Guid.TryParse(request.Id, out var driverId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid driver ID format"));
+            }
+
+            // Buscar el conductor existente
+            var existingDriver = await _context.Drivers.FindAsync(driverId);
+            if (existingDriver == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+            }
+
+            // Eliminar el conductor
+            _context.Drivers.Remove(existingDriver);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Driver deleted successfully: {DriverId}", request.Id);
+
+            return new Empty();
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting driver: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, $"Internal server error: {ex.Message}"));
+        }
+    }
+
     private static ChoferService.Proto.Driver MapToProtoDriver(Models.Driver driver)
     {
         return new ChoferService.Proto.Driver
