@@ -70,9 +70,10 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Comunicacion con gRPC-->AuthService
+var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE") ?? Cfg("Services:Users") ?? "http://localhost:7037";
 builder.Services.AddGrpcClient<UserServices.UserProtoService.UserProtoServiceClient>(o =>
 {
-    o.Address = new Uri("http://localhost:7037");
+    o.Address = new Uri(IP_USER_SERVICE);
 });
 builder.Services.AddScoped<UserClient>();
 
