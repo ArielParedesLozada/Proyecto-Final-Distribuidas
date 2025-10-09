@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Cargar el archivo proto
-const protoPath = process.env.DRIVERS_PROTO || '../services/ChoferService/Protos/drivers.proto';
+const protoPath = process.env.DRIVERS_PROTO || '../services/Protos/drivers.proto';
 const packageDefinition = protoLoader.loadSync(protoPath, {
   keepCase: true,
   defaults: true,

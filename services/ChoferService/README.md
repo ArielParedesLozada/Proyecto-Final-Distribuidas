@@ -9,6 +9,7 @@ Permite realizar operaciones CRUD sobre los choferes
 - **JWT_SECRET**: Clave secreta para generar los JWT
 - **JWT_ISSUER**: IP + Puerto de donde se emiten los tokens
 - **JWT_AUDIENCE**: IP + Puerto de para quien van los tokens, osea, IP + Puerto de este servicio
+- **IP_USER_SERVICE**: IP + Puerto del servicio de Usuarios para gRPC
 - **CONNECTION_STRING**: String de conexion para la base de datos. Usa Base de PostgreSQL por defecto
 
 ## EJECUCION

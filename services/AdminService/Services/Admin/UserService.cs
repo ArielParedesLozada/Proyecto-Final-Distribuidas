@@ -9,9 +9,11 @@ namespace AdminService.Services.Admin;
 public class UserService : AdminUserService.AdminService.AdminServiceBase
 {
     private readonly UserClient _client;
-    public UserService(UserClient client)
+    private readonly DriverClient _driverClient;
+    public UserService(UserClient client, DriverClient driver)
     {
         _client = client;
+        _driverClient = driver;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {
@@ -39,7 +41,11 @@ public class UserService : AdminUserService.AdminService.AdminServiceBase
     }
     public override async Task<Empty> DeleteUser(UserGetByIdRequest request, ServerCallContext context)
     {
-        await _client.DeleteUserAsync(request.Id, GetAuthorization(context));
+        var bearer = GetAuthorization(context);
+        //Borra el conductor asociado
+        await _driverClient.DeleteDriverByUserIdAsync(request.Id, bearer);
+        // Borra el usuario ahora si
+        await _client.DeleteUserAsync(request.Id, bearer);
         return new Empty();
     }
 }

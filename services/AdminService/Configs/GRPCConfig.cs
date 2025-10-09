@@ -5,14 +5,20 @@ namespace AdminService.Configs;
 
 public static class GRPCConfig
 {
-    public static IServiceCollection AddGrpcWithClients(this IServiceCollection services, string userServiceAddress)
+    public static IServiceCollection AddGrpcClient<TGrpcClient, TScopedClient>(
+                this IServiceCollection services,
+                string address)
+                where TGrpcClient : class
+                where TScopedClient : class
     {
         services.AddGrpc().AddJsonTranscoding();
-        services.AddGrpcClient<UserProtoService.UserProtoServiceClient>(o =>
+
+        services.AddGrpcClient<TGrpcClient>(o =>
         {
-            o.Address = new Uri(userServiceAddress);
+            o.Address = new Uri(address);
         });
-        services.AddScoped<UserClient>();
+
+        services.AddScoped<TScopedClient>();
 
         return services;
     }
