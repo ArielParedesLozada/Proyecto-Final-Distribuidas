@@ -68,6 +68,14 @@ namespace VehiclesService.Proto {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::VehiclesService.Proto.GetVehicleByDriverRequest> __Marshaller_vehicles_v1_GetVehicleByDriverRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::VehiclesService.Proto.GetVehicleByDriverRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::VehiclesService.Proto.ListVehiclesByDriverRequest> __Marshaller_vehicles_v1_ListVehiclesByDriverRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::VehiclesService.Proto.ListVehiclesByDriverRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::VehiclesService.Proto.ListVehiclesByDriverResponse> __Marshaller_vehicles_v1_ListVehiclesByDriverResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::VehiclesService.Proto.ListVehiclesByDriverResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::VehiclesService.Proto.ListAssignmentsByDriverRequest> __Marshaller_vehicles_v1_ListAssignmentsByDriverRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::VehiclesService.Proto.ListAssignmentsByDriverRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::VehiclesService.Proto.ListAssignmentsByDriverResponse> __Marshaller_vehicles_v1_ListAssignmentsByDriverResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::VehiclesService.Proto.ListAssignmentsByDriverResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::Google.Protobuf.WellKnownTypes.Empty> __Marshaller_google_protobuf_Empty = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Google.Protobuf.WellKnownTypes.Empty.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -135,12 +143,28 @@ namespace VehiclesService.Proto {
         __Marshaller_vehicles_v1_VehicleResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.VehicleResponse> __Method_GetMyVehicle = new grpc::Method<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.VehicleResponse>(
+    static readonly grpc::Method<global::VehiclesService.Proto.ListVehiclesByDriverRequest, global::VehiclesService.Proto.ListVehiclesByDriverResponse> __Method_ListVehiclesByDriver = new grpc::Method<global::VehiclesService.Proto.ListVehiclesByDriverRequest, global::VehiclesService.Proto.ListVehiclesByDriverResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "GetMyVehicle",
+        "ListVehiclesByDriver",
+        __Marshaller_vehicles_v1_ListVehiclesByDriverRequest,
+        __Marshaller_vehicles_v1_ListVehiclesByDriverResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::VehiclesService.Proto.ListAssignmentsByDriverRequest, global::VehiclesService.Proto.ListAssignmentsByDriverResponse> __Method_ListAssignmentsByDriver = new grpc::Method<global::VehiclesService.Proto.ListAssignmentsByDriverRequest, global::VehiclesService.Proto.ListAssignmentsByDriverResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ListAssignmentsByDriver",
+        __Marshaller_vehicles_v1_ListAssignmentsByDriverRequest,
+        __Marshaller_vehicles_v1_ListAssignmentsByDriverResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.ListVehiclesByDriverResponse> __Method_ListMyVehicles = new grpc::Method<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.ListVehiclesByDriverResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ListMyVehicles",
         __Marshaller_google_protobuf_Empty,
-        __Marshaller_vehicles_v1_VehicleResponse);
+        __Marshaller_vehicles_v1_ListVehiclesByDriverResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -201,7 +225,19 @@ namespace VehiclesService.Proto {
       }
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::VehiclesService.Proto.VehicleResponse> GetMyVehicle(global::Google.Protobuf.WellKnownTypes.Empty request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::VehiclesService.Proto.ListVehiclesByDriverResponse> ListVehiclesByDriver(global::VehiclesService.Proto.ListVehiclesByDriverRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::VehiclesService.Proto.ListAssignmentsByDriverResponse> ListAssignmentsByDriver(global::VehiclesService.Proto.ListAssignmentsByDriverRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::VehiclesService.Proto.ListVehiclesByDriverResponse> ListMyVehicles(global::Google.Protobuf.WellKnownTypes.Empty request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -222,7 +258,9 @@ namespace VehiclesService.Proto {
           .AddMethod(__Method_AssignVehicle, serviceImpl.AssignVehicle)
           .AddMethod(__Method_UnassignVehicle, serviceImpl.UnassignVehicle)
           .AddMethod(__Method_GetVehicleByDriver, serviceImpl.GetVehicleByDriver)
-          .AddMethod(__Method_GetMyVehicle, serviceImpl.GetMyVehicle).Build();
+          .AddMethod(__Method_ListVehiclesByDriver, serviceImpl.ListVehiclesByDriver)
+          .AddMethod(__Method_ListAssignmentsByDriver, serviceImpl.ListAssignmentsByDriver)
+          .AddMethod(__Method_ListMyVehicles, serviceImpl.ListMyVehicles).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -240,7 +278,9 @@ namespace VehiclesService.Proto {
       serviceBinder.AddMethod(__Method_AssignVehicle, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::VehiclesService.Proto.AssignVehicleRequest, global::VehiclesService.Proto.AssignmentResponse>(serviceImpl.AssignVehicle));
       serviceBinder.AddMethod(__Method_UnassignVehicle, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::VehiclesService.Proto.UnassignVehicleRequest, global::VehiclesService.Proto.AssignmentResponse>(serviceImpl.UnassignVehicle));
       serviceBinder.AddMethod(__Method_GetVehicleByDriver, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::VehiclesService.Proto.GetVehicleByDriverRequest, global::VehiclesService.Proto.VehicleResponse>(serviceImpl.GetVehicleByDriver));
-      serviceBinder.AddMethod(__Method_GetMyVehicle, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.VehicleResponse>(serviceImpl.GetMyVehicle));
+      serviceBinder.AddMethod(__Method_ListVehiclesByDriver, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::VehiclesService.Proto.ListVehiclesByDriverRequest, global::VehiclesService.Proto.ListVehiclesByDriverResponse>(serviceImpl.ListVehiclesByDriver));
+      serviceBinder.AddMethod(__Method_ListAssignmentsByDriver, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::VehiclesService.Proto.ListAssignmentsByDriverRequest, global::VehiclesService.Proto.ListAssignmentsByDriverResponse>(serviceImpl.ListAssignmentsByDriver));
+      serviceBinder.AddMethod(__Method_ListMyVehicles, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Google.Protobuf.WellKnownTypes.Empty, global::VehiclesService.Proto.ListVehiclesByDriverResponse>(serviceImpl.ListMyVehicles));
     }
 
   }

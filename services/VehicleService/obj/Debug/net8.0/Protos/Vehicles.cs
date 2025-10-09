@@ -53,25 +53,39 @@ namespace VehiclesService.Proto {
             "EhEKCWRyaXZlcl9pZBgCIAEoCRIvCgthc3NpZ25lZF9hdBgDIAEoCzIaLmdv",
             "b2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMQoNdW5hc3NpZ25lZF9hdBgEIAEo",
             "CzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiLgoZR2V0VmVoaWNsZUJ5",
-            "RHJpdmVyUmVxdWVzdBIRCglkcml2ZXJfaWQYASABKAky8AUKD1ZlaGljbGVz",
-            "U2VydmljZRJQCg1DcmVhdGVWZWhpY2xlEiEudmVoaWNsZXMudjEuQ3JlYXRl",
-            "VmVoaWNsZVJlcXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVzcG9uc2US",
-            "SgoKR2V0VmVoaWNsZRIeLnZlaGljbGVzLnYxLkdldFZlaGljbGVSZXF1ZXN0",
-            "GhwudmVoaWNsZXMudjEuVmVoaWNsZVJlc3BvbnNlElMKDExpc3RWZWhpY2xl",
-            "cxIgLnZlaGljbGVzLnYxLkxpc3RWZWhpY2xlc1JlcXVlc3QaIS52ZWhpY2xl",
-            "cy52MS5MaXN0VmVoaWNsZXNSZXNwb25zZRJQCg1VcGRhdGVWZWhpY2xlEiEu",
-            "dmVoaWNsZXMudjEuVXBkYXRlVmVoaWNsZVJlcXVlc3QaHC52ZWhpY2xlcy52",
-            "MS5WZWhpY2xlUmVzcG9uc2USSAoJU2V0U3RhdHVzEh0udmVoaWNsZXMudjEu",
-            "U2V0U3RhdHVzUmVxdWVzdBocLnZlaGljbGVzLnYxLlZlaGljbGVSZXNwb25z",
-            "ZRJTCg1Bc3NpZ25WZWhpY2xlEiEudmVoaWNsZXMudjEuQXNzaWduVmVoaWNs",
-            "ZVJlcXVlc3QaHy52ZWhpY2xlcy52MS5Bc3NpZ25tZW50UmVzcG9uc2USVwoP",
-            "VW5hc3NpZ25WZWhpY2xlEiMudmVoaWNsZXMudjEuVW5hc3NpZ25WZWhpY2xl",
-            "UmVxdWVzdBofLnZlaGljbGVzLnYxLkFzc2lnbm1lbnRSZXNwb25zZRJaChJH",
-            "ZXRWZWhpY2xlQnlEcml2ZXISJi52ZWhpY2xlcy52MS5HZXRWZWhpY2xlQnlE",
-            "cml2ZXJSZXF1ZXN0GhwudmVoaWNsZXMudjEuVmVoaWNsZVJlc3BvbnNlEkQK",
-            "DEdldE15VmVoaWNsZRIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRocLnZlaGlj",
-            "bGVzLnYxLlZlaGljbGVSZXNwb25zZUIYqgIVVmVoaWNsZXNTZXJ2aWNlLlBy",
-            "b3RvYgZwcm90bzM="));
+            "RHJpdmVyUmVxdWVzdBIRCglkcml2ZXJfaWQYASABKAkiMAobTGlzdFZlaGlj",
+            "bGVzQnlEcml2ZXJSZXF1ZXN0EhEKCWRyaXZlcl9pZBgBIAEoCSJGChxMaXN0",
+            "VmVoaWNsZXNCeURyaXZlclJlc3BvbnNlEiYKCHZlaGljbGVzGAEgAygLMhQu",
+            "dmVoaWNsZXMudjEuVmVoaWNsZSKaAQoNQXNzaWdubWVudFJvdxISCgp2ZWhp",
+            "Y2xlX2lkGAEgASgJEhEKCWRyaXZlcl9pZBgCIAEoCRIvCgthc3NpZ25lZF9h",
+            "dBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMQoNdW5hc3Np",
+            "Z25lZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiMwoe",
+            "TGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXF1ZXN0EhEKCWRyaXZlcl9pZBgB",
+            "IAEoCSJMCh9MaXN0QXNzaWdubWVudHNCeURyaXZlclJlc3BvbnNlEikKBWl0",
+            "ZW1zGAEgAygLMhoudmVoaWNsZXMudjEuQXNzaWdubWVudFJvdzLiBwoPVmVo",
+            "aWNsZXNTZXJ2aWNlElAKDUNyZWF0ZVZlaGljbGUSIS52ZWhpY2xlcy52MS5D",
+            "cmVhdGVWZWhpY2xlUmVxdWVzdBocLnZlaGljbGVzLnYxLlZlaGljbGVSZXNw",
+            "b25zZRJKCgpHZXRWZWhpY2xlEh4udmVoaWNsZXMudjEuR2V0VmVoaWNsZVJl",
+            "cXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVzcG9uc2USUwoMTGlzdFZl",
+            "aGljbGVzEiAudmVoaWNsZXMudjEuTGlzdFZlaGljbGVzUmVxdWVzdBohLnZl",
+            "aGljbGVzLnYxLkxpc3RWZWhpY2xlc1Jlc3BvbnNlElAKDVVwZGF0ZVZlaGlj",
+            "bGUSIS52ZWhpY2xlcy52MS5VcGRhdGVWZWhpY2xlUmVxdWVzdBocLnZlaGlj",
+            "bGVzLnYxLlZlaGljbGVSZXNwb25zZRJICglTZXRTdGF0dXMSHS52ZWhpY2xl",
+            "cy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwudmVoaWNsZXMudjEuVmVoaWNsZVJl",
+            "c3BvbnNlElMKDUFzc2lnblZlaGljbGUSIS52ZWhpY2xlcy52MS5Bc3NpZ25W",
+            "ZWhpY2xlUmVxdWVzdBofLnZlaGljbGVzLnYxLkFzc2lnbm1lbnRSZXNwb25z",
+            "ZRJXCg9VbmFzc2lnblZlaGljbGUSIy52ZWhpY2xlcy52MS5VbmFzc2lnblZl",
+            "aGljbGVSZXF1ZXN0Gh8udmVoaWNsZXMudjEuQXNzaWdubWVudFJlc3BvbnNl",
+            "EloKEkdldFZlaGljbGVCeURyaXZlchImLnZlaGljbGVzLnYxLkdldFZlaGlj",
+            "bGVCeURyaXZlclJlcXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVzcG9u",
+            "c2USawoUTGlzdFZlaGljbGVzQnlEcml2ZXISKC52ZWhpY2xlcy52MS5MaXN0",
+            "VmVoaWNsZXNCeURyaXZlclJlcXVlc3QaKS52ZWhpY2xlcy52MS5MaXN0VmVo",
+            "aWNsZXNCeURyaXZlclJlc3BvbnNlEnQKF0xpc3RBc3NpZ25tZW50c0J5RHJp",
+            "dmVyEisudmVoaWNsZXMudjEuTGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXF1",
+            "ZXN0GiwudmVoaWNsZXMudjEuTGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXNw",
+            "b25zZRJTCg5MaXN0TXlWZWhpY2xlcxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0",
+            "eRopLnZlaGljbGVzLnYxLkxpc3RWZWhpY2xlc0J5RHJpdmVyUmVzcG9uc2VC",
+            "GKoCFVZlaGljbGVzU2VydmljZS5Qcm90b2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.EmptyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -86,7 +100,12 @@ namespace VehiclesService.Proto {
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.AssignVehicleRequest), global::VehiclesService.Proto.AssignVehicleRequest.Parser, new[]{ "VehicleId", "DriverId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.UnassignVehicleRequest), global::VehiclesService.Proto.UnassignVehicleRequest.Parser, new[]{ "VehicleId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.AssignmentResponse), global::VehiclesService.Proto.AssignmentResponse.Parser, new[]{ "VehicleId", "DriverId", "AssignedAt", "UnassignedAt" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.GetVehicleByDriverRequest), global::VehiclesService.Proto.GetVehicleByDriverRequest.Parser, new[]{ "DriverId" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.GetVehicleByDriverRequest), global::VehiclesService.Proto.GetVehicleByDriverRequest.Parser, new[]{ "DriverId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListVehiclesByDriverRequest), global::VehiclesService.Proto.ListVehiclesByDriverRequest.Parser, new[]{ "DriverId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListVehiclesByDriverResponse), global::VehiclesService.Proto.ListVehiclesByDriverResponse.Parser, new[]{ "Vehicles" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.AssignmentRow), global::VehiclesService.Proto.AssignmentRow.Parser, new[]{ "VehicleId", "DriverId", "AssignedAt", "UnassignedAt" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListAssignmentsByDriverRequest), global::VehiclesService.Proto.ListAssignmentsByDriverRequest.Parser, new[]{ "DriverId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListAssignmentsByDriverResponse), global::VehiclesService.Proto.ListAssignmentsByDriverResponse.Parser, new[]{ "Items" }, null, null, null, null)
           }));
     }
     #endregion
@@ -3798,6 +3817,1106 @@ namespace VehiclesService.Proto {
             break;
           case 10: {
             DriverId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ListVehiclesByDriverRequest : pb::IMessage<ListVehiclesByDriverRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ListVehiclesByDriverRequest> _parser = new pb::MessageParser<ListVehiclesByDriverRequest>(() => new ListVehiclesByDriverRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ListVehiclesByDriverRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[12]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverRequest(ListVehiclesByDriverRequest other) : this() {
+      driverId_ = other.driverId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverRequest Clone() {
+      return new ListVehiclesByDriverRequest(this);
+    }
+
+    /// <summary>Field number for the "driver_id" field.</summary>
+    public const int DriverIdFieldNumber = 1;
+    private string driverId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string DriverId {
+      get { return driverId_; }
+      set {
+        driverId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ListVehiclesByDriverRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ListVehiclesByDriverRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (DriverId != other.DriverId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (DriverId.Length != 0) hash ^= DriverId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DriverId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DriverId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (DriverId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(DriverId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ListVehiclesByDriverRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.DriverId.Length != 0) {
+        DriverId = other.DriverId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            DriverId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            DriverId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ListVehiclesByDriverResponse : pb::IMessage<ListVehiclesByDriverResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ListVehiclesByDriverResponse> _parser = new pb::MessageParser<ListVehiclesByDriverResponse>(() => new ListVehiclesByDriverResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ListVehiclesByDriverResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[13]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverResponse(ListVehiclesByDriverResponse other) : this() {
+      vehicles_ = other.vehicles_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListVehiclesByDriverResponse Clone() {
+      return new ListVehiclesByDriverResponse(this);
+    }
+
+    /// <summary>Field number for the "vehicles" field.</summary>
+    public const int VehiclesFieldNumber = 1;
+    private static readonly pb::FieldCodec<global::VehiclesService.Proto.Vehicle> _repeated_vehicles_codec
+        = pb::FieldCodec.ForMessage(10, global::VehiclesService.Proto.Vehicle.Parser);
+    private readonly pbc::RepeatedField<global::VehiclesService.Proto.Vehicle> vehicles_ = new pbc::RepeatedField<global::VehiclesService.Proto.Vehicle>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::VehiclesService.Proto.Vehicle> Vehicles {
+      get { return vehicles_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ListVehiclesByDriverResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ListVehiclesByDriverResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!vehicles_.Equals(other.vehicles_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= vehicles_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      vehicles_.WriteTo(output, _repeated_vehicles_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      vehicles_.WriteTo(ref output, _repeated_vehicles_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      size += vehicles_.CalculateSize(_repeated_vehicles_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ListVehiclesByDriverResponse other) {
+      if (other == null) {
+        return;
+      }
+      vehicles_.Add(other.vehicles_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            vehicles_.AddEntriesFrom(input, _repeated_vehicles_codec);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            vehicles_.AddEntriesFrom(ref input, _repeated_vehicles_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class AssignmentRow : pb::IMessage<AssignmentRow>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<AssignmentRow> _parser = new pb::MessageParser<AssignmentRow>(() => new AssignmentRow());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<AssignmentRow> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[14]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public AssignmentRow() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public AssignmentRow(AssignmentRow other) : this() {
+      vehicleId_ = other.vehicleId_;
+      driverId_ = other.driverId_;
+      assignedAt_ = other.assignedAt_ != null ? other.assignedAt_.Clone() : null;
+      unassignedAt_ = other.unassignedAt_ != null ? other.unassignedAt_.Clone() : null;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public AssignmentRow Clone() {
+      return new AssignmentRow(this);
+    }
+
+    /// <summary>Field number for the "vehicle_id" field.</summary>
+    public const int VehicleIdFieldNumber = 1;
+    private string vehicleId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string VehicleId {
+      get { return vehicleId_; }
+      set {
+        vehicleId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "driver_id" field.</summary>
+    public const int DriverIdFieldNumber = 2;
+    private string driverId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string DriverId {
+      get { return driverId_; }
+      set {
+        driverId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "assigned_at" field.</summary>
+    public const int AssignedAtFieldNumber = 3;
+    private global::Google.Protobuf.WellKnownTypes.Timestamp assignedAt_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Google.Protobuf.WellKnownTypes.Timestamp AssignedAt {
+      get { return assignedAt_; }
+      set {
+        assignedAt_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "unassigned_at" field.</summary>
+    public const int UnassignedAtFieldNumber = 4;
+    private global::Google.Protobuf.WellKnownTypes.Timestamp unassignedAt_;
+    /// <summary>
+    /// null si sigue activo
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Google.Protobuf.WellKnownTypes.Timestamp UnassignedAt {
+      get { return unassignedAt_; }
+      set {
+        unassignedAt_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as AssignmentRow);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(AssignmentRow other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (VehicleId != other.VehicleId) return false;
+      if (DriverId != other.DriverId) return false;
+      if (!object.Equals(AssignedAt, other.AssignedAt)) return false;
+      if (!object.Equals(UnassignedAt, other.UnassignedAt)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (VehicleId.Length != 0) hash ^= VehicleId.GetHashCode();
+      if (DriverId.Length != 0) hash ^= DriverId.GetHashCode();
+      if (assignedAt_ != null) hash ^= AssignedAt.GetHashCode();
+      if (unassignedAt_ != null) hash ^= UnassignedAt.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (VehicleId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(VehicleId);
+      }
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(DriverId);
+      }
+      if (assignedAt_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(AssignedAt);
+      }
+      if (unassignedAt_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(UnassignedAt);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (VehicleId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(VehicleId);
+      }
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(DriverId);
+      }
+      if (assignedAt_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(AssignedAt);
+      }
+      if (unassignedAt_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(UnassignedAt);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (VehicleId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(VehicleId);
+      }
+      if (DriverId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(DriverId);
+      }
+      if (assignedAt_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(AssignedAt);
+      }
+      if (unassignedAt_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(UnassignedAt);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(AssignmentRow other) {
+      if (other == null) {
+        return;
+      }
+      if (other.VehicleId.Length != 0) {
+        VehicleId = other.VehicleId;
+      }
+      if (other.DriverId.Length != 0) {
+        DriverId = other.DriverId;
+      }
+      if (other.assignedAt_ != null) {
+        if (assignedAt_ == null) {
+          AssignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+        }
+        AssignedAt.MergeFrom(other.AssignedAt);
+      }
+      if (other.unassignedAt_ != null) {
+        if (unassignedAt_ == null) {
+          UnassignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+        }
+        UnassignedAt.MergeFrom(other.UnassignedAt);
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            VehicleId = input.ReadString();
+            break;
+          }
+          case 18: {
+            DriverId = input.ReadString();
+            break;
+          }
+          case 26: {
+            if (assignedAt_ == null) {
+              AssignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+            }
+            input.ReadMessage(AssignedAt);
+            break;
+          }
+          case 34: {
+            if (unassignedAt_ == null) {
+              UnassignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+            }
+            input.ReadMessage(UnassignedAt);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            VehicleId = input.ReadString();
+            break;
+          }
+          case 18: {
+            DriverId = input.ReadString();
+            break;
+          }
+          case 26: {
+            if (assignedAt_ == null) {
+              AssignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+            }
+            input.ReadMessage(AssignedAt);
+            break;
+          }
+          case 34: {
+            if (unassignedAt_ == null) {
+              UnassignedAt = new global::Google.Protobuf.WellKnownTypes.Timestamp();
+            }
+            input.ReadMessage(UnassignedAt);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ListAssignmentsByDriverRequest : pb::IMessage<ListAssignmentsByDriverRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ListAssignmentsByDriverRequest> _parser = new pb::MessageParser<ListAssignmentsByDriverRequest>(() => new ListAssignmentsByDriverRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ListAssignmentsByDriverRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[15]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverRequest(ListAssignmentsByDriverRequest other) : this() {
+      driverId_ = other.driverId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverRequest Clone() {
+      return new ListAssignmentsByDriverRequest(this);
+    }
+
+    /// <summary>Field number for the "driver_id" field.</summary>
+    public const int DriverIdFieldNumber = 1;
+    private string driverId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string DriverId {
+      get { return driverId_; }
+      set {
+        driverId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ListAssignmentsByDriverRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ListAssignmentsByDriverRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (DriverId != other.DriverId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (DriverId.Length != 0) hash ^= DriverId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DriverId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (DriverId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DriverId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (DriverId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(DriverId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ListAssignmentsByDriverRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.DriverId.Length != 0) {
+        DriverId = other.DriverId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            DriverId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            DriverId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ListAssignmentsByDriverResponse : pb::IMessage<ListAssignmentsByDriverResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ListAssignmentsByDriverResponse> _parser = new pb::MessageParser<ListAssignmentsByDriverResponse>(() => new ListAssignmentsByDriverResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ListAssignmentsByDriverResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[16]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverResponse(ListAssignmentsByDriverResponse other) : this() {
+      items_ = other.items_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListAssignmentsByDriverResponse Clone() {
+      return new ListAssignmentsByDriverResponse(this);
+    }
+
+    /// <summary>Field number for the "items" field.</summary>
+    public const int ItemsFieldNumber = 1;
+    private static readonly pb::FieldCodec<global::VehiclesService.Proto.AssignmentRow> _repeated_items_codec
+        = pb::FieldCodec.ForMessage(10, global::VehiclesService.Proto.AssignmentRow.Parser);
+    private readonly pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow> items_ = new pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow> Items {
+      get { return items_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ListAssignmentsByDriverResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ListAssignmentsByDriverResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!items_.Equals(other.items_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= items_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      items_.WriteTo(output, _repeated_items_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      items_.WriteTo(ref output, _repeated_items_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      size += items_.CalculateSize(_repeated_items_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ListAssignmentsByDriverResponse other) {
+      if (other == null) {
+        return;
+      }
+      items_.Add(other.items_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            items_.AddEntriesFrom(input, _repeated_items_codec);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            items_.AddEntriesFrom(ref input, _repeated_items_codec);
             break;
           }
         }

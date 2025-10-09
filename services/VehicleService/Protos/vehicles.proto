@@ -17,7 +17,9 @@ service VehiclesService {
   rpc UnassignVehicle (UnassignVehicleRequest) returns (AssignmentResponse);
 
   rpc GetVehicleByDriver (GetVehicleByDriverRequest) returns (VehicleResponse);
-  rpc GetMyVehicle (google.protobuf.Empty) returns (VehicleResponse);
+  rpc ListVehiclesByDriver (ListVehiclesByDriverRequest) returns (ListVehiclesByDriverResponse);
+  rpc ListAssignmentsByDriver (ListAssignmentsByDriverRequest) returns (ListAssignmentsByDriverResponse);
+  rpc ListMyVehicles (google.protobuf.Empty) returns (ListVehiclesByDriverResponse);
 }
 
 message Vehicle {
@@ -94,3 +96,26 @@ message AssignmentResponse {
 }
 
 message GetVehicleByDriverRequest { string driver_id = 1; }
+
+message ListVehiclesByDriverRequest { 
+  string driver_id = 1; 
+}
+
+message ListVehiclesByDriverResponse { 
+  repeated Vehicle vehicles = 1; 
+}
+
+message AssignmentRow {
+  string vehicle_id = 1;
+  string driver_id = 2;
+  google.protobuf.Timestamp assigned_at = 3;
+  google.protobuf.Timestamp unassigned_at = 4; // null si sigue activo
+}
+
+message ListAssignmentsByDriverRequest { 
+  string driver_id = 1; 
+}
+
+message ListAssignmentsByDriverResponse { 
+  repeated AssignmentRow items = 1; 
+}

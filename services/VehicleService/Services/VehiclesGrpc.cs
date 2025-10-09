@@ -199,18 +199,76 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     }
 
     [Authorize(Policy = "VehiclesReadOwn")]
-    public override async Task<VehicleResponse> GetMyVehicle(Empty _, ServerCallContext ctx)
+    public override async Task<ListVehiclesByDriverResponse> ListMyVehicles(Empty _, ServerCallContext ctx)
     {
         var sub = ctx.GetHttpContext().User.FindFirst("sub")?.Value;
         if (!Guid.TryParse(sub, out var userId)) throw new RpcException(new Status(StatusCode.Unauthenticated, "INVALID_TOKEN"));
 
-        var active = await _db.DriverVehicles.AsNoTracking().FirstOrDefaultAsync(x => x.DriverId == userId && x.UnassignedAt == null);
-        if (active == null) throw new RpcException(new Status(StatusCode.NotFound, "NO_ACTIVE_VEHICLE"));
+        var vehicles = await _db.DriverVehicles
+            .AsNoTracking()
+            .Where(x => x.DriverId == userId && x.UnassignedAt == null)
+            .Join(_db.Vehicles.AsNoTracking(),
+                  dv => dv.VehicleId,
+                  v  => v.Id,
+                  (dv, v) => v)
+            .OrderBy(v => v.Plate)
+            .ToListAsync();
 
-        var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == active.VehicleId);
-        if (v is null) throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
+        var resp = new ListVehiclesByDriverResponse();
+        resp.Vehicles.AddRange(vehicles.Select(Map));
+        return resp;
+    }
 
-        return new VehicleResponse { Vehicle = Map(v) };
+    // ----- Listar vehículos por conductor -----
+
+    [Authorize(Policy = "VehiclesReadAll")]
+    public override async Task<ListVehiclesByDriverResponse> ListVehiclesByDriver(
+        ListVehiclesByDriverRequest req, ServerCallContext ctx)
+    {
+        if (!Guid.TryParse(req.DriverId, out var did))
+            throw new RpcException(new(StatusCode.InvalidArgument, "invalid driver_id"));
+
+        var vehicles = await _db.DriverVehicles
+            .AsNoTracking()
+            .Where(x => x.DriverId == did && x.UnassignedAt == null)
+            .Join(_db.Vehicles.AsNoTracking(),
+                  dv => dv.VehicleId,
+                  v  => v.Id,
+                  (dv, v) => v)
+            .OrderBy(v => v.Plate)
+            .ToListAsync();
+
+        var resp = new ListVehiclesByDriverResponse();
+        resp.Vehicles.AddRange(vehicles.Select(Map));
+        return resp;
+    }
+
+    // ----- Historial completo de asignaciones por conductor -----
+
+    [Authorize(Policy = "VehiclesReadAll")]
+    public override async Task<ListAssignmentsByDriverResponse> ListAssignmentsByDriver(
+        ListAssignmentsByDriverRequest req, ServerCallContext ctx)
+    {
+        if (!Guid.TryParse(req.DriverId, out var did))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid driver_id"));
+
+        var rows = await _db.DriverVehicles
+            .AsNoTracking()
+            .Where(x => x.DriverId == did)
+            .OrderByDescending(x => x.AssignedAt)
+            .ToListAsync();
+
+        var resp = new ListAssignmentsByDriverResponse();
+        resp.Items.AddRange(rows.Select(x => new AssignmentRow
+        {
+            VehicleId = x.VehicleId.ToString(),
+            DriverId = x.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
+            UnassignedAt = x.UnassignedAt.HasValue
+                           ? Timestamp.FromDateTimeOffset(x.UnassignedAt.Value)
+                           : null
+        }));
+        return resp;
     }
 
     // <— Aquí el mapper usando alias para evitar ambigüedad
