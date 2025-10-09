@@ -15,7 +15,7 @@ namespace AuthService.Services
         {
             _repository = repository;
         }
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public override async Task<ListUsersResponse> ListUsers(Empty request, ServerCallContext context)
         {
             var users = await _repository.GetAllAsync();
@@ -29,7 +29,7 @@ namespace AuthService.Services
             }));
             return response;
         }
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public override async Task<UserResponse> GetUserById(UserGetByIdRequest request, ServerCallContext context)
         {
             var id = Guid.Parse(request.Id);
@@ -43,7 +43,7 @@ namespace AuthService.Services
             };
             return new UserResponse { User = responseUser };
         }
-        [Authorize(Roles = "ADMIN")]
+        [Authorize]
         public override async Task<UserResponse> GetUserByEmail(UserGetByEmailRequest request, ServerCallContext context)
         {
             var email = request.Email;

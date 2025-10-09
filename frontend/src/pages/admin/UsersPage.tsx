@@ -33,7 +33,7 @@ const UsersPage: React.FC = () => {
 
   // Estado para usuarios reales del backend
   const [users, setUsers] = useState<User[]>([]);
-  
+
   // Estado de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -46,7 +46,7 @@ const UsersPage: React.FC = () => {
       const response = await api<{ users: User[] }>('/admin/users');
       const allUsers = response.users || [];
       setTotalUsers(allUsers.length);
-      
+
       // Aplicar paginación local
       const startIndex = (currentPage - 1) * usersPerPage;
       const endIndex = startIndex + usersPerPage;
@@ -79,7 +79,7 @@ const UsersPage: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validaciones
     if (!newUser.email || !newUser.password || !newUser.nombre) {
       addToast('Todos los campos son obligatorios', 'error');
@@ -123,7 +123,7 @@ const UsersPage: React.FC = () => {
       setLoading(true);
       const formData = new FormData(e.currentTarget);
       const password = formData.get('password') as string;
-      
+
       const updatedUser = {
         email: formData.get('email') as string,
         nombre: formData.get('nombre') as string,
@@ -142,7 +142,7 @@ const UsersPage: React.FC = () => {
       }
 
       setUsers(prev => prev.map(u => u.id === editingUser.id ? response.user : u));
-      
+
       setIsEditModalOpen(false);
       setEditingUser(null);
       addToast('Usuario actualizado exitosamente', 'success');
@@ -158,41 +158,10 @@ const UsersPage: React.FC = () => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
       try {
         setLoading(true);
-        
-        // Buscar el usuario para verificar su rol
-        const userToDelete = users.find(user => user.id === userId);
-        
         // Eliminar el usuario
         await api(`/admin/users/${userId}`, {
           method: 'DELETE'
         });
-
-        // Si el usuario es CONDUCTOR, también eliminar su registro de conductor
-        if (userToDelete && userToDelete.roles === 'CONDUCTOR') {
-          try {
-            console.log('Usuario CONDUCTOR detectado, buscando conductor asociado...');
-            
-            // Primero obtener la lista de conductores para encontrar el ID del conductor
-            const driversResponse = await api('/drivers');
-            console.log('Respuesta de conductores:', driversResponse);
-            
-            const driver = driversResponse.drivers?.find((d: any) => d.user_id === userId);
-            console.log('Conductor encontrado:', driver);
-            
-            if (driver) {
-              console.log(`Eliminando conductor con ID: ${driver.id}`);
-              await api(`/drivers/${driver.id}`, {
-                method: 'DELETE'
-              });
-              console.log('Conductor eliminado exitosamente de la base de datos');
-            } else {
-              console.log('No se encontró conductor asociado para este usuario');
-            }
-          } catch (driverError) {
-            console.error('Error eliminando conductor asociado:', driverError);
-            addToast('Usuario eliminado, pero hubo un problema eliminando el conductor asociado', 'warning');
-          }
-        }
 
         setUsers(prev => prev.filter(user => user.id !== userId));
         addToast('Usuario eliminado exitosamente', 'success');
@@ -239,7 +208,7 @@ const UsersPage: React.FC = () => {
           </h1>
           <p className="text-slate-400">Administra los usuarios del sistema</p>
         </div>
-        
+
         <button
           onClick={() => setIsCreateModalOpen(true)}
           className="fuel-button flex items-center gap-2"
@@ -262,7 +231,7 @@ const UsersPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="fuel-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-red-600/20 border border-red-600/30">
@@ -274,7 +243,7 @@ const UsersPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="fuel-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
@@ -286,7 +255,7 @@ const UsersPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="fuel-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-green-600/20 border border-green-600/30">
@@ -367,118 +336,118 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ))
               )}
-             </tbody>
-           </table>
-         </div>
-         
-         {/* Paginación - Siempre visible */}
-         <div className="mt-6">
-           <Pagination
-             page={currentPage}
-             perPage={usersPerPage}
-             total={totalUsers}
-             onPageChange={handlePageChange}
-             className=""
-           />
-         </div>
-       </div>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación - Siempre visible */}
+        <div className="mt-6">
+          <Pagination
+            page={currentPage}
+            perPage={usersPerPage}
+            total={totalUsers}
+            onPageChange={handlePageChange}
+            className=""
+          />
+        </div>
+      </div>
 
       {/* Modal Crear Usuario */}
       {isCreateModalOpen && (
         <>
           <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
-            {/* Cerrar */}
-            <button
-              className="absolute right-4 top-4 text-slate-400 hover:text-white"
-              onClick={() => setIsCreateModalOpen(false)}
-              aria-label="Cerrar"
-              title="Cerrar"
-            >
-              ✕
-            </button>
+            <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+              {/* Cerrar */}
+              <button
+                className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                onClick={() => setIsCreateModalOpen(false)}
+                aria-label="Cerrar"
+                title="Cerrar"
+              >
+                ✕
+              </button>
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
-                <UserPlus className="w-6 h-6 text-blue-400" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
+                  <UserPlus className="w-6 h-6 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Crear Nuevo Usuario</h2>
               </div>
-              <h2 className="text-xl font-semibold text-white">Crear Nuevo Usuario</h2>
+
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
+                  <input
+                    type="text"
+                    value={newUser.nombre}
+                    onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
+                    className="fuel-input"
+                    placeholder="Ingresa el nombre completo"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <input
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      className="fuel-input pl-10 pr-4"
+                      placeholder="usuario@ejemplo.com"
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Contraseña</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      className="fuel-input pl-10 pr-4"
+                      placeholder="Mínimo 6 caracteres"
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Rol</label>
+                  <select
+                    value={newUser.roles}
+                    onChange={(e) => setNewUser({ ...newUser, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
+                    className="fuel-input"
+                  >
+                    <option value="CONDUCTOR">Conductor</option>
+                    <option value="SUPERVISOR">Supervisor</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="fuel-button-secondary flex-1"
+                    disabled={loading}
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="fuel-button flex-1" disabled={loading}>
+                    {loading ? 'Creando...' : 'Crear Usuario'}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
-                <input
-                  type="text"
-                  value={newUser.nombre}
-                  onChange={(e) => setNewUser({ ...newUser, nombre: e.target.value })}
-                  className="fuel-input"
-                  placeholder="Ingresa el nombre completo"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                  <input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="fuel-input pl-10 pr-4"
-                    placeholder="usuario@ejemplo.com"
-                    style={{ paddingLeft: '2.5rem' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Contraseña</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                  <input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="fuel-input pl-10 pr-4"
-                    placeholder="Mínimo 6 caracteres"
-                    style={{ paddingLeft: '2.5rem' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Rol</label>
-                <select
-                  value={newUser.roles}
-                  onChange={(e) => setNewUser({ ...newUser, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
-                  className="fuel-input"
-                >
-                  <option value="CONDUCTOR">Conductor</option>
-                  <option value="SUPERVISOR">Supervisor</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="fuel-button-secondary flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="fuel-button flex-1" disabled={loading}>
-                  {loading ? 'Creando...' : 'Crear Usuario'}
-                </button>
-              </div>
-            </form>
-          </div>
           </div>
         </>
       )}
@@ -488,98 +457,98 @@ const UsersPage: React.FC = () => {
         <>
           <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
-            {/* Cerrar */}
-            <button
-              className="absolute right-4 top-4 text-slate-400 hover:text-white"
-              onClick={() => setIsEditModalOpen(false)}
-              aria-label="Cerrar"
-              title="Cerrar"
-            >
-              ✕
-            </button>
+            <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+              {/* Cerrar */}
+              <button
+                className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                onClick={() => setIsEditModalOpen(false)}
+                aria-label="Cerrar"
+                title="Cerrar"
+              >
+                ✕
+              </button>
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
-                <Edit3 className="w-6 h-6 text-blue-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">Editar Usuario</h2>
-            </div>
-
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  defaultValue={editingUser.nombre}
-                  className="fuel-input"
-                  required
-                />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
+                  <Edit3 className="w-6 h-6 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Editar Usuario</h2>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+              <form onSubmit={handleUpdateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
                   <input
-                    type="email"
-                    name="email"
-                    defaultValue={editingUser.email}
-                    className="fuel-input pl-10 pr-4"
-                    style={{ paddingLeft: '2.5rem' }}
+                    type="text"
+                    name="nombre"
+                    defaultValue={editingUser.nombre}
+                    className="fuel-input"
                     required
-                    autoComplete="username"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Nueva Contraseña</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                  <input
-                    type="password"
-                    name="password"
-                    className="fuel-input pl-10 pr-4"
-                    style={{ paddingLeft: '2.5rem' }}
-                    placeholder="Dejar vacío para mantener la contraseña actual"
-                    autoComplete="new-password"
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <input
+                      type="email"
+                      name="email"
+                      defaultValue={editingUser.email}
+                      className="fuel-input pl-10 pr-4"
+                      style={{ paddingLeft: '2.5rem' }}
+                      required
+                      autoComplete="username"
+                    />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Si no ingresas una contraseña, se mantendrá la contraseña actual
-                </p>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Rol</label>
-                <select
-                  name="roles"
-                  defaultValue={editingUser.roles}
-                  className="fuel-input"
-                >
-                  <option value="CONDUCTOR">Conductor</option>
-                  <option value="SUPERVISOR">Supervisor</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Nueva Contraseña</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <input
+                      type="password"
+                      name="password"
+                      className="fuel-input pl-10 pr-4"
+                      style={{ paddingLeft: '2.5rem' }}
+                      placeholder="Dejar vacío para mantener la contraseña actual"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Si no ingresas una contraseña, se mantendrá la contraseña actual
+                  </p>
+                </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="fuel-button-secondary flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="fuel-button flex-1" disabled={loading}>
-                  {loading ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Rol</label>
+                  <select
+                    name="roles"
+                    defaultValue={editingUser.roles}
+                    className="fuel-input"
+                  >
+                    <option value="CONDUCTOR">Conductor</option>
+                    <option value="SUPERVISOR">Supervisor</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="fuel-button-secondary flex-1"
+                    disabled={loading}
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="fuel-button flex-1" disabled={loading}>
+                    {loading ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </>
       )}
