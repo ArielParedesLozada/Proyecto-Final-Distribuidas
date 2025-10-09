@@ -85,15 +85,31 @@ namespace AuthService.Services
         {
             var id = Guid.Parse(request.Id);
             var userToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-            userToUpdate.Nombre = request.User.Nombre;
-            if (!string.IsNullOrWhiteSpace(request.User.Password)
-                && !string.IsNullOrWhiteSpace(request.User.Email)
-                && !string.IsNullOrWhiteSpace(request.User.Roles))
+            
+            // Actualizar nombre si se proporciona
+            if (!string.IsNullOrWhiteSpace(request.User.Nombre))
+            {
+                userToUpdate.Nombre = request.User.Nombre;
+            }
+            
+            // Actualizar email si se proporciona
+            if (!string.IsNullOrWhiteSpace(request.User.Email))
+            {
+                userToUpdate.Email = request.User.Email;
+            }
+            
+            // Actualizar rol si se proporciona
+            if (!string.IsNullOrWhiteSpace(request.User.Roles))
             {
                 userToUpdate.Roles = request.User.Roles;
-                userToUpdate.Email = request.User.Email;
+            }
+            
+            // Actualizar contraseña solo si se proporciona
+            if (!string.IsNullOrWhiteSpace(request.User.Password))
+            {
                 userToUpdate.Password = BCrypt.Net.BCrypt.HashPassword(request.User.Password);
             }
+            
             var updated = await _repository.UpdateAsync(userToUpdate);
             var responseUser = new ReadUser
             {
