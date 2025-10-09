@@ -30,15 +30,14 @@ const DriverPage: React.FC = () => {
 
                 const response = await api<DriverResponse>("/me/driver");
                 setDriverData(response.driver);
-            } catch (err) {
-                console.error("Error fetching driver data:", err);
-                
-                // Detectar si es error de perfil no encontrado
-                const errorMessage = err instanceof Error ? err.message : String(err);
-                
-                if (errorMessage.includes("DRIVER_NOT_FOUND") || errorMessage.includes("NOT_FOUND")) {
+            } catch (err: any) {
+                // Detectar si es el caso especial de perfil incompleto (no es error del sistema)
+                if (err?.code === "DRIVER_PROFILE_INCOMPLETE") {
                     setError("PROFILE_INCOMPLETE");
                 } else {
+                    // Para errores reales, usar el mensaje completo
+                    const errorMessage = err instanceof Error ? err.message : String(err);
+                    console.error("❌ Error al cargar datos del conductor:", errorMessage);
                     setError(errorMessage || "Error al cargar datos del conductor");
                 }
             } finally {

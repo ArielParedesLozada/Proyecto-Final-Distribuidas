@@ -72,14 +72,25 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     // Si el server devolvió JSON o texto, intenta dar más contexto:
     let details = "";
+    let errorCode: string | undefined;
+    let errorMessage: string | undefined;
+    
     try {
       const ct = response.headers.get("content-type")?.toLowerCase() || "";
       if (ct.includes("application/json")) {
         const maybeJson = await response.json();
-        details =
-          typeof maybeJson === "string"
-            ? maybeJson
-            : maybeJson?.message || JSON.stringify(maybeJson);
+        
+        // Detectar códigos específicos del backend
+        if (typeof maybeJson === "object" && maybeJson !== null) {
+          errorCode = maybeJson.code;
+          errorMessage = maybeJson.message;
+          
+          details = maybeJson.message || JSON.stringify(maybeJson);
+        } else if (typeof maybeJson === "string") {
+          details = maybeJson;
+        } else {
+          details = JSON.stringify(maybeJson);
+        }
       } else {
         details = await response.text();
       }
@@ -91,6 +102,14 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       ? `HTTP ${response.status} ${response.statusText || ""} – ${details}`.trim()
       : `HTTP ${response.status} ${response.statusText || ""}`.trim();
 
+    // Caso especial: perfil de conductor incompleto (estado esperado, no es error del sistema)
+    if (errorCode === "DRIVER_PROFILE_INCOMPLETE") {
+      console.info("ℹ️ Perfil de conductor incompleto:", errorMessage || msg);
+      const error = new Error(errorMessage || msg);
+      (error as any).code = errorCode;
+      throw error;
+    }
+
     // Si es 401, borra el token corrupto para evitar loops
     if (response.status === 401) {
       try {
@@ -100,6 +119,8 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       }
     }
 
+    // Para otros errores, log normal
+    console.error("❌ API Error:", msg);
     throw new Error(msg);
   }
 

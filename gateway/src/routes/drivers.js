@@ -75,7 +75,17 @@ router.get("/drivers/:id", auth, requireScopes("drivers:read:all"), (req, res) =
 /** GET /me/driver - Obtener mi conductor */
 router.get("/me/driver", auth, requireScopes("drivers:read:own"), (req, res) => {
   driversClient.GetMyDriver({}, mdFromHttp(req), (err, response) => {
-    if (err) return mapGrpcError(err, res);
+    if (err) {
+      // Caso especial: perfil de conductor no encontrado (estado esperado, no es error del sistema)
+      if (err.code === 5 && (err.message?.includes("DRIVER_NOT_FOUND") || err.message?.includes("NOT_FOUND"))) {
+        return res.status(404).json({
+          code: "DRIVER_PROFILE_INCOMPLETE",
+          message: "El conductor no ha completado su perfil"
+        });
+      }
+      // Para otros errores, usar el mapeo estándar
+      return mapGrpcError(err, res);
+    }
     res.json(response);
   });
 });
