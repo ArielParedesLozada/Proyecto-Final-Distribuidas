@@ -9,6 +9,7 @@ import DriverPage from "./pages/drivers/DriverPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersPage from "./pages/admin/UsersPage";
 import AdminDrivers from "./pages/admin/AdminDrivers";
+import AdminVehicles from "./pages/admin/AdminVehicles";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { ToastProvider } from "./shared/ToastNotification";
@@ -37,6 +38,7 @@ const App: React.FC = () => {
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="drivers" element={<AdminDrivers />} />
+                <Route path="vehicles" element={<AdminVehicles />} />
               </Route>
             </Route>
 
