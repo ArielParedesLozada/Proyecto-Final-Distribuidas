@@ -23,14 +23,40 @@ const DriverPage: React.FC = () => {
 
     // Obtener datos del conductor
     useEffect(() => {
+        let cancelled = false;
+
         const fetchDriverData = async () => {
             try {
                 setIsLoading(true);
                 setError("");
 
-                const response = await api<DriverResponse>("/me/driver");
-                setDriverData(response.driver);
+                // Paso 1: Verificar estado del perfil (siempre devuelve 200)
+                const statusResponse = await api<{
+                    driver: {
+                        exists: boolean;
+                        isComplete: boolean;
+                        error?: string;
+                    };
+                }>("/me/profile-status");
+
+                if (cancelled) return;
+
+                // Si el perfil no existe o no está completo, mostrar mensaje
+                if (!statusResponse.driver.exists || !statusResponse.driver.isComplete) {
+                    setError("PROFILE_INCOMPLETE");
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Paso 2: Solo si el perfil existe y está completo, obtener datos completos
+                const driverResponse = await api<DriverResponse>("/me/driver");
+                
+                if (cancelled) return;
+
+                setDriverData(driverResponse.driver);
             } catch (err: any) {
+                if (cancelled) return;
+
                 // Detectar si es el caso especial de perfil incompleto (no es error del sistema)
                 if (err?.code === "DRIVER_PROFILE_INCOMPLETE") {
                     setError("PROFILE_INCOMPLETE");
@@ -41,11 +67,17 @@ const DriverPage: React.FC = () => {
                     setError(errorMessage || "Error al cargar datos del conductor");
                 }
             } finally {
-                setIsLoading(false);
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
         };
 
         fetchDriverData();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const displayName =

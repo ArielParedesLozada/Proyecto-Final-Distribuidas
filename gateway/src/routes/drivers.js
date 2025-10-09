@@ -72,6 +72,40 @@ router.get("/drivers/:id", auth, requireScopes("drivers:read:all"), (req, res) =
   });
 });
 
+/** GET /me/profile-status - Verificar estado del perfil (siempre 200 OK) */
+router.get("/me/profile-status", auth, requireScopes("drivers:read:own"), (req, res) => {
+  driversClient.GetMyDriver({}, mdFromHttp(req), (err, response) => {
+    if (err) {
+      // Si el perfil no existe (NOT_FOUND), no es un error - es estado esperado
+      if (err.code === 5 && (err.message?.includes("DRIVER_NOT_FOUND") || err.message?.includes("NOT_FOUND"))) {
+        return res.status(200).json({
+          driver: {
+            exists: false,
+            isComplete: false
+          }
+        });
+      }
+      // Otros errores también se reportan como perfil no disponible
+      console.warn("⚠️ Error verificando perfil de conductor:", err.message);
+      return res.status(200).json({
+        driver: {
+          exists: false,
+          isComplete: false,
+          error: err.message
+        }
+      });
+    }
+    // Si existe y tiene datos, considerarlo completo
+    const isComplete = !!(response.driver?.full_name && response.driver?.license_number);
+    res.status(200).json({
+      driver: {
+        exists: true,
+        isComplete
+      }
+    });
+  });
+});
+
 /** GET /me/driver - Obtener mi conductor */
 router.get("/me/driver", auth, requireScopes("drivers:read:own"), (req, res) => {
   driversClient.GetMyDriver({}, mdFromHttp(req), (err, response) => {
