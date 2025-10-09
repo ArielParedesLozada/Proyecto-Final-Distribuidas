@@ -36,13 +36,16 @@ public class JWTAuthService : AuthService.AuthServiceBase
             switch (role)
             {
                 case "ADMIN":
-                    scopes.AddRange(new[] { "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update" });
+                    scopes.AddRange(new[] { 
+                        "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update",
+                        "vehicles:create", "vehicles:read:all", "vehicles:update:any", "vehicles:assign"
+                    });
                     break;
                 case "SUPERVISOR":
-                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own" });
+                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own", "vehicles:read:all" });
                     break;
                 case "CONDUCTOR":
-                    scopes.AddRange(new[] { "drivers:read:own" });
+                    scopes.AddRange(new[] { "drivers:read:own", "vehicles:read:own" });
                     break;
             }
         }
