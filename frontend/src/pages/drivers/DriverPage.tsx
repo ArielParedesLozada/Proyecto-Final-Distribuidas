@@ -32,9 +32,15 @@ const DriverPage: React.FC = () => {
                 setDriverData(response.driver);
             } catch (err) {
                 console.error("Error fetching driver data:", err);
-                setError(
-                    err instanceof Error ? err.message : "Error al cargar datos del conductor"
-                );
+                
+                // Detectar si es error de perfil no encontrado
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                
+                if (errorMessage.includes("DRIVER_NOT_FOUND") || errorMessage.includes("NOT_FOUND")) {
+                    setError("PROFILE_INCOMPLETE");
+                } else {
+                    setError(errorMessage || "Error al cargar datos del conductor");
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -64,19 +70,41 @@ const DriverPage: React.FC = () => {
 
     // Error
     if (error) {
+        const isProfileIncomplete = error === "PROFILE_INCOMPLETE";
+        
         return (
-            <div className="flex h-screen items-center justify-center bg-slate-900">
-                <div className="text-center max-w-md mx-auto p-6">
-                    <div className="text-red-500 mb-4">
-                        <User className="w-16 h-16 mx-auto mb-2" />
-                        <h2 className="text-xl font-semibold">Error al cargar datos</h2>
+            <div className="flex h-screen items-center justify-center bg-slate-900 p-4">
+                <div className="text-center max-w-lg mx-auto p-8 fuel-card">
+                    <div className={`${isProfileIncomplete ? 'text-yellow-500' : 'text-red-500'} mb-6`}>
+                        <User className="w-20 h-20 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold mb-2">
+                            {isProfileIncomplete ? 'Perfil Incompleto' : 'Error al cargar datos'}
+                        </h2>
                     </div>
-                    <p className="text-slate-400 mb-4">{error}</p>
+                    
+                    {isProfileIncomplete ? (
+                        <div className="space-y-4">
+                            <p className="text-slate-300 text-lg leading-relaxed">
+                                Tu perfil de conductor aún no ha sido completado.
+                            </p>
+                            <p className="text-slate-400 text-base leading-relaxed">
+                                Por favor, contacta al administrador del sistema para que complete tu perfil con la información necesaria (licencia, capacidades, etc.).
+                            </p>
+                            <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                                <p className="text-yellow-400 text-sm">
+                                    Una vez que tu perfil esté completo, podrás acceder a todas las funcionalidades del sistema.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-slate-400 mb-4">{error}</p>
+                    )}
+                    
                     <button
-                        onClick={() => window.location.reload()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        onClick={() => logout()}
+                        className="mt-6 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     >
-                        Reintentar
+                        Volver al inicio de sesión
                     </button>
                 </div>
             </div>
