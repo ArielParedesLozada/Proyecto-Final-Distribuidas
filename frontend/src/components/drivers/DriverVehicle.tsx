@@ -41,8 +41,6 @@ const PER_PAGE = 5;
 const vehicleStatusLabels: Record<number, string> = {
     1: "Activo",
     2: "Inactivo",
-    3: "Mantenimiento",
-    4: "Baja",
 };
 
 // Convertir vehículo del API al formato de display

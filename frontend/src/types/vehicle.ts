@@ -9,7 +9,7 @@ export interface Vehicle {
   year: number;
   capacity_liters: number;
   odometer_km: number;
-  status: number; // 1=ACTIVO, 2=INACTIVO, 3=MANTTO, 4=BAJA
+  status: number; // 1=ACTIVO, 2=INACTIVO
   driver_id?: string;
   created_at: string;
   updated_at: string;
@@ -43,13 +43,9 @@ export interface ListVehiclesResponse {
 export const VehicleStatus = {
   ACTIVO: 1,
   INACTIVO: 2,
-  MANTTO: 3,
-  BAJA: 4,
 } as const;
 
 export const VehicleStatusLabels: Record<number, string> = {
   1: "Activo",
   2: "Inactivo",
-  3: "Mantenimiento",
-  4: "Baja",
 };

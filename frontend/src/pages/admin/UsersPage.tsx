@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, UserPlus, Mail, Lock, Shield, UserCheck, Edit3, Trash2 } from "lucide-react";
+import { Users, UserPlus, Mail, Lock, Shield, UserCheck, Edit3, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "../../shared/ToastNotification";
 import { api } from "../../api/api";
 import Pagination from "../../shared/Pagination";
@@ -309,55 +309,66 @@ const UsersPage: React.FC = () => {
           <h2 className="text-xl font-semibold text-white">Lista de Usuarios</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-700/50">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">Usuario</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">Rol</th>
-                <th className="text-center py-3 px-4 text-slate-400 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">
-                    Cargando usuarios...
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+              <p className="text-slate-400">Cargando usuarios...</p>
+            </div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700 flex items-center justify-center">
+                <Users className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay usuarios</h3>
+              <p className="text-slate-400">No se encontraron usuarios registrados.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Usuario</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Email</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Rol</th>
+                  <th className="text-center py-3 px-4 text-slate-300 font-medium">Acciones</th>
                 </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">
-                    No hay usuarios registrados
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-700/30 hover:bg-slate-800/20 transition-colors">
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
                     <td className="py-4 px-4">
                       <div>
                         <div className="font-medium text-white">{user.nombre}</div>
-                        <div className="text-sm text-slate-400">{user.email}</div>
+                        <div className="text-sm text-slate-400">ID: {user.id}</div>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.roles)}`}>
+                      <span className="text-slate-300">{user.email}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.roles)}`}>
                         {getRoleIcon(user.roles)}
                         {getRoleLabel(user.roles)}
-                      </div>
+                      </span>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30 text-blue-400 hover:bg-blue-600/30 transition-colors"
+                          className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
+                          title="Editar usuario"
                           disabled={loading}
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="p-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition-colors"
+                          className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20"
+                          title="Eliminar usuario"
                           disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -365,11 +376,11 @@ const UsersPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-             </tbody>
-           </table>
-         </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
          
          {/* Paginación - Siempre visible */}
          <div className="mt-6">

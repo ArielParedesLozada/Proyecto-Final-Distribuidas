@@ -4,7 +4,7 @@ import { AlertCircle, Car, Plus, Clock, CheckCircle, User } from 'lucide-react';
 import { api } from '../../api/api';
 import type { VehicleWithDriver, ListVehiclesResponse, Vehicle } from '../../types/vehicle';
 import { useToast } from '../../shared/ToastNotification';
-import { VehicleTable, VehicleFormModal } from '../../components/admin/vehicles';
+import { VehicleTable, VehicleFormModal, AssignDriverModal, ChangeStatusModal } from '../../components/admin/vehicles';
 import type { VehicleFormData as VehicleFormDataType } from '../../components/admin/vehicles';
 import EmptyState from '../../shared/EmptyState';
 import Tabs from '../../shared/Tabs';
@@ -30,6 +30,11 @@ const AdminVehicles: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleWithDriver | null>(null);
   const [activeTab, setActiveTab] = useState<'unassigned' | 'assigned'>('unassigned');
+  
+  // Nuevos modales
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleWithDriver | null>(null);
 
   // Pagination state for unassigned vehicles
   const [unassignedCurrentPage, setUnassignedCurrentPage] = useState(1);
@@ -50,8 +55,7 @@ const AdminVehicles: React.FC = () => {
   const assignedCount = assignedTotalCount;
   const availableCount = vehicles.filter(v => !activeAssignments.some(a => a.vehicle_id === v.id)).length;
   const inUseCount = vehicles.filter(v => activeAssignments.some(a => a.vehicle_id === v.id)).length;
-  const maintenanceCount = vehicles.filter(v => v.status === 3).length;
-  const outOfServiceCount = vehicles.filter(v => v.status === 4).length;
+  const inactiveCount = vehicles.filter(v => v.status === 2).length;
 
   // Tab configuration
   const tabs = [
@@ -375,16 +379,108 @@ const AdminVehicles: React.FC = () => {
     }
   };
 
-  // Handle edit vehicle
-  const handleEditVehicle = (vehicle: VehicleWithDriver) => {
-    setEditingVehicle(vehicle);
-    setIsModalOpen(true);
-  };
+  // Handle edit vehicle (solo para crear nuevos vehículos)
+  // const handleEditVehicle = (vehicle: VehicleWithDriver) => {
+  //   setEditingVehicle(vehicle);
+  //   setIsModalOpen(true);
+  // };
 
   // Handle modal close
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingVehicle(null);
+  };
+
+  // Handle assign driver
+  const handleAssignDriver = (vehicle: VehicleWithDriver) => {
+    setSelectedVehicle(vehicle);
+    setIsAssignModalOpen(true);
+  };
+
+  // Handle assign driver submit
+  const handleAssignDriverSubmit = async (driverId: string) => {
+    if (!selectedVehicle) return;
+
+    try {
+      setIsSubmitting(true);
+      await api('/vehicles/assign', {
+        method: 'POST',
+        body: JSON.stringify({
+          vehicle_id: selectedVehicle.id,
+          driver_id: driverId
+        })
+      });
+
+      addToast('Conductor asignado exitosamente', 'success');
+      await Promise.all([
+        fetchAllVehicles(),
+        fetchUnassignedVehicles(unassignedCurrentPage),
+        fetchAssignedVehicles(assignedCurrentPage),
+        fetchActiveAssignments()
+      ]);
+    } catch (error: any) {
+      console.error('Error assigning driver:', error);
+      addToast('Error al asignar conductor', 'error');
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle change status
+  const handleChangeStatus = (vehicle: VehicleWithDriver) => {
+    setSelectedVehicle(vehicle);
+    setIsStatusModalOpen(true);
+  };
+
+  // Handle change status submit
+  const handleChangeStatusSubmit = async (newStatus: number, action?: 'unassign') => {
+    if (!selectedVehicle) return;
+
+    try {
+      setIsSubmitting(true);
+      
+      // Actualizar estado del vehículo usando PATCH /vehicles/:id/status
+      await api(`/vehicles/${selectedVehicle.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: newStatus
+        })
+      });
+
+      // Si se solicita desasignar conductor
+      if (action === 'unassign') {
+        await api(`/vehicles/${selectedVehicle.id}/assign`, {
+          method: 'DELETE'
+        });
+      }
+
+      addToast('Estado actualizado exitosamente', 'success');
+      await Promise.all([
+        fetchAllVehicles(),
+        fetchUnassignedVehicles(unassignedCurrentPage),
+        fetchAssignedVehicles(assignedCurrentPage),
+        fetchActiveAssignments()
+      ]);
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      addToast('Error al actualizar estado', 'error');
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle close assign modal
+  const handleAssignModalClose = () => {
+    setIsAssignModalOpen(false);
+    setSelectedVehicle(null);
+  };
+
+  // Handle close status modal
+  const handleStatusModalClose = () => {
+    setIsStatusModalOpen(false);
+    setSelectedVehicle(null);
   };
 
   // Handle form submit
@@ -511,8 +607,8 @@ const AdminVehicles: React.FC = () => {
                 <AlertCircle className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">{maintenanceCount + outOfServiceCount}</div>
-                <div className="text-sm text-slate-400">Mantenimiento</div>
+                <div className="text-2xl font-bold text-white">{inactiveCount}</div>
+                <div className="text-sm text-slate-400">Inactivos</div>
               </div>
             </div>
           </div>
@@ -546,7 +642,8 @@ const AdminVehicles: React.FC = () => {
                       <VehicleTable
                         vehicles={unassignedVehicles}
                         isLoading={isLoading}
-                        onEdit={handleEditVehicle}
+                        onAssign={handleAssignDriver}
+                        showAsAvailable={true}
                       />
                     </div>
 
@@ -599,7 +696,8 @@ const AdminVehicles: React.FC = () => {
                       <VehicleTable
                         vehicles={assignedVehicles}
                         isLoading={isLoading}
-                        onEdit={handleEditVehicle}
+                        onStatusChange={handleChangeStatus}
+                        showAsAvailable={false}
                       />
                     </div>
 
@@ -650,6 +748,27 @@ const AdminVehicles: React.FC = () => {
           full_name: d.full_name,
           license_number: d.license_number
         }))}
+      />
+
+      {/* Modal de Asignar Conductor */}
+      <AssignDriverModal
+        isOpen={isAssignModalOpen}
+        onClose={handleAssignModalClose}
+        onSubmit={handleAssignDriverSubmit}
+        vehiclePlate={selectedVehicle?.plate || ''}
+        isLoading={isSubmitting}
+        drivers={drivers}
+      />
+
+      {/* Modal de Cambiar Estado */}
+      <ChangeStatusModal
+        isOpen={isStatusModalOpen}
+        onClose={handleStatusModalClose}
+        onSubmit={handleChangeStatusSubmit}
+        vehiclePlate={selectedVehicle?.plate || ''}
+        currentStatus={selectedVehicle?.status || 1}
+        hasDriver={!!selectedVehicle?.driver}
+        isLoading={isSubmitting}
       />
     </div>
   );

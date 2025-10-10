@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Car, AlertCircle } from 'lucide-react';
-import type { Vehicle, AssignedDriver } from '../../../types/vehicle';
+import type { Vehicle } from '../../../types/vehicle';
+// Interface local para el formulario
+interface DriverForm {
+  id: string;
+  full_name: string;
+  license_number: string;
+}
 
 export interface VehicleFormData {
   plate: string;
@@ -20,7 +26,7 @@ interface VehicleFormModalProps {
   onSubmit: (data: VehicleFormData) => Promise<void>;
   vehicle?: Vehicle | null;
   isLoading?: boolean;
-  drivers?: AssignedDriver[];
+  drivers?: DriverForm[];
 }
 
 const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
@@ -39,7 +45,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     year: new Date().getFullYear(),
     capacity_liters: 0,
     odometer_km: 0,
-    status: 1,
+    status: 1, // Siempre Activo por defecto
     driver_id: ''
   });
 
@@ -61,13 +67,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     'BMW', 'Audi', 'Volvo', 'Scania', 'MAN', 'Iveco'
   ];
 
-  // Status options
-  const statusOptions = [
-    { value: 1, label: 'Disponible' },
-    { value: 2, label: 'En Uso' },
-    { value: 3, label: 'Mantenimiento' },
-    { value: 4, label: 'Fuera de Servicio' }
-  ];
 
   // Initialize form data when modal opens or vehicle changes
   useEffect(() => {
@@ -93,7 +92,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
           year: new Date().getFullYear(),
           capacity_liters: 0,
           odometer_km: 0,
-          status: 1,
+          status: 1, // Siempre Activo por defecto
           driver_id: ''
         });
       }
@@ -345,22 +344,6 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 )}
               </div>
 
-              {/* Estado */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Estado</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', parseInt(e.target.value))}
-                  className="fuel-input"
-                >
-                  {statusOptions.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Conductor Asignado */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Conductor Asignado</label>
@@ -379,16 +362,16 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-6 mt-4 border-t border-slate-700">
               <button
                 type="button"
                 onClick={onClose}
-                className="fuel-button-secondary flex-1"
+                className="fuel-button-secondary flex-1 py-3"
                 disabled={isLoading}
               >
                 Cancelar
               </button>
-              <button type="submit" className="fuel-button flex-1" disabled={isLoading}>
+              <button type="submit" className="fuel-button flex-1 py-3" disabled={isLoading}>
                 {isLoading ? 'Guardando...' : (vehicle ? 'Actualizar Vehículo' : 'Crear Vehículo')}
               </button>
             </div>

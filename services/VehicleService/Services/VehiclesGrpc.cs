@@ -84,7 +84,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         }
         if (req.Status != 0)
         {
-            if (req.Status < 1 || req.Status > 4) throw new RpcException(new(StatusCode.InvalidArgument, "status 1..4"));
+            if (req.Status < 1 || req.Status > 2) throw new RpcException(new(StatusCode.InvalidArgument, "status must be 1 (active) or 2 (inactive)"));
             q = q.Where(v => v.Status == req.Status);
         }
 
@@ -131,7 +131,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     public override async Task<VehicleResponse> SetStatus(SetStatusRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.Id, out var id)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid id"));
-        if (req.Status < 1 || req.Status > 4) throw new RpcException(new(StatusCode.InvalidArgument, "status 1..4"));
+        if (req.Status < 1 || req.Status > 2) throw new RpcException(new(StatusCode.InvalidArgument, "status must be 1 (active) or 2 (inactive)"));
 
         var v = await _db.Vehicles.FirstOrDefaultAsync(x => x.Id == id);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));

@@ -32,7 +32,7 @@ message Vehicle {
   int32 year = 6;
   double capacity_liters = 7;
   int32 odometer_km = 8;
-  int32 status = 9; // 1=ACTIVO,2=INACTIVO,3=MANTTO,4=BAJA
+  int32 status = 9; // 1=ACTIVO, 2=INACTIVO
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
 }
@@ -79,7 +79,7 @@ message UpdateVehicleRequest {
 
 message SetStatusRequest {
   string id = 1;
-  int32 status = 2; // 1..4
+  int32 status = 2; // 1=ACTIVO, 2=INACTIVO
 }
 
 message AssignVehicleRequest {
