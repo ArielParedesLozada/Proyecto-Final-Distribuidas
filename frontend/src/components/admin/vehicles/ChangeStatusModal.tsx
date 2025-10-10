@@ -113,8 +113,13 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
               </button>
               <button 
                 type="submit" 
-                className="fuel-button flex-1 py-3" 
+                className={`fuel-button flex-1 py-3 ${
+                  (isLoading || selectedStatus === currentStatus) 
+                    ? 'opacity-50 cursor-not-allowed hover:shadow-none' 
+                    : ''
+                }`}
                 disabled={isLoading || selectedStatus === currentStatus}
+                title={selectedStatus === currentStatus ? 'Seleccione un estado diferente' : 'Actualizar estado del vehículo'}
               >
                 {isLoading ? 'Actualizando...' : 'Actualizar Estado'}
               </button>
@@ -127,3 +132,4 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
 };
 
 export default ChangeStatusModal;
+

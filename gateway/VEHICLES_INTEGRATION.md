@@ -107,3 +107,4 @@ Frontend → Gateway → VehicleService (gRPC)
 **¡Integración completa y lista para usar!** 🎉
 
 El gateway ahora expone todas las funcionalidades del VehicleService a través de endpoints REST con autenticación JWT y autorización por scopes.
+

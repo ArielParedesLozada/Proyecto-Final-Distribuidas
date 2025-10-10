@@ -94,7 +94,7 @@ const AssignDriverModal: React.FC<AssignDriverModalProps> = ({
                 className="fuel-input"
                 required
               >
-                <option value="">Seleccionar conductor</option>
+                <option value="">Seleccione un conductor...</option>
                 {drivers.map(driver => (
                   <option key={driver.id} value={driver.id}>
                     {driver.full_name} ({driver.license_number})
@@ -120,8 +120,13 @@ const AssignDriverModal: React.FC<AssignDriverModalProps> = ({
               </button>
               <button 
                 type="submit" 
-                className="fuel-button flex-1 py-3" 
+                className={`fuel-button flex-1 py-3 ${
+                  (isLoading || !selectedDriverId) 
+                    ? 'opacity-50 cursor-not-allowed hover:shadow-none' 
+                    : ''
+                }`}
                 disabled={isLoading || !selectedDriverId}
+                title={!selectedDriverId ? 'Seleccione un conductor' : 'Asignar conductor al vehículo'}
               >
                 {isLoading ? 'Asignando...' : 'Asignar Conductor'}
               </button>

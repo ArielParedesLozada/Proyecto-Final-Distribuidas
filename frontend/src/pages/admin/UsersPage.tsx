@@ -15,7 +15,7 @@ interface CreateUserData {
   email: string;
   password: string;
   nombre: string;
-  roles: 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR';
+  roles: 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' | '';
 }
 
 const UsersPage: React.FC = () => {
@@ -30,7 +30,7 @@ const UsersPage: React.FC = () => {
     email: '',
     password: '',
     nombre: '',
-    roles: 'CONDUCTOR'
+    roles: '' // Inicialmente sin seleccionar
   });
   const [editFormData, setEditFormData] = useState({
     nombre: '',
@@ -109,7 +109,7 @@ const UsersPage: React.FC = () => {
 
       setUsers(prev => [...prev, response.user]);
       setIsCreateModalOpen(false);
-      setNewUser({ email: '', password: '', nombre: '', roles: 'CONDUCTOR' });
+      setNewUser({ email: '', password: '', nombre: '', roles: '' });
       setEmailTouched({ ...emailTouched, create: false });
       addToast('Usuario creado exitosamente', 'success');
     } catch (error) {
@@ -283,7 +283,8 @@ const UsersPage: React.FC = () => {
       newUser.email.trim() !== '' &&
       isValidEmail(newUser.email) &&
       newUser.password.trim() !== '' &&
-      newUser.password.length >= 6
+      newUser.password.length >= 6 &&
+      newUser.roles !== '' // Debe seleccionar un rol
     );
   };
 
@@ -463,6 +464,7 @@ const UsersPage: React.FC = () => {
               className="absolute right-4 top-4 text-slate-400 hover:text-white"
               onClick={() => {
                 setIsCreateModalOpen(false);
+                setNewUser({ email: '', password: '', nombre: '', roles: '' });
                 setEmailTouched({ ...emailTouched, create: false });
               }}
               aria-label="Cerrar"
@@ -543,6 +545,7 @@ const UsersPage: React.FC = () => {
                   onChange={(e) => setNewUser({ ...newUser, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
                   className="fuel-input"
                 >
+                  <option value="">Seleccione un rol...</option>
                   <option value="CONDUCTOR">Conductor</option>
                   <option value="SUPERVISOR">Supervisor</option>
                   <option value="ADMIN">Administrador</option>
@@ -554,6 +557,7 @@ const UsersPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setIsCreateModalOpen(false);
+                    setNewUser({ email: '', password: '', nombre: '', roles: '' });
                     setEmailTouched({ ...emailTouched, create: false });
                   }}
                   className="fuel-button-secondary flex-1"
@@ -565,7 +569,16 @@ const UsersPage: React.FC = () => {
                   type="submit" 
                   className={`fuel-button flex-1 ${(loading || !isCreateFormValid()) ? 'opacity-50 cursor-not-allowed hover:shadow-none' : ''}`}
                   disabled={loading || !isCreateFormValid()}
-                  title={!isCreateFormValid() ? 'Complete todos los campos requeridos' : 'Crear nuevo usuario'}
+                  title={
+                    !isCreateFormValid() 
+                      ? (!newUser.nombre ? 'Complete el nombre' : 
+                         !newUser.email ? 'Complete el email' :
+                         !isValidEmail(newUser.email) ? 'Ingrese un email válido' :
+                         !newUser.password ? 'Complete la contraseña' :
+                         newUser.password.length < 6 ? 'La contraseña debe tener al menos 6 caracteres' :
+                         !newUser.roles ? 'Seleccione un rol' : 'Complete todos los campos requeridos')
+                      : 'Crear nuevo usuario'
+                  }
                 >
                   {loading ? 'Creando...' : 'Crear Usuario'}
                 </button>

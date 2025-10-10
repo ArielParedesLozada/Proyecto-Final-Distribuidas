@@ -100,6 +100,38 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     }
   }, [isOpen, vehicle]);
 
+  // Función para verificar si el formulario está completo (para habilitar botón)
+  const isFormComplete = (): boolean => {
+    return (
+      formData.plate.trim() !== '' &&
+      formData.type.trim() !== '' &&
+      formData.brand.trim() !== '' &&
+      formData.model.trim() !== '' &&
+      formData.year >= 1900 &&
+      formData.year <= new Date().getFullYear() + 1 &&
+      formData.capacity_liters > 0 &&
+      formData.odometer_km >= 0
+    );
+  };
+
+  // Función para obtener el mensaje del tooltip
+  const getButtonTooltip = (): string => {
+    if (isLoading) return '';
+    
+    if (isFormComplete()) return vehicle ? 'Actualizar vehículo' : 'Crear vehículo';
+    
+    // Determinar qué campo específico falta
+    if (!formData.plate.trim()) return 'Complete la placa';
+    if (!formData.type.trim()) return 'Seleccione un tipo de vehículo';
+    if (!formData.brand.trim()) return 'Seleccione una marca';
+    if (!formData.model.trim()) return 'Complete el modelo';
+    if (formData.year < 1900 || formData.year > new Date().getFullYear() + 1) return 'Ingrese un año válido';
+    if (formData.capacity_liters <= 0) return 'Ingrese una capacidad mayor a 0';
+    if (formData.odometer_km < 0) return 'El odómetro no puede ser negativo';
+    
+    return 'Complete todos los campos requeridos';
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string | number> = {};
 
@@ -168,6 +200,59 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     }
   };
 
+  // Función especial para manejar el input de la placa
+  const handlePlateChange = (value: string) => {
+    let formattedValue = '';
+    
+    // Si el valor incluye un guión, separar en letras y números
+    if (value.includes('-')) {
+      const parts = value.split('-');
+      const letters = parts[0] || '';
+      const numbers = parts[1] || '';
+      
+      // Procesar letras (solo permitir letras, máximo 3)
+      const validLetters = letters.replace(/[^A-Za-z]/g, '').toUpperCase().substring(0, 3);
+      
+      // Procesar números (solo permitir números, máximo 4)
+      const validNumbers = numbers.replace(/[^0-9]/g, '').substring(0, 4);
+      
+      // Construir el valor formateado
+      formattedValue = validLetters;
+      if (validNumbers.length > 0) {
+        formattedValue += '-' + validNumbers;
+      }
+    } else {
+      // Si no hay guión, verificar si son letras o números
+      const currentLength = value.length;
+      
+      if (currentLength <= 3) {
+        // Primeros 3 caracteres: solo letras
+        formattedValue = value.replace(/[^A-Za-z]/g, '').toUpperCase();
+      } else {
+        // Más de 3 caracteres: separar letras y números
+        const letters = value.substring(0, 3).replace(/[^A-Za-z]/g, '').toUpperCase();
+        const numbers = value.substring(3).replace(/[^0-9]/g, '').substring(0, 4);
+        
+        formattedValue = letters;
+        if (numbers.length > 0) {
+          formattedValue += '-' + numbers;
+        }
+      }
+    }
+    
+    // Actualizar el estado solo si el valor es válido
+    setFormData(prev => ({ ...prev, plate: formattedValue }));
+    
+    // Clear error when user starts typing
+    if (errors.plate) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.plate;
+        return newErrors;
+      });
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -202,7 +287,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 <input
                   type="text"
                   value={formData.plate}
-                  onChange={(e) => handleInputChange('plate', e.target.value.toUpperCase())}
+                  onChange={(e) => handlePlateChange(e.target.value)}
                   className="fuel-input"
                   placeholder="ABC-1234"
                   maxLength={8}
@@ -225,7 +310,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   className="fuel-input"
                   required
                 >
-                  <option value="">Seleccionar tipo</option>
+                  <option value="">Seleccione un tipo...</option>
                   {vehicleTypes.map(type => (
                     <option key={type.value} value={type.value}>
                       {type.label}
@@ -249,7 +334,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   className="fuel-input"
                   required
                 >
-                  <option value="">Seleccionar marca</option>
+                  <option value="">Seleccione una marca...</option>
                   {vehicleBrands.map(brand => (
                     <option key={brand} value={brand}>
                       {brand}
@@ -352,7 +437,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   onChange={(e) => handleInputChange('driver_id', e.target.value || '')}
                   className="fuel-input"
                 >
-                  <option value="">Sin asignar</option>
+                  <option value="">Seleccione un conductor...</option>
                   {drivers.map(driver => (
                     <option key={driver.id} value={driver.id}>
                       {driver.full_name} ({driver.license_number})
@@ -371,7 +456,16 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
               >
                 Cancelar
               </button>
-              <button type="submit" className="fuel-button flex-1 py-3" disabled={isLoading}>
+              <button 
+                type="submit" 
+                className={`fuel-button flex-1 py-3 ${
+                  (isLoading || !isFormComplete()) 
+                    ? 'opacity-50 cursor-not-allowed hover:shadow-none' 
+                    : ''
+                }`}
+                disabled={isLoading || !isFormComplete()}
+                title={getButtonTooltip()}
+              >
                 {isLoading ? 'Guardando...' : (vehicle ? 'Actualizar Vehículo' : 'Crear Vehículo')}
               </button>
             </div>

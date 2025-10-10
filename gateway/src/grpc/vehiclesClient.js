@@ -36,3 +36,4 @@ export const metaFromReq = (req) => {
 
 // Exportar grpc para uso en otros archivos
 export { grpc };
+
