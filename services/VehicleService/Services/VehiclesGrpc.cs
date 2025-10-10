@@ -287,6 +287,29 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         return resp;
     }
 
+    // ----- Obtener todas las asignaciones activas -----
+
+    [Authorize(Policy = "VehiclesReadAll")]
+    public override async Task<ListActiveAssignmentsResponse> ListActiveAssignments(Empty _, ServerCallContext ctx)
+    {
+        var activeAssignments = await _db.DriverVehicles
+            .AsNoTracking()
+            .Where(x => x.UnassignedAt == null)
+            .OrderBy(x => x.AssignedAt)
+            .ToListAsync();
+
+        var resp = new ListActiveAssignmentsResponse();
+        resp.ActiveAssignments.AddRange(activeAssignments.Select(x => new AssignmentRow
+        {
+            VehicleId = x.VehicleId.ToString(),
+            DriverId = x.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
+            UnassignedAt = null
+        }));
+
+        return resp;
+    }
+
     // <— Aquí el mapper usando alias para evitar ambigüedad
     private static VehicleProto Map(VehicleModel v) => new VehicleProto
     {

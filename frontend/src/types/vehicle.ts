@@ -10,8 +10,17 @@ export interface Vehicle {
   capacity_liters: number;
   odometer_km: number;
   status: number; // 1=ACTIVO, 2=INACTIVO, 3=MANTTO, 4=BAJA
+  driver_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface VehicleWithDriver extends Vehicle {
+  driver?: {
+    id: string;
+    full_name: string;
+    license_number: string;
+  };
 }
 
 export interface VehicleResponse {

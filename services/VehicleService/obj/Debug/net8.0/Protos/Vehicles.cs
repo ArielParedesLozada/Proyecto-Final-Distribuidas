@@ -62,30 +62,34 @@ namespace VehiclesService.Proto {
             "Z25lZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiMwoe",
             "TGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXF1ZXN0EhEKCWRyaXZlcl9pZBgB",
             "IAEoCSJMCh9MaXN0QXNzaWdubWVudHNCeURyaXZlclJlc3BvbnNlEikKBWl0",
-            "ZW1zGAEgAygLMhoudmVoaWNsZXMudjEuQXNzaWdubWVudFJvdzLiBwoPVmVo",
-            "aWNsZXNTZXJ2aWNlElAKDUNyZWF0ZVZlaGljbGUSIS52ZWhpY2xlcy52MS5D",
-            "cmVhdGVWZWhpY2xlUmVxdWVzdBocLnZlaGljbGVzLnYxLlZlaGljbGVSZXNw",
-            "b25zZRJKCgpHZXRWZWhpY2xlEh4udmVoaWNsZXMudjEuR2V0VmVoaWNsZVJl",
-            "cXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVzcG9uc2USUwoMTGlzdFZl",
-            "aGljbGVzEiAudmVoaWNsZXMudjEuTGlzdFZlaGljbGVzUmVxdWVzdBohLnZl",
-            "aGljbGVzLnYxLkxpc3RWZWhpY2xlc1Jlc3BvbnNlElAKDVVwZGF0ZVZlaGlj",
-            "bGUSIS52ZWhpY2xlcy52MS5VcGRhdGVWZWhpY2xlUmVxdWVzdBocLnZlaGlj",
-            "bGVzLnYxLlZlaGljbGVSZXNwb25zZRJICglTZXRTdGF0dXMSHS52ZWhpY2xl",
-            "cy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwudmVoaWNsZXMudjEuVmVoaWNsZVJl",
-            "c3BvbnNlElMKDUFzc2lnblZlaGljbGUSIS52ZWhpY2xlcy52MS5Bc3NpZ25W",
-            "ZWhpY2xlUmVxdWVzdBofLnZlaGljbGVzLnYxLkFzc2lnbm1lbnRSZXNwb25z",
-            "ZRJXCg9VbmFzc2lnblZlaGljbGUSIy52ZWhpY2xlcy52MS5VbmFzc2lnblZl",
+            "ZW1zGAEgAygLMhoudmVoaWNsZXMudjEuQXNzaWdubWVudFJvdyJXCh1MaXN0",
+            "QWN0aXZlQXNzaWdubWVudHNSZXNwb25zZRI2ChJhY3RpdmVfYXNzaWdubWVu",
+            "dHMYASADKAsyGi52ZWhpY2xlcy52MS5Bc3NpZ25tZW50Um93Mr8ICg9WZWhp",
+            "Y2xlc1NlcnZpY2USUAoNQ3JlYXRlVmVoaWNsZRIhLnZlaGljbGVzLnYxLkNy",
+            "ZWF0ZVZlaGljbGVSZXF1ZXN0GhwudmVoaWNsZXMudjEuVmVoaWNsZVJlc3Bv",
+            "bnNlEkoKCkdldFZlaGljbGUSHi52ZWhpY2xlcy52MS5HZXRWZWhpY2xlUmVx",
+            "dWVzdBocLnZlaGljbGVzLnYxLlZlaGljbGVSZXNwb25zZRJTCgxMaXN0VmVo",
+            "aWNsZXMSIC52ZWhpY2xlcy52MS5MaXN0VmVoaWNsZXNSZXF1ZXN0GiEudmVo",
+            "aWNsZXMudjEuTGlzdFZlaGljbGVzUmVzcG9uc2USUAoNVXBkYXRlVmVoaWNs",
+            "ZRIhLnZlaGljbGVzLnYxLlVwZGF0ZVZlaGljbGVSZXF1ZXN0GhwudmVoaWNs",
+            "ZXMudjEuVmVoaWNsZVJlc3BvbnNlEkgKCVNldFN0YXR1cxIdLnZlaGljbGVz",
+            "LnYxLlNldFN0YXR1c1JlcXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVz",
+            "cG9uc2USUwoNQXNzaWduVmVoaWNsZRIhLnZlaGljbGVzLnYxLkFzc2lnblZl",
             "aGljbGVSZXF1ZXN0Gh8udmVoaWNsZXMudjEuQXNzaWdubWVudFJlc3BvbnNl",
-            "EloKEkdldFZlaGljbGVCeURyaXZlchImLnZlaGljbGVzLnYxLkdldFZlaGlj",
-            "bGVCeURyaXZlclJlcXVlc3QaHC52ZWhpY2xlcy52MS5WZWhpY2xlUmVzcG9u",
-            "c2USawoUTGlzdFZlaGljbGVzQnlEcml2ZXISKC52ZWhpY2xlcy52MS5MaXN0",
-            "VmVoaWNsZXNCeURyaXZlclJlcXVlc3QaKS52ZWhpY2xlcy52MS5MaXN0VmVo",
-            "aWNsZXNCeURyaXZlclJlc3BvbnNlEnQKF0xpc3RBc3NpZ25tZW50c0J5RHJp",
-            "dmVyEisudmVoaWNsZXMudjEuTGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXF1",
-            "ZXN0GiwudmVoaWNsZXMudjEuTGlzdEFzc2lnbm1lbnRzQnlEcml2ZXJSZXNw",
-            "b25zZRJTCg5MaXN0TXlWZWhpY2xlcxIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0",
-            "eRopLnZlaGljbGVzLnYxLkxpc3RWZWhpY2xlc0J5RHJpdmVyUmVzcG9uc2VC",
-            "GKoCFVZlaGljbGVzU2VydmljZS5Qcm90b2IGcHJvdG8z"));
+            "ElcKD1VuYXNzaWduVmVoaWNsZRIjLnZlaGljbGVzLnYxLlVuYXNzaWduVmVo",
+            "aWNsZVJlcXVlc3QaHy52ZWhpY2xlcy52MS5Bc3NpZ25tZW50UmVzcG9uc2US",
+            "WgoSR2V0VmVoaWNsZUJ5RHJpdmVyEiYudmVoaWNsZXMudjEuR2V0VmVoaWNs",
+            "ZUJ5RHJpdmVyUmVxdWVzdBocLnZlaGljbGVzLnYxLlZlaGljbGVSZXNwb25z",
+            "ZRJrChRMaXN0VmVoaWNsZXNCeURyaXZlchIoLnZlaGljbGVzLnYxLkxpc3RW",
+            "ZWhpY2xlc0J5RHJpdmVyUmVxdWVzdBopLnZlaGljbGVzLnYxLkxpc3RWZWhp",
+            "Y2xlc0J5RHJpdmVyUmVzcG9uc2USdAoXTGlzdEFzc2lnbm1lbnRzQnlEcml2",
+            "ZXISKy52ZWhpY2xlcy52MS5MaXN0QXNzaWdubWVudHNCeURyaXZlclJlcXVl",
+            "c3QaLC52ZWhpY2xlcy52MS5MaXN0QXNzaWdubWVudHNCeURyaXZlclJlc3Bv",
+            "bnNlElMKDkxpc3RNeVZlaGljbGVzEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5",
+            "GikudmVoaWNsZXMudjEuTGlzdFZlaGljbGVzQnlEcml2ZXJSZXNwb25zZRJb",
+            "ChVMaXN0QWN0aXZlQXNzaWdubWVudHMSFi5nb29nbGUucHJvdG9idWYuRW1w",
+            "dHkaKi52ZWhpY2xlcy52MS5MaXN0QWN0aXZlQXNzaWdubWVudHNSZXNwb25z",
+            "ZUIYqgIVVmVoaWNsZXNTZXJ2aWNlLlByb3RvYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.EmptyReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -105,7 +109,8 @@ namespace VehiclesService.Proto {
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListVehiclesByDriverResponse), global::VehiclesService.Proto.ListVehiclesByDriverResponse.Parser, new[]{ "Vehicles" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.AssignmentRow), global::VehiclesService.Proto.AssignmentRow.Parser, new[]{ "VehicleId", "DriverId", "AssignedAt", "UnassignedAt" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListAssignmentsByDriverRequest), global::VehiclesService.Proto.ListAssignmentsByDriverRequest.Parser, new[]{ "DriverId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListAssignmentsByDriverResponse), global::VehiclesService.Proto.ListAssignmentsByDriverResponse.Parser, new[]{ "Items" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListAssignmentsByDriverResponse), global::VehiclesService.Proto.ListAssignmentsByDriverResponse.Parser, new[]{ "Items" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::VehiclesService.Proto.ListActiveAssignmentsResponse), global::VehiclesService.Proto.ListActiveAssignmentsResponse.Parser, new[]{ "ActiveAssignments" }, null, null, null, null)
           }));
     }
     #endregion
@@ -4917,6 +4922,193 @@ namespace VehiclesService.Proto {
             break;
           case 10: {
             items_.AddEntriesFrom(ref input, _repeated_items_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ListActiveAssignmentsResponse : pb::IMessage<ListActiveAssignmentsResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ListActiveAssignmentsResponse> _parser = new pb::MessageParser<ListActiveAssignmentsResponse>(() => new ListActiveAssignmentsResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ListActiveAssignmentsResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::VehiclesService.Proto.VehiclesReflection.Descriptor.MessageTypes[17]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListActiveAssignmentsResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListActiveAssignmentsResponse(ListActiveAssignmentsResponse other) : this() {
+      activeAssignments_ = other.activeAssignments_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ListActiveAssignmentsResponse Clone() {
+      return new ListActiveAssignmentsResponse(this);
+    }
+
+    /// <summary>Field number for the "active_assignments" field.</summary>
+    public const int ActiveAssignmentsFieldNumber = 1;
+    private static readonly pb::FieldCodec<global::VehiclesService.Proto.AssignmentRow> _repeated_activeAssignments_codec
+        = pb::FieldCodec.ForMessage(10, global::VehiclesService.Proto.AssignmentRow.Parser);
+    private readonly pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow> activeAssignments_ = new pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::VehiclesService.Proto.AssignmentRow> ActiveAssignments {
+      get { return activeAssignments_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ListActiveAssignmentsResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ListActiveAssignmentsResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if(!activeAssignments_.Equals(other.activeAssignments_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      hash ^= activeAssignments_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      activeAssignments_.WriteTo(output, _repeated_activeAssignments_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      activeAssignments_.WriteTo(ref output, _repeated_activeAssignments_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      size += activeAssignments_.CalculateSize(_repeated_activeAssignments_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ListActiveAssignmentsResponse other) {
+      if (other == null) {
+        return;
+      }
+      activeAssignments_.Add(other.activeAssignments_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            activeAssignments_.AddEntriesFrom(input, _repeated_activeAssignments_codec);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            activeAssignments_.AddEntriesFrom(ref input, _repeated_activeAssignments_codec);
             break;
           }
         }

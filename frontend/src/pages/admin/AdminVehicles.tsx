@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Car, Plus, Clock, CheckCircle, User } from 'lucide-react';
 import { api } from '../../api/api';
-import type { VehicleWithDriver, VehiclesListResponse } from '../../types/vehicle';
+import type { VehicleWithDriver, ListVehiclesResponse, Vehicle } from '../../types/vehicle';
 import { useToast } from '../../shared/ToastNotification';
 import { VehicleTable, VehicleFormModal } from '../../components/admin/vehicles';
 import type { VehicleFormData as VehicleFormDataType } from '../../components/admin/vehicles';
@@ -24,6 +24,7 @@ const AdminVehicles: React.FC = () => {
   // State
   const [vehicles, setVehicles] = useState<VehicleWithDriver[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [activeAssignments, setActiveAssignments] = useState<Array<{vehicle_id: string, driver_id: string}>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,11 +45,11 @@ const AdminVehicles: React.FC = () => {
   const [assignedVehicles, setAssignedVehicles] = useState<VehicleWithDriver[]>([]);
   const assignedPageSize = 5;
 
-  // Calculate statistics
+  // Calculate statistics using real assignment data
   const unassignedCount = unassignedTotalCount;
   const assignedCount = assignedTotalCount;
-  const availableCount = vehicles.filter(v => v.status === 1 && !v.driver_id).length;
-  const inUseCount = vehicles.filter(v => v.status === 2).length;
+  const availableCount = vehicles.filter(v => !activeAssignments.some(a => a.vehicle_id === v.id)).length;
+  const inUseCount = vehicles.filter(v => activeAssignments.some(a => a.vehicle_id === v.id)).length;
   const maintenanceCount = vehicles.filter(v => v.status === 3).length;
   const outOfServiceCount = vehicles.filter(v => v.status === 4).length;
 
@@ -85,6 +86,19 @@ const AdminVehicles: React.FC = () => {
     }
   };
 
+  // Fetch active assignments
+  const fetchActiveAssignments = async () => {
+    try {
+      console.log('🔄 Cargando asignaciones activas...');
+      const response = await api<{ active_assignments: Array<{vehicle_id: string, driver_id: string}> }>('/vehicles/active-assignments');
+      console.log('🔗 Asignaciones activas recibidas:', response.active_assignments);
+      setActiveAssignments(response.active_assignments);
+    } catch (error: any) {
+      console.error('❌ Error fetching active assignments:', error);
+      addToast('Error al cargar asignaciones activas', 'error');
+    }
+  };
+
   // Fetch unassigned vehicles with pagination
   const fetchUnassignedVehicles = async (page: number = unassignedCurrentPage) => {
     try {
@@ -92,12 +106,20 @@ const AdminVehicles: React.FC = () => {
       console.log('🔄 Cargando vehículos sin asignar página:', page);
       
       // Get all vehicles first
-      const response = await api<VehiclesListResponse>('/vehicles?page=1&page_size=1000');
+      const response = await api<ListVehiclesResponse>('/vehicles?page=1&page_size=1000');
       
-      // Filter vehicles without assigned drivers
-      const unassignedVehiclesList = response.vehicles.filter(vehicle => 
-        !vehicle.driver_id
-      );
+      // Filter vehicles without active assignments
+      const unassignedVehiclesList = response.vehicles.filter(vehicle => {
+        console.log(`🔍 Vehículo ${vehicle.plate}: checking assignments...`);
+        
+        // Check if this vehicle has an active assignment
+        const isAssigned = activeAssignments.some(assignment => assignment.vehicle_id === vehicle.id);
+        
+        console.log(`🔍 Vehículo ${vehicle.plate}: isAssigned = ${isAssigned}`);
+        
+        // Return true if NOT assigned (unassigned)
+        return !isAssigned;
+      });
       
       // Calculate pagination
       const totalCount = unassignedVehiclesList.length;
@@ -132,15 +154,29 @@ const AdminVehicles: React.FC = () => {
       console.log('🔄 Cargando vehículos asignados página:', page);
       
       // Get all vehicles first
-      const response = await api<VehiclesListResponse>('/vehicles?page=1&page_size=1000');
+      const response = await api<ListVehiclesResponse>('/vehicles?page=1&page_size=1000');
       
-      // Filter vehicles with assigned drivers and enrich with driver data
+      // Filter vehicles with active assignments and enrich with driver data
       const assignedVehiclesList = response.vehicles
-        .filter(vehicle => vehicle.driver_id)
+        .filter(vehicle => {
+          console.log(`🔍 Vehículo asignado ${vehicle.plate}: checking assignments...`);
+          
+          // Check if this vehicle has an active assignment
+          const isAssigned = activeAssignments.some(assignment => assignment.vehicle_id === vehicle.id);
+          
+          console.log(`🔍 Vehículo asignado ${vehicle.plate}: isAssigned = ${isAssigned}`);
+          
+          // Return true if assigned
+          return isAssigned;
+        })
         .map(vehicle => {
-          const driver = drivers.find(d => d.id === vehicle.driver_id);
+          // Find the assignment for this vehicle
+          const assignment = activeAssignments.find(assignment => assignment.vehicle_id === vehicle.id);
+          const driver = assignment ? drivers.find(d => d.id === assignment.driver_id) : null;
+          
           return {
             ...vehicle,
+            driver_id: assignment?.driver_id || undefined,
             driver: driver ? {
               id: driver.id,
               full_name: driver.full_name,
@@ -178,7 +214,7 @@ const AdminVehicles: React.FC = () => {
   // Fetch all vehicles for statistics
   const fetchAllVehicles = async () => {
     try {
-      const response = await api<VehiclesListResponse>('/vehicles?page=1&page_size=1000');
+      const response = await api<ListVehiclesResponse>('/vehicles?page=1&page_size=1000');
       setVehicles(response.vehicles);
     } catch (error: any) {
       console.error('❌ Error fetching all vehicles:', error);
@@ -191,17 +227,41 @@ const AdminVehicles: React.FC = () => {
       setIsSubmitting(true);
       console.log('🔄 Creando vehículo:', vehicleData);
       
-      const response = await api('/vehicles', {
+      // Separar driver_id del resto de datos
+      const { driver_id, ...vehicleDataWithoutDriver } = vehicleData;
+      
+      const response = await api<{ vehicle: Vehicle }>('/vehicles', {
         method: 'POST',
-        body: JSON.stringify(vehicleData)
+        body: JSON.stringify(vehicleDataWithoutDriver)
       });
       console.log('✅ Vehículo creado exitosamente:', response);
 
-      addToast('Vehículo creado exitosamente', 'success');
+      // Si se proporcionó un conductor, asignarlo
+      if (driver_id) {
+        try {
+          console.log('🔗 Asignando conductor:', driver_id, 'al vehículo:', response.vehicle.id);
+          await api('/vehicles/assign', {
+            method: 'POST',
+            body: JSON.stringify({
+              vehicle_id: response.vehicle.id,
+              driver_id: driver_id
+            })
+          });
+          console.log('✅ Conductor asignado exitosamente');
+          addToast('Vehículo creado y conductor asignado exitosamente', 'success');
+        } catch (assignError: any) {
+          console.error('❌ Error asignando conductor:', assignError);
+          addToast('Vehículo creado pero falló la asignación del conductor', 'warning');
+        }
+      } else {
+        addToast('Vehículo creado exitosamente', 'success');
+      }
+
       await Promise.all([
         fetchAllVehicles(),
         fetchUnassignedVehicles(unassignedCurrentPage),
-        fetchAssignedVehicles(assignedCurrentPage)
+        fetchAssignedVehicles(assignedCurrentPage),
+        fetchActiveAssignments()
       ]);
     } catch (error: any) {
       console.error('❌ Error creating vehicle:', error);
@@ -227,16 +287,76 @@ const AdminVehicles: React.FC = () => {
     try {
       setIsSubmitting(true);
       
+      // Separar driver_id del resto de datos
+      const { driver_id, ...vehicleDataWithoutDriver } = vehicleData;
+      
       await api(`/vehicles/${editingVehicle.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(vehicleData)
+        method: 'PUT',  // ← Cambiado de PATCH a PUT
+        body: JSON.stringify(vehicleDataWithoutDriver)
       });
+
+      // Gestionar asignación de conductor
+      const wasAssigned = activeAssignments.some(a => a.vehicle_id === editingVehicle.id);
+      const shouldBeAssigned = !!driver_id;
+
+      if (shouldBeAssigned && !wasAssigned) {
+        // Asignar nuevo conductor
+        try {
+          console.log('🔗 Asignando conductor:', driver_id, 'al vehículo:', editingVehicle.id);
+          await api('/vehicles/assign', {
+            method: 'POST',
+            body: JSON.stringify({
+              vehicle_id: editingVehicle.id,
+              driver_id: driver_id
+            })
+          });
+          console.log('✅ Conductor asignado exitosamente');
+        } catch (assignError: any) {
+          console.error('❌ Error asignando conductor:', assignError);
+          addToast('Vehículo actualizado pero falló la asignación del conductor', 'warning');
+        }
+      } else if (!shouldBeAssigned && wasAssigned) {
+        // Desasignar conductor
+        try {
+          console.log('🔗 Desasignando conductor del vehículo:', editingVehicle.id);
+          await api(`/vehicles/${editingVehicle.id}/assign`, {
+            method: 'DELETE'
+          });
+          console.log('✅ Conductor desasignado exitosamente');
+        } catch (unassignError: any) {
+          console.error('❌ Error desasignando conductor:', unassignError);
+          addToast('Vehículo actualizado pero falló la desasignación del conductor', 'warning');
+        }
+      } else if (shouldBeAssigned && wasAssigned) {
+        // Cambiar conductor (desasignar y reasignar)
+        const currentAssignment = activeAssignments.find(a => a.vehicle_id === editingVehicle.id);
+        if (currentAssignment && currentAssignment.driver_id !== driver_id) {
+          try {
+            console.log('🔗 Cambiando conductor del vehículo:', editingVehicle.id);
+            await api(`/vehicles/${editingVehicle.id}/assign`, {
+              method: 'DELETE'
+            });
+            await api('/vehicles/assign', {
+              method: 'POST',
+              body: JSON.stringify({
+                vehicle_id: editingVehicle.id,
+                driver_id: driver_id
+              })
+            });
+            console.log('✅ Conductor cambiado exitosamente');
+          } catch (reassignError: any) {
+            console.error('❌ Error cambiando conductor:', reassignError);
+            addToast('Vehículo actualizado pero falló el cambio de conductor', 'warning');
+          }
+        }
+      }
 
       addToast('Vehículo actualizado exitosamente', 'success');
       await Promise.all([
         fetchAllVehicles(),
         fetchUnassignedVehicles(unassignedCurrentPage),
-        fetchAssignedVehicles(assignedCurrentPage)
+        fetchAssignedVehicles(assignedCurrentPage),
+        fetchActiveAssignments()
       ]);
     } catch (error: any) {
       console.error('Error updating vehicle:', error);
@@ -289,11 +409,23 @@ const AdminVehicles: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-    fetchDrivers();
-    fetchAllVehicles();
-    fetchUnassignedVehicles();
-    fetchAssignedVehicles();
+    const loadData = async () => {
+      await Promise.all([
+        fetchDrivers(),
+        fetchActiveAssignments(),
+        fetchAllVehicles()
+      ]);
+    };
+    loadData();
   }, []);
+
+  // Refetch vehicles when assignments change
+  useEffect(() => {
+    if (activeAssignments.length >= 0) { // Allow empty array
+      fetchUnassignedVehicles();
+      fetchAssignedVehicles();
+    }
+  }, [activeAssignments]);
 
   // Refetch assigned vehicles when drivers change
   useEffect(() => {

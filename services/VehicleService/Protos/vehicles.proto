@@ -20,6 +20,7 @@ service VehiclesService {
   rpc ListVehiclesByDriver (ListVehiclesByDriverRequest) returns (ListVehiclesByDriverResponse);
   rpc ListAssignmentsByDriver (ListAssignmentsByDriverRequest) returns (ListAssignmentsByDriverResponse);
   rpc ListMyVehicles (google.protobuf.Empty) returns (ListVehiclesByDriverResponse);
+  rpc ListActiveAssignments (google.protobuf.Empty) returns (ListActiveAssignmentsResponse);
 }
 
 message Vehicle {
@@ -118,4 +119,8 @@ message ListAssignmentsByDriverRequest {
 
 message ListAssignmentsByDriverResponse { 
   repeated AssignmentRow items = 1; 
+}
+
+message ListActiveAssignmentsResponse {
+  repeated AssignmentRow active_assignments = 1;
 }

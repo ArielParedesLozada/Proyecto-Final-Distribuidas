@@ -73,6 +73,18 @@ router.get("/vehicles", auth, requireScopes("vehicles:read:all"), (req, res) => 
   });
 });
 
+/** GET /vehicles/active-assignments - Obtener asignaciones activas */
+router.get("/vehicles/active-assignments", auth, requireScopes("vehicles:read:all"), (req, res) => {
+  console.log('🔄 Gateway: Llamando a ListActiveAssignments...');
+  
+  // ListActiveAssignments no requiere parámetros (recibe google.protobuf.Empty)
+  vehiclesClient.ListActiveAssignments({}, mdFromHttp(req), (err, response) => {
+    if (err) return mapGrpcError(err, res);
+    console.log('✅ Gateway: Asignaciones activas recibidas:', response.active_assignments?.length || 0);
+    res.json(response);
+  });
+});
+
 /** GET /vehicles/:id - Obtener vehículo por ID */
 router.get("/vehicles/:id", auth, requireScopes("vehicles:read:all"), (req, res) => {
   const { id } = req.params;
