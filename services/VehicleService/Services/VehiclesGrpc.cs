@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Google.Protobuf.WellKnownTypes;
 using Npgsql;
+using ChoferService.Proto;
 
 // ALIAS para evitar conflicto de nombres:
 using VehicleModel = VehiclesService.Models.Vehicle;
@@ -17,8 +18,14 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 {
     private readonly VehiclesDb _db;
     private readonly ILogger<VehiclesGrpc> _log;
+    private readonly ChoferService.Proto.DriversService.DriversServiceClient _driversClient;
 
-    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log) { _db = db; _log = log; }
+    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log, ChoferService.Proto.DriversService.DriversServiceClient driversClient) 
+    { 
+        _db = db; 
+        _log = log; 
+        _driversClient = driversClient;
+    }
 
     // ----- Vehículos -----
 
@@ -202,11 +209,19 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     public override async Task<ListVehiclesByDriverResponse> ListMyVehicles(Empty _, ServerCallContext ctx)
     {
         var sub = ctx.GetHttpContext().User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(sub, out var userId)) throw new RpcException(new Status(StatusCode.Unauthenticated, "INVALID_TOKEN"));
+        if (string.IsNullOrWhiteSpace(sub)) 
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "INVALID_TOKEN"));
+
+        // Llamar al DriversService para obtener el driver_id desde el user_id
+        var getDriverRequest = new GetDriverByUserIdRequest { UserId = sub };
+        var driverResponse = await _driversClient.GetDriverByUserIdAsync(getDriverRequest);
+        
+        if (!Guid.TryParse(driverResponse.Driver.Id, out var driverId))
+            throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
 
         var vehicles = await _db.DriverVehicles
             .AsNoTracking()
-            .Where(x => x.DriverId == userId && x.UnassignedAt == null)
+            .Where(x => x.DriverId == driverId && x.UnassignedAt == null)
             .Join(_db.Vehicles.AsNoTracking(),
                   dv => dv.VehicleId,
                   v  => v.Id,

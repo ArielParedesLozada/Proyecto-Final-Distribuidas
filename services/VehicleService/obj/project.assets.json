@@ -7638,6 +7638,7 @@
       "Grpc.AspNetCore >= 2.71.0",
       "Grpc.AspNetCore.Server.Reflection >= 2.71.0",
       "Grpc.HealthCheck >= 2.71.0",
+      "Grpc.Net.ClientFactory >= 2.71.0",
       "Grpc.Tools >= 2.71.0",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 8.0.9",
       "Microsoft.EntityFrameworkCore.Design >= 8.0.9",
@@ -7708,6 +7709,10 @@
             "version": "[2.71.0, )"
           },
           "Grpc.HealthCheck": {
+            "target": "Package",
+            "version": "[2.71.0, )"
+          },
+          "Grpc.Net.ClientFactory": {
             "target": "Package",
             "version": "[2.71.0, )"
           },

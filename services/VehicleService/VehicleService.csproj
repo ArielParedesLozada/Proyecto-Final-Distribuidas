@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Protobuf Include="Protos\vehicles.proto" GrpcServices="Server" />
+    <Protobuf Include="Protos\drivers.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
     <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
     <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.71.0" />
     <PackageReference Include="Grpc.HealthCheck" Version="2.71.0" />
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.71.0" />
     <PackageReference Include="Grpc.Tools" Version="2.71.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
