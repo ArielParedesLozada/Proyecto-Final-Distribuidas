@@ -144,6 +144,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(AuthPolicies.VehiclesReadOwn,   p => RequireScope(p, "vehicles:read:own"));
     options.AddPolicy(AuthPolicies.VehiclesUpdateAny, p => RequireScope(p, "vehicles:update:any"));
     options.AddPolicy(AuthPolicies.VehiclesAssign,    p => RequireScope(p, "vehicles:assign"));
+    options.AddPolicy(AuthPolicies.VehiclesReadAllOrAssign, p => 
+        p.RequireAssertion(ctx => 
+            ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:read:all")) ||
+            ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:assign"))));
 });
 
 var app = builder.Build();
@@ -166,8 +170,8 @@ app.MapGrpcService<VehiclesGrpc>();
 app.MapGrpcService<HealthServiceImpl>();
 if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
 
-app.MapGet("/", () => "Vehicles gRPC up");
-app.MapGet("/healthz", () => "ok");
+app.MapGet("/", [AllowAnonymous] () => "Vehicles gRPC up");
+app.MapGet("/healthz", [AllowAnonymous] () => "ok");
 
 app.Run();
 

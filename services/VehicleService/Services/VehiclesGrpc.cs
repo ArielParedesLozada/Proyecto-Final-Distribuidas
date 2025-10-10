@@ -143,7 +143,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Asignaciones -----
 
-    [Authorize(Policy = "VehiclesAssign")]
+    [Authorize(Policy = "VehiclesReadAllOrAssign")]
     public override async Task<AssignmentResponse> AssignVehicle(AssignVehicleRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.VehicleId, out var vid) || !Guid.TryParse(req.DriverId, out var did))
@@ -169,7 +169,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         };
     }
 
-    [Authorize(Policy = "VehiclesAssign")]
+    [Authorize(Policy = "VehiclesReadAllOrAssign")]
     public override async Task<AssignmentResponse> UnassignVehicle(UnassignVehicleRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.VehicleId, out var vid)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid vehicle_id"));
@@ -191,6 +191,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Consultas por chofer -----
 
+    [Obsolete("DEPRECATED: Use ListVehiclesByDriver instead. This method only returns one vehicle.")]
     [Authorize(Policy = "VehiclesReadAll")]
     public override async Task<VehicleResponse> GetVehicleByDriver(GetVehicleByDriverRequest req, ServerCallContext ctx)
     {
@@ -236,7 +237,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Listar vehículos por conductor -----
 
-    [Authorize(Policy = "VehiclesReadAll")]
+    [Authorize(Policy = "VehiclesReadAllOrAssign")]
     public override async Task<ListVehiclesByDriverResponse> ListVehiclesByDriver(
         ListVehiclesByDriverRequest req, ServerCallContext ctx)
     {
@@ -260,7 +261,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Historial completo de asignaciones por conductor -----
 
-    [Authorize(Policy = "VehiclesReadAll")]
+    [Authorize(Policy = "VehiclesReadAllOrAssign")]
     public override async Task<ListAssignmentsByDriverResponse> ListAssignmentsByDriver(
         ListAssignmentsByDriverRequest req, ServerCallContext ctx)
     {

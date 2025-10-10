@@ -218,6 +218,12 @@ namespace VehiclesService.Proto {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
 
+      /// <summary>
+      /// DEPRECATED: Use ListVehiclesByDriver instead
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::VehiclesService.Proto.VehicleResponse> GetVehicleByDriver(global::VehiclesService.Proto.GetVehicleByDriverRequest request, grpc::ServerCallContext context)
       {

@@ -16,7 +16,7 @@ service VehiclesService {
   rpc AssignVehicle (AssignVehicleRequest) returns (AssignmentResponse);
   rpc UnassignVehicle (UnassignVehicleRequest) returns (AssignmentResponse);
 
-  rpc GetVehicleByDriver (GetVehicleByDriverRequest) returns (VehicleResponse);
+  rpc GetVehicleByDriver (GetVehicleByDriverRequest) returns (VehicleResponse); // DEPRECATED: Use ListVehiclesByDriver instead
   rpc ListVehiclesByDriver (ListVehiclesByDriverRequest) returns (ListVehiclesByDriverResponse);
   rpc ListAssignmentsByDriver (ListAssignmentsByDriverRequest) returns (ListAssignmentsByDriverResponse);
   rpc ListMyVehicles (google.protobuf.Empty) returns (ListVehiclesByDriverResponse);
