@@ -102,27 +102,27 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                     
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                            <Calendar className="w-4 h-4 text-blue-400 mx-auto mb-2" />
-                                            <div className="text-slate-400 text-xs">Año</div>
-                                            <div className="font-bold text-white text-sm">{vehicle.year ?? "—"}</div>
+                                            <Calendar className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                                            <div className="text-slate-400 text-sm">Año</div>
+                                            <div className="font-bold text-white text-lg">{vehicle.year ?? "—"}</div>
                                         </div>
                                         <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                            <Settings className="w-4 h-4 text-green-400 mx-auto mb-2" />
-                                            <div className="text-slate-400 text-xs">Tipo</div>
-                                            <div className="font-bold text-white text-sm">{vehicle.tipo ?? "—"}</div>
+                                            <Settings className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                                            <div className="text-slate-400 text-sm">Tipo</div>
+                                            <div className="font-bold text-white text-lg">{vehicle.tipo ?? "—"}</div>
                                         </div>
                                         <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                            <MapPin className="w-4 h-4 text-purple-400 mx-auto mb-2" />
-                                            <div className="text-slate-400 text-xs">Kilometraje</div>
-                                            <div className="font-bold text-white text-xs">
+                                            <MapPin className="w-5 h-5 text-purple-400 mx-auto mb-2" />
+                                            <div className="text-slate-400 text-sm">Kilometraje</div>
+                                            <div className="font-bold text-white text-base">
                                                 {vehicle.odometer_km ? `${vehicle.odometer_km.toLocaleString()}` : "—"}
                                             </div>
-                                            <div className="text-slate-400 text-xs">km</div>
+                                            <div className="text-slate-400 text-sm">km</div>
                                         </div>
                                         <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                            <Activity className="w-4 h-4 text-amber-400 mx-auto mb-2" />
-                                            <div className="text-slate-400 text-xs">Estado</div>
-                                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                            <Activity className="w-5 h-5 text-amber-400 mx-auto mb-2" />
+                                            <div className="text-slate-400 text-sm">Estado</div>
+                                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                                                 vehicle.estado === "Activo" 
                                                     ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                                     : vehicle.estado === "Mantenimiento"
@@ -144,17 +144,17 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                         <h3 className="text-lg font-semibold">Estado del Combustible</h3>
                                     </div>
                                     
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         <div className="text-center">
-                                            <div className="text-2xl font-bold text-white mb-2">{level}%</div>
-                                            <div className="w-full bg-slate-800 rounded-full h-4">
-                                                <div className={`h-4 rounded-full ${barColor} transition-all duration-500`} style={{ width: `${level}%` }} />
+                                            <div className="text-3xl font-bold text-white mb-3">{level}%</div>
+                                            <div className="w-full bg-slate-800 rounded-full h-5">
+                                                <div className={`h-5 rounded-full ${barColor} transition-all duration-500`} style={{ width: `${level}%` }} />
                                             </div>
                                         </div>
                                         <div className="text-center">
-                                            <div className="text-slate-400 text-sm">Capacidad del Tanque</div>
-                                            <div className="text-lg font-bold text-white">{vehicle.capacity_liters ?? "—"}</div>
-                                            <div className="text-slate-400 text-sm">Litros</div>
+                                            <div className="text-slate-400 text-base">Capacidad del Tanque</div>
+                                            <div className="text-xl font-bold text-white">{vehicle.capacity_liters ?? "—"}</div>
+                                            <div className="text-slate-400 text-base">Litros</div>
                                         </div>
                                     </div>
                                 </div>
@@ -189,18 +189,18 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                                         <div className="flex items-center gap-3 flex-1">
                                                             {getStatusIcon(trip.estado)}
                                                             <div>
-                                                                <div className="font-semibold text-white text-sm">
+                                                                <div className="font-semibold text-white text-base">
                                                                     {trip.origen} → {trip.destino}
                                                                 </div>
-                                                                <div className="text-slate-400 text-xs">ID: {trip.id}</div>
+                                                                <div className="text-slate-400 text-sm">ID: {trip.id}</div>
                                                                 {trip.estimado && (
-                                                                    <div className="text-slate-300 text-xs">
+                                                                    <div className="text-slate-300 text-sm">
                                                                         Distancia: {trip.estimado} km
                                                                     </div>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(trip.estado)}`}>
+                                                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(trip.estado)}`}>
                                                             {trip.estado}
                                                         </span>
                                                     </div>
@@ -255,26 +255,27 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                 </h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                        <Calendar className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                                        <div className="text-slate-400 text-xs">Año</div>
-                                        <div className="font-bold text-white text-sm">{vehicle.year ?? "—"}</div>
+                                        <Calendar className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                                        <div className="text-slate-400 text-sm">Año</div>
+                                        <div className="font-bold text-white text-base">{vehicle.year ?? "—"}</div>
                                     </div>
                                     <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                        <Settings className="w-4 h-4 text-green-400 mx-auto mb-1" />
-                                        <div className="text-slate-400 text-xs">Tipo</div>
-                                        <div className="font-bold text-white text-sm">{vehicle.tipo ?? "—"}</div>
+                                        <Settings className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                                        <div className="text-slate-400 text-sm">Tipo</div>
+                                        <div className="font-bold text-white text-base">{vehicle.tipo ?? "—"}</div>
                                     </div>
                                     <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                        <MapPin className="w-4 h-4 text-purple-400 mx-auto mb-1" />
-                                        <div className="text-slate-400 text-xs">Kilometraje</div>
-                                        <div className="font-bold text-white text-xs">
+                                        <MapPin className="w-5 h-5 text-purple-400 mx-auto mb-2" />
+                                        <div className="text-slate-400 text-sm">Kilometraje</div>
+                                        <div className="font-bold text-white text-sm">
                                             {vehicle.odometer_km ? `${vehicle.odometer_km.toLocaleString()}` : "—"}
                                         </div>
+                                        <div className="text-slate-400 text-xs">km</div>
                                     </div>
                                     <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                        <Activity className="w-4 h-4 text-amber-400 mx-auto mb-1" />
-                                        <div className="text-slate-400 text-xs">Estado</div>
-                                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                        <Activity className="w-5 h-5 text-amber-400 mx-auto mb-2" />
+                                        <div className="text-slate-400 text-sm">Estado</div>
+                                        <span className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${
                                             vehicle.estado === "Activo" 
                                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                                 : vehicle.estado === "Mantenimiento"
@@ -294,11 +295,11 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                     Estado del Combustible
                                 </h3>
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-white mb-2">{level}%</div>
-                                    <div className="w-full bg-slate-800 rounded-full h-4 mb-3">
-                                        <div className={`h-4 rounded-full ${barColor} transition-all duration-500`} style={{ width: `${level}%` }} />
+                                    <div className="text-3xl font-bold text-white mb-3">{level}%</div>
+                                    <div className="w-full bg-slate-800 rounded-full h-5 mb-3">
+                                        <div className={`h-5 rounded-full ${barColor} transition-all duration-500`} style={{ width: `${level}%` }} />
                                     </div>
-                                    <div className="text-slate-400 text-sm">Capacidad: {vehicle.capacity_liters ?? "—"} Litros</div>
+                                    <div className="text-slate-400 text-base">Capacidad: {vehicle.capacity_liters ?? "—"} Litros</div>
                                 </div>
                             </div>
 
@@ -327,18 +328,18 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                                     <div className="flex items-center gap-3 flex-1">
                                                         {getStatusIcon(trip.estado)}
                                                         <div>
-                                                            <div className="font-semibold text-white text-sm">
+                                                            <div className="font-semibold text-white text-base">
                                                                 {trip.origen} → {trip.destino}
                                                             </div>
-                                                            <div className="text-slate-400 text-xs">ID: {trip.id}</div>
+                                                            <div className="text-slate-400 text-sm">ID: {trip.id}</div>
                                                             {trip.estimado && (
-                                                                <div className="text-slate-300 text-xs">
+                                                                <div className="text-slate-300 text-sm">
                                                                     {trip.estimado} km
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(trip.estado)}`}>
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(trip.estado)}`}>
                                                         {trip.estado}
                                                     </span>
                                                 </div>
