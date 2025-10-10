@@ -44,4 +44,3 @@ export const VehicleStatusLabels: Record<number, string> = {
   3: "Mantenimiento",
   4: "Baja",
 };
-
