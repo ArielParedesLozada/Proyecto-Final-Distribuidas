@@ -45,7 +45,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     year: new Date().getFullYear(),
     capacity_liters: 0,
     odometer_km: 0,
-    status: 1, // Siempre Activo por defecto
+    status: 1, // Siempre Disponible por defecto (1=DISPONIBLE, 2=OCUPADO)
     driver_id: ''
   });
 
@@ -92,7 +92,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
           year: new Date().getFullYear(),
           capacity_liters: 0,
           odometer_km: 0,
-          status: 1, // Siempre Activo por defecto
+          status: 1, // Siempre Disponible por defecto (1=DISPONIBLE, 2=OCUPADO)
           driver_id: ''
         });
       }

@@ -41,7 +41,7 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
     full_name: '',
     license_number: '',
     capabilities: 0, // 0 = Sin seleccionar
-    availability: 0 // 0 = Sin seleccionar
+    availability: 1 // 1 = Disponible por defecto
   });
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -71,7 +71,7 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
           full_name: preSelectedUser.nombre,
           license_number: '',
           capabilities: 0, // Sin seleccionar
-          availability: 0  // Sin seleccionar
+          availability: 1  // Siempre Disponible por defecto
         };
         setFormData(newDriverData);
         setOriginalData(null); // No hay datos originales para nuevo conductor
@@ -83,7 +83,7 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
           full_name: '',
           license_number: '',
           capabilities: 0, // Sin seleccionar
-          availability: 0  // Sin seleccionar
+          availability: 1  // Siempre Disponible por defecto
         };
         setFormData(emptyData);
         setOriginalData(null); // No hay datos originales para nuevo conductor
@@ -95,10 +95,8 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
   // Función para detectar si hay cambios
   const hasChanges = (): boolean => {
     if (!originalData) return true; // Si no hay datos originales, es un nuevo conductor
+    // Solo considerar cambios en disponibilidad para conductores existentes
     return (
-      formData.full_name !== originalData.full_name ||
-      formData.license_number !== originalData.license_number ||
-      formData.capabilities !== originalData.capabilities ||
       formData.availability !== originalData.availability
     );
   };
@@ -108,12 +106,13 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
     const baseValidation = (
       formData.user_id.trim() !== '' &&
       formData.full_name.trim().length >= 3 &&
-      formData.license_number.trim().length > 0
+      formData.license_number.trim().length === 12 &&
+      /^\d{12}$/.test(formData.license_number.trim())
     );
     
-    // Para perfiles incompletos, validar tanto capacidad como disponibilidad
+    // Para perfiles incompletos, solo validar capacidad (disponibilidad siempre es 1)
     if (!driver) {
-      return baseValidation && formData.capabilities > 0 && formData.availability > 0;
+      return baseValidation && formData.capabilities > 0;
     }
     
     // Para perfiles completos (edición), no validar capacidad ni disponibilidad como requeridas
@@ -147,9 +146,8 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
       // Determinar qué campo específico falta
       if (!formData.user_id) return 'Seleccione un usuario';
       if (!formData.full_name || formData.full_name.length < 3) return 'Complete el nombre (mínimo 3 caracteres)';
-      if (!formData.license_number) return 'Complete el número de licencia';
+      if (!formData.license_number || formData.license_number.length !== 12) return 'El número de licencia debe tener 12 dígitos';
       if (formData.capabilities === 0) return 'Seleccione una capacidad';
-      if (formData.availability === 0) return 'Seleccione una disponibilidad';
       return 'Complete todos los campos requeridos';
     }
   };
@@ -157,24 +155,35 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.full_name || formData.full_name.trim().length < 3) {
-      newErrors.full_name = 'El nombre completo debe tener al menos 3 caracteres';
-    }
+    // Solo validar campos editables según el contexto
+    if (!driver) {
+      // Para nuevos conductores, validar todos los campos
+      if (!formData.full_name || formData.full_name.trim().length < 3) {
+        newErrors.full_name = 'El nombre completo debe tener al menos 3 caracteres';
+      }
 
-    if (!formData.license_number || formData.license_number.trim().length === 0) {
-      newErrors.license_number = 'El número de licencia es requerido';
-    }
+      if (!formData.license_number || formData.license_number.trim().length === 0) {
+        newErrors.license_number = 'El número de licencia es requerido';
+      } else if (!/^\d{12}$/.test(formData.license_number.trim())) {
+        newErrors.license_number = 'El número de licencia debe tener exactamente 12 dígitos';
+      }
 
-    if (!formData.user_id || formData.user_id.trim().length === 0) {
-      newErrors.user_id = 'El ID de usuario es requerido';
-    }
+      if (!formData.user_id || formData.user_id.trim().length === 0) {
+        newErrors.user_id = 'El ID de usuario es requerido';
+      }
 
-    if (![1, 2, 3].includes(formData.capabilities)) {
-      newErrors.capabilities = 'La capacidad debe ser válida';
-    }
+      if (![1, 2, 3].includes(formData.capabilities)) {
+        newErrors.capabilities = 'La capacidad debe ser válida';
+      }
 
-    if (![1, 2, 3].includes(formData.availability)) {
-      newErrors.availability = 'La disponibilidad debe ser válida';
+      if (formData.availability !== 1) {
+        newErrors.availability = 'Los nuevos conductores siempre inician como Disponibles';
+      }
+    } else {
+      // Para conductores existentes, solo validar disponibilidad (1 o 3)
+      if (![1, 3].includes(formData.availability)) {
+        newErrors.availability = 'La disponibilidad debe ser válida';
+      }
     }
 
     setErrors(newErrors);
@@ -209,7 +218,15 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
   };
 
   const handleInputChange = (field: keyof DriverFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Validación especial para número de licencia
+    if (field === 'license_number' && typeof value === 'string') {
+      // Solo permitir números y máximo 12 dígitos
+      const numericValue = value.replace(/\D/g, '').slice(0, 12);
+      setFormData(prev => ({ ...prev, [field]: numericValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => {
@@ -301,13 +318,10 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
               type="text"
               value={formData.full_name}
               onChange={(e) => handleInputChange('full_name', e.target.value)}
-              className="fuel-input"
+              className={`fuel-input ${driver ? 'opacity-60 cursor-not-allowed' : ''}`}
               placeholder="Ingresa el nombre completo"
-              disabled={isLoading || (!!selectedUser && !driver)}
+              disabled={isLoading || (!!selectedUser && !driver) || !!driver}
             />
-            {errors.full_name && (
-              <p className="mt-1 text-sm text-red-400">{errors.full_name}</p>
-            )}
           </div>
 
           {/* License Number */}
@@ -319,13 +333,11 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
               type="text"
               value={formData.license_number}
               onChange={(e) => handleInputChange('license_number', e.target.value)}
-              className="fuel-input"
-              placeholder="Ingresa el número de licencia"
-              disabled={isLoading}
+              className={`fuel-input ${driver ? 'opacity-60 cursor-not-allowed' : ''}`}
+              placeholder="123456789012 (12 dígitos)"
+              disabled={isLoading || !!driver}
+              maxLength={12}
             />
-            {errors.license_number && (
-              <p className="mt-1 text-sm text-red-400">{errors.license_number}</p>
-            )}
           </div>
 
           {/* Capabilities */}
@@ -333,22 +345,21 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
             <label className="block text-sm font-medium text-white mb-2">
               Capacidad
             </label>
-            <select
-              value={formData.capabilities}
-              onChange={(e) => handleInputChange('capabilities', parseInt(e.target.value))}
-              className="fuel-input"
-              disabled={isLoading}
-            >
-              {!driver && (
-                <option value={0}>Seleccione una capacidad...</option>
-              )}
-              <option value={1}>Liviana</option>
-              <option value={2}>Pesada</option>
-              <option value={3}>Ambas</option>
-            </select>
-            {errors.capabilities && (
-              <p className="mt-1 text-sm text-red-400">{errors.capabilities}</p>
-            )}
+            <div className="relative">
+              <select
+                value={formData.capabilities}
+                onChange={(e) => handleInputChange('capabilities', parseInt(e.target.value))}
+                className={`fuel-input ${driver ? 'opacity-60 cursor-not-allowed' : ''}`}
+                disabled={isLoading || !!driver}
+              >
+                {!driver && (
+                  <option value={0}>Seleccione una capacidad...</option>
+                )}
+                <option value={1}>Liviana</option>
+                <option value={2}>Pesada</option>
+                <option value={3}>Ambas</option>
+              </select>
+            </div>
           </div>
 
           {/* Availability */}
@@ -356,22 +367,19 @@ const DriverFormModal: React.FC<DriverFormModalProps> = ({
             <label className="block text-sm font-medium text-white mb-2">
               Disponibilidad
             </label>
-            <select
-              value={formData.availability}
-              onChange={(e) => handleInputChange('availability', parseInt(e.target.value))}
-              className="fuel-input"
-              disabled={isLoading}
-            >
-              {!driver && (
-                <option value={0}>Seleccione una disponibilidad...</option>
-              )}
-              <option value={1}>Disponible</option>
-              <option value={2}>Ocupado</option>
-              <option value={3}>Fuera de servicio</option>
-            </select>
-            {errors.availability && (
-              <p className="mt-1 text-sm text-red-400">{errors.availability}</p>
-            )}
+            <div className="relative">
+              <select
+                value={formData.availability}
+                onChange={(e) => handleInputChange('availability', parseInt(e.target.value))}
+                className={`fuel-input ${!driver ? 'opacity-60 cursor-not-allowed' : ''}`}
+                disabled={isLoading || !driver}
+              >
+                <option value={1}>Disponible</option>
+                {driver && (
+                  <option value={3}>Fuera de servicio</option>
+                )}
+              </select>
+            </div>
           </div>
 
           {/* Actions */}

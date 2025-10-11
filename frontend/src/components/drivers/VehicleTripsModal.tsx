@@ -123,11 +123,11 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                             <Activity className="w-5 h-5 text-amber-400 mx-auto mb-2" />
                                             <div className="text-slate-400 text-sm">Estado</div>
                                             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                                                vehicle.estado === "Activo" 
+                                                vehicle.estado === "Disponible" 
                                                     ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                                    : vehicle.estado === "Mantenimiento"
-                                                    ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                                                    : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                                    : vehicle.estado === "Ocupado"
+                                                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                                    : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
                                             }`}>
                                                 {vehicle.estado ?? "—"}
                                             </span>
@@ -276,11 +276,11 @@ const VehicleTripsModal: React.FC<Props> = ({ vehicle, trips, onClose }) => {
                                         <Activity className="w-5 h-5 text-amber-400 mx-auto mb-2" />
                                         <div className="text-slate-400 text-sm">Estado</div>
                                         <span className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${
-                                            vehicle.estado === "Activo" 
+                                            vehicle.estado === "Disponible" 
                                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                                : vehicle.estado === "Mantenimiento"
-                                                ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                                                : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                                : vehicle.estado === "Ocupado"
+                                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                                : "bg-slate-500/20 text-slate-400 border border-slate-500/30"
                                         }`}>
                                             {vehicle.estado ?? "—"}
                                         </span>

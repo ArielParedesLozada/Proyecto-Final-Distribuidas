@@ -261,7 +261,6 @@ const UsersPage: React.FC = () => {
     return (
       editFormData.nombre !== editingUser.nombre ||
       editFormData.email !== editingUser.email ||
-      editFormData.roles !== editingUser.roles ||
       editFormData.password.trim() !== ''
     );
   };
@@ -680,16 +679,19 @@ const UsersPage: React.FC = () => {
 
                <div>
                  <label className="block text-sm font-medium text-white mb-2">Rol</label>
-                 <select
-                   name="roles"
-                   value={editFormData.roles}
-                   onChange={(e) => setEditFormData({ ...editFormData, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
-                   className="fuel-input"
-                 >
-                   <option value="CONDUCTOR">Conductor</option>
-                   <option value="SUPERVISOR">Supervisor</option>
-                   <option value="ADMIN">Administrador</option>
-                 </select>
+                 <div className="relative">
+                   <select
+                     name="roles"
+                     value={editFormData.roles}
+                     onChange={(e) => setEditFormData({ ...editFormData, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
+                     className="fuel-input opacity-60 cursor-not-allowed"
+                     disabled
+                   >
+                     <option value="CONDUCTOR">Conductor</option>
+                     <option value="SUPERVISOR">Supervisor</option>
+                     <option value="ADMIN">Administrador</option>
+                   </select>
+                 </div>
                </div>
 
                <div className="flex gap-3 pt-4">

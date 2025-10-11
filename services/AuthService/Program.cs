@@ -1,6 +1,7 @@
 using System.Text;
 using AuthService.Config;
 using AuthService.Services;
+using AuthService.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,14 @@ builder.Services
     .AddDatabase(CONNECTION_STRING)
     .AddJwtAuth(JWT_SECRET, JWT_TIME, JWT_ISSUER)
     .AddAuthorization();
+
+// ====== Cliente gRPC para ChoferService ======
+var choferServiceUrl = 
+    Environment.GetEnvironmentVariable("CHOFER_SERVICE_URL") 
+    ?? builder.Configuration["ChoferService:Url"] 
+    ?? "localhost:5122";
+builder.Services.AddSingleton<DriverClient>(provider => new DriverClient(choferServiceUrl));
+
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 
 var app = builder.Build();

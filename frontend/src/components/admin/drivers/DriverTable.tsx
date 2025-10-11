@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit, Loader2 } from 'lucide-react';
 import type { Driver } from '../../../types/driver';
-import { mapCapability, mapAvailability, getCapabilityColor, getAvailabilityColor, formatDate } from '../../../utils/driverUtils';
+import { mapCapability, mapAvailability, getCapabilityColor, getAvailabilityColor } from '../../../utils/driverUtils';
 
 interface DriverTableProps {
   drivers: Driver[];
@@ -48,7 +48,6 @@ const DriverTable: React.FC<DriverTableProps> = ({
             <th className="text-left py-3 px-4 text-slate-300 font-medium">N° Licencia</th>
             <th className="text-left py-3 px-4 text-slate-300 font-medium">Capacidad</th>
             <th className="text-left py-3 px-4 text-slate-300 font-medium">Disponibilidad</th>
-            <th className="text-left py-3 px-4 text-slate-300 font-medium">Fecha Creación</th>
             <th className="text-center py-3 px-4 text-slate-300 font-medium">Acciones</th>
           </tr>
         </thead>
@@ -72,11 +71,6 @@ const DriverTable: React.FC<DriverTableProps> = ({
               <td className="py-4 px-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getAvailabilityColor(driver.availability)}`}>
                   {mapAvailability(driver.availability)}
-                </span>
-              </td>
-              <td className="py-4 px-4">
-                <span className="text-slate-400 text-sm">
-                  {formatDate(driver.created_at)}
                 </span>
               </td>
               <td className="py-4 px-4">

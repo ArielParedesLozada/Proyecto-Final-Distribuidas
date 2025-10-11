@@ -39,8 +39,8 @@ const PER_PAGE = 5;
 
 // Mapeo de estados
 const vehicleStatusLabels: Record<number, string> = {
-    1: "Activo",
-    2: "Inactivo",
+    1: "Disponible",
+    2: "Ocupado",
 };
 
 // Convertir vehículo del API al formato de display
