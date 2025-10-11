@@ -42,7 +42,7 @@ public class JWTAuthService : AuthService.AuthServiceBase
                     });
                     break;
                 case "SUPERVISOR":
-                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own", "vehicles:read:all" });
+                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own", "vehicles:read:all", "vehicles:assign" });
                     break;
                 case "CONDUCTOR":
                     scopes.AddRange(new[] { "drivers:read:own", "vehicles:read:own" });

@@ -19,3 +19,10 @@ export const requireScopes = (...needed) => (req, res, next) => {
   if (needed.every(s => scopes.has(s))) return next();
   return res.status(403).json({ error: "Forbidden (missing scopes)" });
 };
+
+// Middleware que permite cualquiera de los scopes requeridos (OR logic)
+export const requireAnyScope = (...needed) => (req, res, next) => {
+  const scopes = new Set(String(req.auth?.scope || "").split(/\s+/).filter(Boolean));
+  if (needed.some(s => scopes.has(s))) return next();
+  return res.status(403).json({ error: "Forbidden (missing scopes)" });
+};

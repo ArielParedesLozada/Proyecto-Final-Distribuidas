@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, AlertCircle } from 'lucide-react';
+import { VEHICLE_STATUS, VEHICLE_STATUS_LABELS } from '../../../utils/constants';
 
 interface ChangeStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (status: number, action?: 'unassign') => Promise<void>;
+  onSubmit: (status: number) => Promise<void>;
   vehiclePlate: string;
   currentStatus: number;
   hasDriver: boolean;
@@ -21,23 +22,24 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
   isLoading = false
 }) => {
   const [selectedStatus, setSelectedStatus] = useState<number>(currentStatus);
-  const [shouldUnassign, setShouldUnassign] = useState<boolean>(false);
+  
+  // Actualizar selectedStatus cuando cambie currentStatus o isOpen
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedStatus(currentStatus);
+    }
+  }, [currentStatus, isOpen]);
 
   const statusOptions = [
-    { value: 1, label: 'Activo' },
-    { value: 2, label: 'Inactivo' }
+    { value: VEHICLE_STATUS.AVAILABLE, label: VEHICLE_STATUS_LABELS[VEHICLE_STATUS.AVAILABLE] },
+    { value: VEHICLE_STATUS.OCCUPIED, label: VEHICLE_STATUS_LABELS[VEHICLE_STATUS.OCCUPIED] }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      if (hasDriver && selectedStatus === 2) {
-        // Si el vehículo tiene conductor y se va a inactivar, preguntar si desasignar
-        await onSubmit(selectedStatus, 'unassign');
-      } else {
-        await onSubmit(selectedStatus);
-      }
+      await onSubmit(selectedStatus);
       onClose();
     } catch (error) {
       // Error is handled by parent component
@@ -90,13 +92,13 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
               </select>
             </div>
 
-            {hasDriver && selectedStatus === 2 && (
+            {hasDriver && selectedStatus === VEHICLE_STATUS.AVAILABLE && (
               <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
                   <div className="text-sm text-yellow-200">
                     <p className="font-medium mb-1">Vehículo con conductor asignado</p>
-                    <p>Al cambiar a "Inactivo", el conductor será desasignado automáticamente.</p>
+                    <p>Al cambiar a "Disponible", el conductor será desasignado automáticamente.</p>
                   </div>
                 </div>
               </div>

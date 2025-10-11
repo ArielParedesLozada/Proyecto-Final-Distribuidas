@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { vehiclesClient } from "../grpc/vehiclesClient.js";
 import { mapGrpcError } from "../utils/mapGrpcError.js";
-import { auth, requireScopes } from "../middleware/auth.js";
+import { auth, requireScopes, requireAnyScope } from "../middleware/auth.js";
 import { Metadata } from "@grpc/grpc-js";
 
 const router = Router();
@@ -135,7 +135,7 @@ router.patch("/vehicles/:id/status", auth, requireScopes("vehicles:update:any"),
 // ----- Asignaciones (Admin + Supervisor) -----
 
 /** POST /vehicles/assign - Asignar vehículo a conductor */
-router.post("/vehicles/assign", auth, requireScopes("vehicles:assign"), (req, res) => {
+router.post("/vehicles/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), (req, res) => {
   const { vehicle_id, driver_id } = req.body;
 
   const request = {
@@ -150,7 +150,7 @@ router.post("/vehicles/assign", auth, requireScopes("vehicles:assign"), (req, re
 });
 
 /** DELETE /vehicles/:vehicle_id/assign - Desasignar vehículo */
-router.delete("/vehicles/:vehicle_id/assign", auth, requireScopes("vehicles:assign"), (req, res) => {
+router.delete("/vehicles/:vehicle_id/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), (req, res) => {
   const { vehicle_id } = req.params;
 
   vehiclesClient.UnassignVehicle({ vehicle_id }, mdFromHttp(req), (err, response) => {
@@ -162,7 +162,7 @@ router.delete("/vehicles/:vehicle_id/assign", auth, requireScopes("vehicles:assi
 // ----- Consultas por Conductor (Admin + Supervisor) -----
 
 /** GET /drivers/:driver_id/vehicles - Listar vehículos activos de un conductor */
-router.get("/drivers/:driver_id/vehicles", auth, requireScopes("vehicles:read:all"), (req, res) => {
+router.get("/drivers/:driver_id/vehicles", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), (req, res) => {
   const { driver_id } = req.params;
 
   vehiclesClient.ListVehiclesByDriver({ driver_id }, mdFromHttp(req), (err, response) => {
@@ -172,7 +172,7 @@ router.get("/drivers/:driver_id/vehicles", auth, requireScopes("vehicles:read:al
 });
 
 /** GET /drivers/:driver_id/assignments - Historial de asignaciones de un conductor */
-router.get("/drivers/:driver_id/assignments", auth, requireScopes("vehicles:read:all"), (req, res) => {
+router.get("/drivers/:driver_id/assignments", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), (req, res) => {
   const { driver_id } = req.params;
 
   vehiclesClient.ListAssignmentsByDriver({ driver_id }, mdFromHttp(req), (err, response) => {

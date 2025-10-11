@@ -11,6 +11,9 @@ import UsersPage from "./pages/admin/UsersPage";
 import AdminDrivers from "./pages/admin/AdminDrivers";
 import AdminVehicles from "./pages/admin/AdminVehicles";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
+import SupervisorVehicles from "./pages/supervisor/SupervisorVehicles";
+import SupervisorDrivers from "./pages/supervisor/SupervisorDrivers";
+import SupervisorReports from "./pages/supervisor/SupervisorReports";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { ToastProvider } from "./shared/ToastNotification";
 import DriverDashboard from "./components/drivers/DriverDashboard";
@@ -46,6 +49,9 @@ const App: React.FC = () => {
           <Route path="/supervisor" element={<ProtectedRoute roles={["SUPERVISOR"]} />}>
             <Route path="dashboard" element={<SupervisorPage />}>
               <Route index element={<SupervisorDashboard />} />
+              <Route path="vehicles" element={<SupervisorVehicles />} />
+              <Route path="drivers" element={<SupervisorDrivers />} />
+              <Route path="reports" element={<SupervisorReports />} />
             </Route>
           </Route>
           

@@ -272,7 +272,7 @@ namespace VehiclesService.Proto {
     public const int StatusFieldNumber = 9;
     private int status_;
     /// <summary>
-    /// 1=ACTIVO, 2=INACTIVO
+    /// 1=DISPONIBLE, 2=OCUPADO
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2694,7 +2694,7 @@ namespace VehiclesService.Proto {
     public const int StatusFieldNumber = 2;
     private int status_;
     /// <summary>
-    /// 1=ACTIVO, 2=INACTIVO
+    /// 1=DISPONIBLE, 2=OCUPADO
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

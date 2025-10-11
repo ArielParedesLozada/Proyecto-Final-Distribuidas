@@ -64,7 +64,13 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         if (!Guid.TryParse(req.Id, out var id)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid id"));
         var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
-        return new VehicleResponse { Vehicle = Map(v) };
+        
+        // Verificar si el vehículo tiene una asignación activa
+        var hasActiveAssignment = await _db.DriverVehicles
+            .AsNoTracking()
+            .AnyAsync(x => x.VehicleId == id && x.UnassignedAt == null);
+        
+        return new VehicleResponse { Vehicle = MapWithDynamicStatus(v, hasActiveAssignment ? new List<Guid> { id } : new List<Guid>()) };
     }
 
     [Authorize(Policy = "VehiclesReadAll")]
@@ -82,17 +88,20 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             var t = req.Type.Trim();
             q = q.Where(v => v.Type == t);
         }
-        if (req.Status != 0)
-        {
-            if (req.Status < 1 || req.Status > 2) throw new RpcException(new(StatusCode.InvalidArgument, "status must be 1 (active) or 2 (inactive)"));
-            q = q.Where(v => v.Status == req.Status);
-        }
+        // Eliminamos el filtro por status ya que ahora se calcula dinámicamente
 
         var page = req.Page <= 0 ? 1 : req.Page;
         var size = req.PageSize <= 0 ? 20 : Math.Min(req.PageSize, 100);
 
         var total = await q.CountAsync();
         var list = await q.OrderBy(v => v.Plate).Skip((page - 1) * size).Take(size).ToListAsync();
+
+        // Obtener todas las asignaciones activas para calcular el estado dinámicamente
+        var activeAssignments = await _db.DriverVehicles
+            .AsNoTracking()
+            .Where(x => x.UnassignedAt == null)
+            .Select(x => x.VehicleId)
+            .ToListAsync();
 
         var resp = new ListVehiclesResponse
         {
@@ -101,7 +110,9 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             PageSize = size,
             TotalPages = (int)Math.Ceiling(total / (double)size)
         };
-        resp.Vehicles.AddRange(list.Select(Map));
+        
+        // Mapear vehículos con estado calculado dinámicamente
+        resp.Vehicles.AddRange(list.Select(v => MapWithDynamicStatus(v, activeAssignments)));
         return resp;
     }
 
@@ -151,7 +162,6 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
         var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == vid);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
-        if (v.Status != 1) throw new RpcException(new Status(StatusCode.FailedPrecondition, "VEHICLE_NOT_ACTIVE"));
 
         var active = await _db.DriverVehicles.FirstOrDefaultAsync(x => x.VehicleId == vid && x.UnassignedAt == null);
         if (active != null) throw new RpcException(new Status(StatusCode.AlreadyExists, "VEHICLE_ALREADY_ASSIGNED"));
@@ -203,7 +213,8 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == active.VehicleId);
         if (v is null) throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
 
-        return new VehicleResponse { Vehicle = Map(v) };
+        // Los vehículos asignados a un conductor siempre están OCUPADOS (status = 2)
+        return new VehicleResponse { Vehicle = MapWithDynamicStatus(v, new List<Guid> { v.Id }) };
     }
 
     [Authorize(Policy = "VehiclesReadOwn")]
@@ -231,7 +242,8 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             .ToListAsync();
 
         var resp = new ListVehiclesByDriverResponse();
-        resp.Vehicles.AddRange(vehicles.Select(Map));
+        // Los vehículos asignados a un conductor siempre están OCUPADOS (status = 2)
+        resp.Vehicles.AddRange(vehicles.Select(v => MapWithDynamicStatus(v, new List<Guid> { v.Id })));
         return resp;
     }
 
@@ -255,7 +267,8 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             .ToListAsync();
 
         var resp = new ListVehiclesByDriverResponse();
-        resp.Vehicles.AddRange(vehicles.Select(Map));
+        // Los vehículos asignados a un conductor siempre están OCUPADOS (status = 2)
+        resp.Vehicles.AddRange(vehicles.Select(v => MapWithDynamicStatus(v, new List<Guid> { v.Id })));
         return resp;
     }
 
@@ -322,6 +335,22 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         CapacityLiters = (double)v.CapacityLiters,
         OdometerKm = v.OdometerKm,
         Status = v.Status,
+        CreatedAt = Timestamp.FromDateTimeOffset(v.CreatedAt),
+        UpdatedAt = Timestamp.FromDateTimeOffset(v.UpdatedAt),
+    };
+
+    // Mapper con estado calculado dinámicamente: 1=DISPONIBLE, 2=OCUPADO
+    private static VehicleProto MapWithDynamicStatus(VehicleModel v, List<Guid> activeAssignments) => new VehicleProto
+    {
+        Id = v.Id.ToString(),
+        Plate = v.Plate,
+        Type = v.Type,
+        Brand = v.Brand,
+        Model = v.Model,
+        Year = v.Year,
+        CapacityLiters = (double)v.CapacityLiters,
+        OdometerKm = v.OdometerKm,
+        Status = activeAssignments.Contains(v.Id) ? 2 : 1, // 1=DISPONIBLE, 2=OCUPADO
         CreatedAt = Timestamp.FromDateTimeOffset(v.CreatedAt),
         UpdatedAt = Timestamp.FromDateTimeOffset(v.UpdatedAt),
     };

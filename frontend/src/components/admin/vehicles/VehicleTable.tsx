@@ -1,6 +1,7 @@
 import React from 'react';
 import { Edit, Car, User, AlertCircle, Loader2 } from 'lucide-react';
 import type { VehicleWithDriver } from '../../../types/vehicle';
+import { VEHICLE_STATUS, VEHICLE_STATUS_LABELS } from '../../../utils/constants';
 
 interface VehicleTableProps {
   vehicles: VehicleWithDriver[];
@@ -19,19 +20,23 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   onStatusChange,
   showAsAvailable = false
 }) => {
-  const getStatusInfo = (_status: number) => {
-    // Si showAsAvailable es true, siempre mostrar "Disponible"
-    if (showAsAvailable) {
+  const getStatusInfo = (status: number) => {
+    // Usar las nuevas constantes de estado
+    if (status === VEHICLE_STATUS.AVAILABLE) {
       return {
-        label: 'Disponible',
+        label: VEHICLE_STATUS_LABELS[VEHICLE_STATUS.AVAILABLE],
         color: 'bg-green-600/20 border border-green-600/30 text-green-400'
+      };
+    } else if (status === VEHICLE_STATUS.OCCUPIED) {
+      return {
+        label: VEHICLE_STATUS_LABELS[VEHICLE_STATUS.OCCUPIED],
+        color: 'bg-blue-600/20 border border-blue-600/30 text-blue-400'
       };
     }
     
-    // Si showAsAvailable es false, mostrar "Ocupado" para vehículos asignados
     return {
-      label: 'Ocupado',
-      color: 'bg-blue-600/20 border border-blue-600/30 text-blue-400'
+      label: 'Desconocido',
+      color: 'bg-gray-600/20 border border-gray-600/30 text-gray-400'
     };
   };
 

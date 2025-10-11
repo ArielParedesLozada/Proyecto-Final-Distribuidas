@@ -17,7 +17,7 @@ public class Vehicle
     [Column("capacity_liters")] public decimal CapacityLiters { get; set; }
     [Column("odometer_km")] public int OdometerKm { get; set; } = 0;
 
-    [Column("status")] public short Status { get; set; } = 1; // 1=ACTIVO, 2=INACTIVO
+    [Column("status")] public short Status { get; set; } = 1; // 1=DISPONIBLE, 2=OCUPADO (calculado dinámicamente)
 
     [Column("created_at")] public DateTimeOffset CreatedAt { get; set; }
     [Column("updated_at")] public DateTimeOffset UpdatedAt { get; set; }
