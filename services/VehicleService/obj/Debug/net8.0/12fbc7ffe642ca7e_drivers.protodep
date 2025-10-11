@@ -1,4 +1,0 @@
-obj\Debug\net8.0\Protos/Drivers.cs \
-obj\Debug\net8.0\Protos/DriversGrpc.cs: C:/Users/elkin/.nuget/packages/grpc.tools/2.71.0/build/native/include/google/protobuf/timestamp.proto\
- C:/Users/elkin/.nuget/packages/grpc.tools/2.71.0/build/native/include/google/protobuf/empty.proto\
- Protos/drivers.proto
