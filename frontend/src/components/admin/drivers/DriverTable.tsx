@@ -80,10 +80,10 @@ const DriverTable: React.FC<DriverTableProps> = ({
                 </span>
               </td>
               <td className="py-4 px-4">
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-2">
                   <button
                     onClick={() => onEdit(driver)}
-                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                    className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
                     title="Editar conductor"
                   >
                     <Edit className="w-4 h-4" />

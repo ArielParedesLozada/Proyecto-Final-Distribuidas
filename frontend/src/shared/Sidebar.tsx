@@ -38,6 +38,11 @@ const Sidebar: React.FC<Props> = ({
             return pathname === '/admin/dashboard' || pathname === '/admin/dashboard/';
         }
         
+        if (to === '/supervisor/dashboard') {
+            // Solo activo si es exactamente dashboard o la ruta base
+            return pathname === '/supervisor/dashboard' || pathname === '/supervisor/dashboard/';
+        }
+        
         // Para otras rutas, usar startsWith normal
         return pathname.startsWith(to);
     };

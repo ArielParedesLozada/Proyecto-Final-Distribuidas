@@ -91,12 +91,12 @@ const UserTable: React.FC<UserTableProps> = ({
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-700">
-            <th className="text-left py-3 px-4 text-slate-300 font-medium">Nombre Completo</th>
-            <th className="text-left py-3 px-4 text-slate-300 font-medium">Email</th>
+            <th className="text-left py-3 px-4 text-slate-300 font-medium" style={{color: 'rgb(203 213 225)'}}>Nombre Completo</th>
+            <th className="text-left py-3 px-4 text-slate-300 font-medium" style={{color: 'rgb(203 213 225)'}}>Email</th>
             {showStatus && (
-              <th className="text-left py-3 px-4 text-slate-300 font-medium">{statusLabel}</th>
+              <th className="text-left py-3 px-4 text-slate-300 font-medium" style={{color: 'rgb(203 213 225)'}}>{statusLabel}</th>
             )}
-            <th className="text-center py-3 px-4 text-slate-300 font-medium">Acciones</th>
+            <th className="text-center py-3 px-4 text-slate-300 font-medium" style={{color: 'rgb(203 213 225)'}}>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -122,7 +122,7 @@ const UserTable: React.FC<UserTableProps> = ({
                 <div className="flex justify-center">
                   <button
                     onClick={() => onAction(user)}
-                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                    className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
                     title={actionLabel}
                   >
                     <UserCheck className="w-4 h-4" />

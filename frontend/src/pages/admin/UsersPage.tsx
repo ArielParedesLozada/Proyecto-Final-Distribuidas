@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, UserPlus, Mail, Lock, Shield, UserCheck, Edit3, Trash2 } from "lucide-react";
+import { Users, UserPlus, Mail, Lock, Shield, UserCheck, Edit3, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "../../shared/ToastNotification";
 import { api } from "../../api/api";
 import Pagination from "../../shared/Pagination";
@@ -15,19 +15,28 @@ interface CreateUserData {
   email: string;
   password: string;
   nombre: string;
-  roles: 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR';
+  roles: 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' | '';
 }
 
 const UsersPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailTouched, setEmailTouched] = useState({ create: false, edit: false });
   const [newUser, setNewUser] = useState<CreateUserData>({
     email: '',
     password: '',
     nombre: '',
-    roles: 'CONDUCTOR'
+    roles: '' // Inicialmente sin seleccionar
+  });
+  const [editFormData, setEditFormData] = useState({
+    nombre: '',
+    email: '',
+    roles: 'CONDUCTOR' as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR',
+    password: ''
   });
   const { addToast } = useToast();
 
@@ -100,7 +109,8 @@ const UsersPage: React.FC = () => {
 
       setUsers(prev => [...prev, response.user]);
       setIsCreateModalOpen(false);
-      setNewUser({ email: '', password: '', nombre: '', roles: 'CONDUCTOR' });
+      setNewUser({ email: '', password: '', nombre: '', roles: '' });
+      setEmailTouched({ ...emailTouched, create: false });
       addToast('Usuario creado exitosamente', 'success');
     } catch (error) {
       console.error('Error creando usuario:', error);
@@ -112,6 +122,13 @@ const UsersPage: React.FC = () => {
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+    setEditFormData({
+      nombre: user.nombre,
+      email: user.email,
+      roles: user.roles,
+      password: ''
+    });
+    setEmailTouched({ ...emailTouched, edit: false });
     setIsEditModalOpen(true);
   };
 
@@ -121,14 +138,12 @@ const UsersPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const formData = new FormData(e.currentTarget);
-      const password = formData.get('password') as string;
-
+      
       const updatedUser = {
-        email: formData.get('email') as string,
-        nombre: formData.get('nombre') as string,
-        roles: formData.get('roles') as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR',
-        ...(password && password.trim() !== '' && { password })
+        email: editFormData.email,
+        nombre: editFormData.nombre,
+        roles: editFormData.roles,
+        ...(editFormData.password.trim() !== '' && { password: editFormData.password })
       };
 
       const response = await api<{ user: User }>(`/admin/users/${editingUser.id}`, {
@@ -145,6 +160,7 @@ const UsersPage: React.FC = () => {
 
       setIsEditModalOpen(false);
       setEditingUser(null);
+      setEmailTouched({ ...emailTouched, edit: false });
       addToast('Usuario actualizado exitosamente', 'success');
     } catch (error) {
       console.error('Error actualizando usuario:', error);
@@ -154,23 +170,32 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      try {
-        setLoading(true);
-        // Eliminar el usuario
-        await api(`/admin/users/${userId}`, {
-          method: 'DELETE'
-        });
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
 
-        setUsers(prev => prev.filter(user => user.id !== userId));
-        addToast('Usuario eliminado exitosamente', 'success');
-      } catch (error) {
-        console.error('Error eliminando usuario:', error);
-        addToast('Error al eliminar el usuario', 'error');
-      } finally {
-        setLoading(false);
-      }
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setLoading(true);
+      
+      // Eliminar el usuario
+      await api(`/admin/users/${userToDelete.id}`, {
+        method: 'DELETE'
+      });
+
+
+      setUsers(prev => prev.filter(user => user.id !== userToDelete.id));
+      addToast('Usuario eliminado exitosamente', 'success');
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error eliminando usuario:', error);
+      addToast('Error al eliminar el usuario', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -196,6 +221,45 @@ const UsersPage: React.FC = () => {
       case 'SUPERVISOR': return 'Supervisor';
       default: return 'Conductor';
     }
+  };
+
+  // Función para validar formato de email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Función para detectar si hay cambios en el formulario de edición
+  const hasEditChanges = (): boolean => {
+    if (!editingUser) return false;
+    return (
+      editFormData.nombre !== editingUser.nombre ||
+      editFormData.email !== editingUser.email ||
+      editFormData.roles !== editingUser.roles ||
+      editFormData.password.trim() !== ''
+    );
+  };
+
+  // Función para validar si el formulario de edición es válido
+  const isEditFormValid = (): boolean => {
+    return (
+      editFormData.nombre.trim() !== '' &&
+      editFormData.email.trim() !== '' &&
+      isValidEmail(editFormData.email) &&
+      (editFormData.password === '' || editFormData.password.length >= 6)
+    );
+  };
+
+  // Función para validar si el formulario de crear usuario está completo
+  const isCreateFormValid = (): boolean => {
+    return (
+      newUser.nombre.trim() !== '' &&
+      newUser.email.trim() !== '' &&
+      isValidEmail(newUser.email) &&
+      newUser.password.trim() !== '' &&
+      newUser.password.length >= 6 &&
+      newUser.roles !== '' // Debe seleccionar un rol
+    );
   };
 
   return (
@@ -278,55 +342,66 @@ const UsersPage: React.FC = () => {
           <h2 className="text-xl font-semibold text-white">Lista de Usuarios</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-700/50">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">Usuario</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">Rol</th>
-                <th className="text-center py-3 px-4 text-slate-400 font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">
-                    Cargando usuarios...
-                  </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+              <p className="text-slate-400">Cargando usuarios...</p>
+            </div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700 flex items-center justify-center">
+                <Users className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay usuarios</h3>
+              <p className="text-slate-400">No se encontraron usuarios registrados.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Usuario</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Email</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Rol</th>
+                  <th className="text-center py-3 px-4 text-slate-300 font-medium">Acciones</th>
                 </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-slate-400">
-                    No hay usuarios registrados
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-700/30 hover:bg-slate-800/20 transition-colors">
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
                     <td className="py-4 px-4">
                       <div>
                         <div className="font-medium text-white">{user.nombre}</div>
-                        <div className="text-sm text-slate-400">{user.email}</div>
+                        <div className="text-sm text-slate-400">ID: {user.id}</div>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.roles)}`}>
+                      <span className="text-slate-300">{user.email}</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(user.roles)}`}>
                         {getRoleIcon(user.roles)}
                         {getRoleLabel(user.roles)}
-                      </div>
+                      </span>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30 text-blue-400 hover:bg-blue-600/30 transition-colors"
+                          className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-blue-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
+                          title="Editar usuario"
                           disabled={loading}
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="p-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition-colors"
+                          onClick={() => handleDeleteUser(user)}
+                          className="p-2.5 rounded-lg border border-slate-600 bg-slate-800/50 text-slate-300 hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20"
+                          title="Eliminar usuario"
                           disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -334,39 +409,43 @@ const UsersPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginación - Siempre visible */}
-        <div className="mt-6">
-          <Pagination
-            page={currentPage}
-            perPage={usersPerPage}
-            total={totalUsers}
-            onPageChange={handlePageChange}
-            className=""
-          />
-        </div>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+         
+         {/* Paginación - Siempre visible */}
+         <div className="mt-6">
+           <Pagination
+             page={currentPage}
+             perPage={usersPerPage}
+             total={totalUsers}
+             onPageChange={handlePageChange}
+             className=""
+           />
+         </div>
+       </div>
 
       {/* Modal Crear Usuario */}
       {isCreateModalOpen && (
         <>
           <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
-              {/* Cerrar */}
-              <button
-                className="absolute right-4 top-4 text-slate-400 hover:text-white"
-                onClick={() => setIsCreateModalOpen(false)}
-                aria-label="Cerrar"
-                title="Cerrar"
-              >
-                ✕
-              </button>
+          <div className="w-full max-w-md max-h-[80vh] flex flex-col p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+            {/* Cerrar */}
+            <button
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setNewUser({ email: '', password: '', nombre: '', roles: '' });
+                setEmailTouched({ ...emailTouched, create: false });
+              }}
+              aria-label="Cerrar"
+              title="Cerrar"
+            >
+              ✕
+            </button>
 
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
@@ -388,21 +467,34 @@ const UsersPage: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                    <input
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      className="fuel-input pl-10 pr-4"
-                      placeholder="usuario@ejemplo.com"
-                      style={{ paddingLeft: '2.5rem' }}
-                      required
-                    />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, email: e.target.value });
+                      if (!emailTouched.create) setEmailTouched({ ...emailTouched, create: true });
+                    }}
+                    onBlur={() => setEmailTouched({ ...emailTouched, create: true })}
+                    className={`fuel-input pl-10 pr-4 ${
+                      emailTouched.create && newUser.email && !isValidEmail(newUser.email)
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : ''
+                    }`}
+                    placeholder="usuario@ejemplo.com"
+                    style={{ paddingLeft: '2.5rem' }}
+                    required
+                  />
                 </div>
+                {emailTouched.create && newUser.email && !isValidEmail(newUser.email) && (
+                  <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                    <span>⚠</span> Por favor ingresa un email válido
+                  </p>
+                )}
+              </div>
 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Contraseña</label>
@@ -427,27 +519,46 @@ const UsersPage: React.FC = () => {
                     onChange={(e) => setNewUser({ ...newUser, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
                     className="fuel-input"
                   >
-                    <option value="CONDUCTOR">Conductor</option>
+                    <option value="">Seleccione un rol...</option>
+                  <option value="CONDUCTOR">Conductor</option>
                     <option value="SUPERVISOR">Supervisor</option>
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="fuel-button-secondary flex-1"
-                    disabled={loading}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="fuel-button flex-1" disabled={loading}>
-                    {loading ? 'Creando...' : 'Crear Usuario'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setNewUser({ email: '', password: '', nombre: '', roles: '' });
+                    setEmailTouched({ ...emailTouched, create: false });
+                  }}
+                  className="fuel-button-secondary flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className={`fuel-button flex-1 ${(loading || !isCreateFormValid()) ? 'opacity-50 cursor-not-allowed hover:shadow-none' : ''}`}
+                  disabled={loading || !isCreateFormValid()}
+                  title={
+                    !isCreateFormValid() 
+                      ? (!newUser.nombre ? 'Complete el nombre' : 
+                         !newUser.email ? 'Complete el email' :
+                         !isValidEmail(newUser.email) ? 'Ingrese un email válido' :
+                         !newUser.password ? 'Complete la contraseña' :
+                         newUser.password.length < 6 ? 'La contraseña debe tener al menos 6 caracteres' :
+                         !newUser.roles ? 'Seleccione un rol' : 'Complete todos los campos requeridos')
+                      : 'Crear nuevo usuario'
+                  }
+                >
+                  {loading ? 'Creando...' : 'Crear Usuario'}
+                </button>
+              </div>
+            </form>
+          </div>
           </div>
         </>
       )}
@@ -475,79 +586,208 @@ const UsersPage: React.FC = () => {
                 <h2 className="text-xl font-semibold text-white">Editar Usuario</h2>
               </div>
 
-              <form onSubmit={handleUpdateUser} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    defaultValue={editingUser.nombre}
-                    className="fuel-input"
-                    required
-                  />
-                </div>
+               <form onSubmit={handleUpdateUser} className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-medium text-white mb-2">Nombre Completo</label>
+                   <input
+                     type="text"
+                     name="nombre"
+                     value={editFormData.nombre}
+                     onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
+                   className="fuel-input"
+                     required
+                   />
+                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                    <input
-                      type="email"
-                      name="email"
-                      defaultValue={editingUser.email}
-                      className="fuel-input pl-10 pr-4"
-                      style={{ paddingLeft: '2.5rem' }}
-                      required
-                      autoComplete="username"
-                    />
+               <div>
+                 <label className="block text-sm font-medium text-white mb-2">Email</label>
+                 <div className="relative">
+                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                   <input
+                     type="email"
+                     name="email"
+                     value={editFormData.email}
+                     onChange={(e) => {
+                       setEditFormData({ ...editFormData, email: e.target.value });
+                       if (!emailTouched.edit) setEmailTouched({ ...emailTouched, edit: true });
+                     }}
+                     onBlur={() => setEmailTouched({ ...emailTouched, edit: true })}
+                     className={`fuel-input pl-10 pr-4 ${
+                       emailTouched.edit && editFormData.email && !isValidEmail(editFormData.email)
+                         ? 'border-red-500/50 focus:border-red-500'
+                         : ''
+                     }`}
+                     style={{ paddingLeft: '2.5rem' }}
+                     required
+                     autoComplete="username"
+                   />
+                 </div>
+                 {emailTouched.edit && editFormData.email && !isValidEmail(editFormData.email) && (
+                   <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                     <span>⚠</span> Por favor ingresa un email válido
+                   </p>
+                 )}
+               </div>
+
+                 <div>
+                   <label className="block text-sm font-medium text-white mb-2">Nueva Contraseña</label>
+                   <div className="relative">
+                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                     <input
+                       type="password"
+                       name="password"
+                       value={editFormData.password}
+                     onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                     className="fuel-input pl-10 pr-4"
+                       style={{ paddingLeft: '2.5rem' }}
+                       placeholder="Dejar vacío para mantener la contraseña actual"
+                       autoComplete="new-password"
+                     />
+                   </div>
+                   <p className="text-xs text-slate-400 mt-1">
+                     Si no ingresas una contraseña, se mantendrá la contraseña actual
+                   </p>
+                 </div>
+
+                 <div>
+                   <label className="block text-sm font-medium text-white mb-2">Rol</label>
+                   <select
+                     name="roles"
+                     value={editFormData.roles}
+                     onChange={(e) => setEditFormData({ ...editFormData, roles: e.target.value as 'ADMIN' | 'CONDUCTOR' | 'SUPERVISOR' })}
+                   className="fuel-input"
+                   >
+                     <option value="CONDUCTOR">Conductor</option>
+                     <option value="SUPERVISOR">Supervisor</option>
+                     <option value="ADMIN">Administrador</option>
+                   </select>
+                 </div>
+
+                 <div className="flex gap-3 pt-4">
+                   <button
+                     type="button"
+                     onClick={() => {
+                     setIsEditModalOpen(false);
+                     setEmailTouched({ ...emailTouched, edit: false });
+                   }}
+                     className="fuel-button-secondary flex-1"
+                     disabled={loading}
+                   >
+                     Cancelar
+                   </button>
+                   <button 
+                   type="submit" 
+                   className={`fuel-button flex-1 ${(loading || !hasEditChanges() || !isEditFormValid()) ? 'opacity-50 cursor-not-allowed hover:shadow-none' : ''}`}
+                   disabled={loading || !hasEditChanges() || !isEditFormValid()}
+                   title={
+                     !hasEditChanges() 
+                       ? 'No hay cambios para guardar' 
+                       : !isEditFormValid() 
+                       ? 'Verifique que todos los campos sean válidos' 
+                       : 'Guardar cambios'
+                   }
+                 >
+                     {loading ? 'Guardando...' : 'Guardar Cambios'}
+                   </button>
+                 </div>
+               </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal Confirmación de Eliminación */}
+      {isDeleteModalOpen && userToDelete && (
+        <>
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-md p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+              {/* Cerrar */}
+              <button
+                className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setUserToDelete(null);
+                }}
+                aria-label="Cerrar"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-red-600/20 border border-red-600/30">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Confirmar Eliminación</h2>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-slate-300">
+                  ¿Estás seguro de que deseas eliminar al usuario <span className="font-semibold text-white">{userToDelete.nombre}</span>?
+                </p>
+                
+                <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-yellow-200">
+                      <p className="font-medium mb-1">Esta acción no se puede deshacer</p>
+                      <p className="text-yellow-300/80">
+                        {userToDelete.roles === 'CONDUCTOR' && 
+                          "Si este usuario tiene un perfil de conductor asociado, también será eliminado."
+                        }
+                        {userToDelete.roles !== 'CONDUCTOR' && 
+                          "Se eliminará permanentemente el usuario del sistema."
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Nueva Contraseña</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-                    <input
-                      type="password"
-                      name="password"
-                      className="fuel-input pl-10 pr-4"
-                      style={{ paddingLeft: '2.5rem' }}
-                      placeholder="Dejar vacío para mantener la contraseña actual"
-                      autoComplete="new-password"
-                    />
+                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Email:</span>
+                      <span className="text-slate-200">{userToDelete.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Rol:</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getRoleColor(userToDelete.roles)}`}>
+                        {getRoleIcon(userToDelete.roles)}
+                        {getRoleLabel(userToDelete.roles)}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Si no ingresas una contraseña, se mantendrá la contraseña actual
-                  </p>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Rol</label>
-                  <select
-                    name="roles"
-                    defaultValue={editingUser.roles}
-                    className="fuel-input"
-                  >
-                    <option value="CONDUCTOR">Conductor</option>
-                    <option value="SUPERVISOR">Supervisor</option>
-                    <option value="ADMIN">Administrador</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditModalOpen(false)}
-                    className="fuel-button-secondary flex-1"
-                    disabled={loading}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="fuel-button flex-1" disabled={loading}>
-                    {loading ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
-                </div>
-              </form>
+              <div className="flex gap-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setUserToDelete(null);
+                  }}
+                  className="fuel-button-secondary flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 hover:border-red-500 transition-all duration-200 font-medium hover:shadow-lg hover:shadow-red-500/20"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Eliminando...
+                    </span>
+                  ) : (
+                    'Eliminar Usuario'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </>

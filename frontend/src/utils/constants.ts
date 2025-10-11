@@ -17,3 +17,14 @@ export const APP_CONFIG = {
   APP_DESCRIPTION: 'Sistema de Gestión de Combustible',
   VERSION: '1.0.0'
 } as const;
+
+// Estados de vehículos
+export const VEHICLE_STATUS = {
+  AVAILABLE: 1,
+  OCCUPIED: 2
+} as const;
+
+export const VEHICLE_STATUS_LABELS = {
+  [VEHICLE_STATUS.AVAILABLE]: 'Disponible',
+  [VEHICLE_STATUS.OCCUPIED]: 'Ocupado'
+} as const;
