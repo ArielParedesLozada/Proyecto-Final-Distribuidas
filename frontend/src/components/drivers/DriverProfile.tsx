@@ -1,31 +1,40 @@
 import React from "react";
-import { useOutletContext } from "react-router-dom";
 import { User, Mail, Shield } from "lucide-react";
-import { useAuth } from "../../hooks/useAuth";
-import type { Driver } from "../../types/driver";
+import { useOutletContext } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth"; // para el profile
 
-type Props = {
-  profile?: { fullName: string; role: string; email?: string }; // viene del JWT/Auth
-  driver?: Driver | null;                                       // viene del ChoferService
+export type Driver = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  license_number: string;
+  capabilities: number;
+  availability: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type OutletContext = {
+  driverData: Driver | null;
 };
 
 const availabilityLabel = (v?: number) =>
   v === 1 ? "Disponible" : v === 2 ? "Ocupado" : v === 3 ? "Fuera de Servicio" : "—";
 
-const DriverProfile: React.FC<Props> = ({ profile, driver: propDriver }) => {
-  // Obtener datos del contexto de DriverPage
-  const contextData = useOutletContext<{ driverData: Driver | null }>();
-  const driverData = contextData?.driverData || propDriver;
+const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
 
-  // Obtener datos del usuario autenticado
+const DriverProfile: React.FC = () => {
+  const { driverData } = useOutletContext<OutletContext>();
   const { user } = useAuth();
 
-  // Crear profileData combinando props y datos del JWT
-  const profileData = profile || {
-    fullName: user?.name || "",
-    role: user?.roles?.[0] || "",
-    email: user?.email || ""
+  const profile = {
+    fullName: user?.name ?? "—",
+    role: user?.roles ?? "—",
+    email: user?.email ?? "—",
   };
+
+  const driver = driverData;
+
   return (
     <div className="space-y-6 w-full px-2 sm:px-4">
       <div className="text-center">
@@ -35,7 +44,7 @@ const DriverProfile: React.FC<Props> = ({ profile, driver: propDriver }) => {
         <p className="text-slate-400">Información personal y profesional</p>
       </div>
 
-      {/* Card principal unificada */}
+      {/* Información del AuthService */}
       <div className="fuel-card p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/30 border border-blue-500/30">
@@ -54,6 +63,8 @@ const DriverProfile: React.FC<Props> = ({ profile, driver: propDriver }) => {
               <div className="text-slate-400 text-base mb-3">Nombre Completo</div>
               <div className="font-bold text-white text-2xl">{driverData.full_name}</div>
             </div>
+            <div className="text-slate-400 text-sm mb-1">Nombre Completo</div>
+            <div className="font-semibold text-white text-lg">{profile.fullName}</div>
           </div>
         )}
 
@@ -70,6 +81,8 @@ const DriverProfile: React.FC<Props> = ({ profile, driver: propDriver }) => {
                 <div className="font-semibold text-white text-lg">{profileData?.role ?? "—"}</div>
               </div>
             </div>
+            <div className="text-slate-400 text-sm mb-1">Rol</div>
+            <div className="font-semibold text-white text-lg">{profile.role}</div>
           </div>
 
           {/* Email */}
@@ -83,23 +96,27 @@ const DriverProfile: React.FC<Props> = ({ profile, driver: propDriver }) => {
                 <div className="font-semibold text-white text-lg truncate" title={profileData?.email ?? "—"}>{profileData?.email ?? "—"}</div>
               </div>
             </div>
+            <div className="text-slate-400 text-sm mb-1">Correo Electrónico</div>
+            <div className="font-semibold text-white text-lg break-all">{profile.email}</div>
           </div>
         </div>
 
-        {/* Información del Conductor - Segunda fila */}
-        {driverData && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Licencia */}
-            <div className="fuel-card p-6 hover:bg-slate-800/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-600/20 border border-orange-600/30">
-                  <Shield className="w-6 h-6 text-orange-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-slate-400 text-sm mb-1">Licencia</div>
-                  <div className="font-semibold text-white text-lg font-mono">{driverData.license_number || "—"}</div>
-                </div>
-              </div>
+      </div>
+
+      {/* Información del ChoferService */}
+      <div className="mt-2 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-400" />
+          <span className="text-slate-400 text-sm">
+            {driver ? "Datos del Chofer" : "Aún no tienes perfil de conductor"}
+          </span>
+        </div>
+
+        {driver && (
+          <div className="grid md:grid-cols-3 gap-6 mt-4">
+            <div className="fuel-card p-4 text-center">
+              <div className="text-slate-400 text-sm mb-1">Nombre en perfil</div>
+              <div className="font-semibold text-white text-lg">{driver.full_name}</div>
             </div>
 
             {/* Disponibilidad */}

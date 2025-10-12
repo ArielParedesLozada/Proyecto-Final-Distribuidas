@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Protobuf Include="../Protos/user.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos" />
+    <Protobuf Include="../Protos/drivers.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos" />
     <Protobuf Include="Protos/adminuser.proto" ProtoRoot="Protos" GrpcServices="Server" AdditionalImportDirs="../Protos" />
   </ItemGroup>
   

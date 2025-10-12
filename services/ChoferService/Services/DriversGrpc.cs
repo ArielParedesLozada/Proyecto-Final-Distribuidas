@@ -1,14 +1,13 @@
 using Grpc.Core;
 using ChoferService.Proto;
 using ChoferService.Data;
-using ChoferService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
+using ChoferService.Clients;
 
 namespace ChoferService.Services;
 
@@ -16,11 +15,15 @@ public class DriversGrpc : DriversService.DriversServiceBase
 {
     private readonly DriversDb _context;
     private readonly ILogger<DriversGrpc> _logger;
+    private readonly UserClient _client;
+    private readonly VehicleClient _vehicleClient;
 
-    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger)
+    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger, UserClient client, VehicleClient vehicleClient)
     {
         _context = context;
         _logger = logger;
+        _client = client;
+        _vehicleClient = vehicleClient;
     }
 
     // ==== Helper: obtiene el userId desde los claims (NameIdentifier o sub). Lanza 401 si no existe/invalid. ====
@@ -49,6 +52,35 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
         throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid user token"));
     }
+    private string? GetAuthorization(ServerCallContext ctx)
+    {
+        return ctx.GetHttpContext()?.Request.Headers["Authorization"].ToString();
+    }
+
+    private async Task<bool> UserExists(string guid, ServerCallContext context)
+    {
+        try
+        {
+            var response = await _client.GetUserByIdAsync(guid, GetAuthorization(context));
+            return response?.User != null;
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        {
+            // El servicio remoto respondió "User not found"
+            return false;
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Unauthenticated)
+        {
+            // Token inválido o faltante
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid credentials for user lookup"));
+        }
+        catch (RpcException ex)
+        {
+            // Otros errores gRPC
+            _logger.LogError(ex, "Error contacting UserService: {Message}", ex.Status.Detail);
+            throw new RpcException(new Status(StatusCode.Unavailable, "UserService unavailable"));
+        }
+    }
 
     [Authorize(Policy = "DriversCreate")]
     public override async Task<DriverResponse> CreateDriver(CreateDriverRequest request, ServerCallContext context)
@@ -62,6 +94,11 @@ public class DriversGrpc : DriversService.DriversServiceBase
             {
                 _logger.LogWarning("Invalid user_id format: {UserId}", request.UserId);
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid user_id format"));
+            }
+
+            if (!(await UserExists(request.UserId, context)))
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "USER_NOT_FOUND"));
             }
 
             // Validar capabilities
@@ -418,9 +455,10 @@ public class DriversGrpc : DriversService.DriversServiceBase
             var existingDriver = await _context.Drivers.FindAsync(driverId);
             if (existingDriver == null)
             {
-                throw new RpcException(new Status(StatusCode.NotFound, "Driver not found"));
+                throw new RpcException(new Status(StatusCode.NotFound, $"Mein Sigma Driver not found {driverId}"));
             }
-
+            //Elimina las nominas del driver
+            await _vehicleClient.DeleteDriverVehiclesCascade(existingDriver.Id.ToString(), context);
             // Eliminar el conductor
             _context.Drivers.Remove(existingDriver);
             await _context.SaveChangesAsync();

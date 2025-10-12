@@ -1,18 +1,23 @@
 // using AdminService.Services;
+using AdminService.Clients;
 using AdminService.Configs;
 using AdminService.Services.Admin;
+using ChoferService.Proto;
+using UserServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 DotNetEnv.Env.Load();
 var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE")!;
+var IP_DRIVER_SERVICE = Environment.GetEnvironmentVariable("IP_DRIVER_SERVICE")!;
 var AUTH_AUTHORITY = Environment.GetEnvironmentVariable("AUTH_AUTHORITY")!;
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
 
 builder.Services
-    .AddGrpcWithClients(IP_USER_SERVICE)
+    .AddGrpcClient<UserProtoService.UserProtoServiceClient, UserClient>(IP_USER_SERVICE)
+    .AddGrpcClient<DriversService.DriversServiceClient, DriverClient>(IP_DRIVER_SERVICE)
     .AddJwtAuthentication(AUTH_AUTHORITY)
     .AddAuthorization();
 

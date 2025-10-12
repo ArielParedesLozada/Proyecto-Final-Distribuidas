@@ -37,9 +37,9 @@ public class VehiclesDb : DbContext
 
         model.Entity<Vehicle>(e =>
         {
-            e.ToTable("vehicles", "public", t => 
+            e.ToTable("vehicles", "public", t =>
                 t.HasCheckConstraint("CK_vehicles_year", $"year BETWEEN 1980 AND {(DateTime.UtcNow.Year + 1)}"));
-            
+
             e.HasIndex(x => x.Plate).IsUnique().HasDatabaseName("IX_vehicles_plate_unique");
             e.HasIndex(x => x.Status).HasDatabaseName("IX_vehicles_status");
             e.HasIndex(x => x.Type).HasDatabaseName("IX_vehicles_type");
@@ -53,6 +53,10 @@ public class VehiclesDb : DbContext
         model.Entity<DriverVehicle>(e =>
         {
             e.ToTable("driver_vehicle", "public");
+            e.HasOne<Vehicle>()
+                .WithMany()
+                .HasForeignKey(x => x.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.DriverId).HasDatabaseName("IX_driver_vehicle_driver");
             // 1 asignación activa por vehículo (índice único parcial)
             e.HasIndex(x => x.VehicleId).IsUnique()

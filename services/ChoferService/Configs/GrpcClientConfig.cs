@@ -1,7 +1,4 @@
-using AdminService.Clients;
-using UserServices;
-
-namespace AdminService.Configs;
+namespace ChoferService.Configs;
 
 public static class GRPCConfig
 {
@@ -11,8 +8,6 @@ public static class GRPCConfig
                 where TGrpcClient : class
                 where TScopedClient : class
     {
-        services.AddGrpc().AddJsonTranscoding();
-
         services.AddGrpcClient<TGrpcClient>(o =>
         {
             o.Address = new Uri(address);
