@@ -4,7 +4,7 @@ import Sidebar from "../../shared/Sidebar";
 import ScrollableContainer from "../../shared/ScrollableContainer";
 import { useAuth } from "../../hooks/useAuth";
 import BackgroundEffects from "../../components/auth/BackgroundEffects";
-import { User, Loader2, Eye, Users, ClipboardList, TrendingUp } from "lucide-react";
+import { User, Loader2, Eye, Users, ClipboardList, TrendingUp, Car } from "lucide-react";
 
 // Items de navegación para supervisor
 const supervisorNavItems = [
@@ -17,13 +17,19 @@ const supervisorNavItems = [
   {
     key: "drivers",
     label: "Conductores",
-    to: "/supervisor/drivers",
+    to: "/supervisor/dashboard/drivers",
     icon: <Users className="w-5 h-5" />
+  },
+  {
+    key: "vehicles",
+    label: "Asignar Vehículos",
+    to: "/supervisor/dashboard/vehicles",
+    icon: <Car className="w-5 h-5" />
   },
   {
     key: "reports",
     label: "Reportes",
-    to: "/supervisor/reports",
+    to: "/supervisor/dashboard/reports",
     icon: <ClipboardList className="w-5 h-5" />
   }
 ];

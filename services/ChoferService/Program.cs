@@ -11,6 +11,7 @@ using Grpc.HealthCheck;
 using Grpc.Health.V1;
 using Microsoft.AspNetCore.Authorization;
 using ChoferService.Clients;
+using ChoferService.Configs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,12 +72,10 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Comunicacion con gRPC-->AuthService
 var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE") ?? Cfg("Services:Users") ?? "http://localhost:7037";
-builder.Services.AddGrpcClient<UserServices.UserProtoService.UserProtoServiceClient>(o =>
-{
-    o.Address = new Uri(IP_USER_SERVICE);
-});
-builder.Services.AddScoped<UserClient>();
-
+builder.Services.AddGrpcClient<UserServices.UserProtoService.UserProtoServiceClient, UserClient>(IP_USER_SERVICE);
+// Comunicacion con gRPC-->VehicleService
+var IP_VEHICLE_SERVICE = Environment.GetEnvironmentVariable("IP_VEHICLE_SERVICE") ?? Cfg("Services:Vehicles") ?? "http://localhost:5124";
+builder.Services.AddGrpcClient<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>(IP_VEHICLE_SERVICE);
 // ====== AuthN (JWT) ======
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

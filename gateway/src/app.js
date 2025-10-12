@@ -6,6 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import driversRouter from './routes/drivers.js';
+import vehiclesRouter from './routes/vehicles.js';
 import crypto from 'crypto';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
@@ -39,6 +40,7 @@ app.use(express.json());
 
 // Rutas propias
 app.use('/', driversRouter);
+app.use('/', vehiclesRouter);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {

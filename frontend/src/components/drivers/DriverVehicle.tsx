@@ -1,36 +1,33 @@
-import React, { useMemo, useState } from "react";
-import { Gauge, Eye, Car } from "lucide-react";
+import React, { useMemo, useState, useEffect } from "react";
+import { Gauge, Eye, Car, Loader2, AlertCircle } from "lucide-react";
 import VehicleTripsModal from "./VehicleTripsModal";
 import type { Trip } from "./VehicleTripsModal";
 import Pagination from "../../shared/Pagination";
 import EmptyState from "../../shared/EmptyState";
+import { api } from "../../api/api";
+import type { Vehicle as ApiVehicle, ListVehiclesByDriverResponse } from "../../types/vehicle";
 
-type Vehicle = {
+type VehicleDisplay = {
+    id: string;
     placa: string;
     tipo: string;
     modelo?: string;
     estado?: string;
     nivel: number; 
-    alias?: string;
+    brand?: string;
+    capacity_liters: number;
+    odometer_km: number;
+    year: number;
 };
 
 type Props = {
-    vehicle?: Vehicle;
-    vehicles?: Vehicle[];
+    vehicle?: VehicleDisplay;
+    vehicles?: VehicleDisplay[];
     tripsByVehicle?: Record<string, Trip[]>;
 };
 
 /* ---------------- Demo fallback ---------------- */
 const now = Date.now();
-const DEMO_VEHICLES: Vehicle[] = [
-    { placa: "PAC-1234", tipo: "Camioneta", modelo: "Hilux 2.8", estado: "Operativo", nivel: 32, alias: "Hilux" },
-    { placa: "TBA-0987", tipo: "Furgón", modelo: "Sprinter 415", estado: "Operativo", nivel: 76 },
-    { placa: "ABC-5678", tipo: "SUV", modelo: "Patrol 4.0", estado: "Taller", nivel: 58, alias: "Patrol" },
-    { placa: "PBC-1122", tipo: "Camioneta", modelo: "Dmax 3.0", estado: "Operativo", nivel: 41, alias: "D-Max" },
-    { placa: "MNO-5566", tipo: "Furgón", modelo: "Boxer", estado: "Operativo", nivel: 87 },
-    { placa: "XYZ-0001", tipo: "SUV", modelo: "Fortuner", estado: "Operativo", nivel: 63 },
-];
-
 const demoTrips = (from: string): Trip[] => [
     { id: `${from}-VIA-01`, origen: "Ambato", destino: "Quito", estado: "Planificado", inicioAt: null, finAt: null, estimado: 30, observations: [] },
     { id: `${from}-VIA-02`, origen: "Latacunga", destino: "Ambato", estado: "EnCurso", inicioAt: now - 1000 * 60 * 25, finAt: null, estimado: 18, observations: [] },
@@ -40,12 +37,83 @@ const demoTrips = (from: string): Trip[] => [
 
 const PER_PAGE = 5;
 
+// Mapeo de estados
+const vehicleStatusLabels: Record<number, string> = {
+    1: "Disponible",
+    2: "Ocupado",
+};
+
+// Convertir vehículo del API al formato de display
+const mapVehicleToDisplay = (v: ApiVehicle): VehicleDisplay => {
+    // Simular nivel de combustible (en el futuro vendrá del backend)
+    const nivel = Math.floor(Math.random() * 100); // Temporal
+    
+    return {
+        id: v.id,
+        placa: v.plate,
+        tipo: v.type,
+        modelo: `${v.brand} ${v.model}`,
+        estado: vehicleStatusLabels[v.status] || "Desconocido",
+        nivel,
+        brand: v.brand,
+        capacity_liters: v.capacity_liters,
+        odometer_km: v.odometer_km,
+        year: v.year,
+    };
+};
+
 const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) => {
-    const source: Vehicle[] = useMemo(() => {
+    const [apiVehicles, setApiVehicles] = useState<VehicleDisplay[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string>("");
+
+    // Cargar vehículos del conductor desde el API
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchVehicles = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                // Llamar al endpoint que devuelve los vehículos del conductor logueado
+                const response = await api<ListVehiclesByDriverResponse>("/me/vehicles");
+                
+                if (cancelled) return;
+
+                // Mapear los vehículos del API al formato de display
+                const mappedVehicles = response.vehicles.map(mapVehicleToDisplay);
+                setApiVehicles(mappedVehicles);
+            } catch (err: any) {
+                if (cancelled) return;
+                
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                console.error("❌ Error al cargar vehículos:", errorMessage);
+                setError(errorMessage || "Error al cargar vehículos");
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        // Solo hacer fetch si no se pasaron vehículos como props
+        if (!vehicles && !vehicle) {
+            fetchVehicles();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [vehicles, vehicle]);
+
+    const source: VehicleDisplay[] = useMemo(() => {
         if (typeof vehicles !== "undefined") return vehicles;
         if (vehicle) return [vehicle];
-        return DEMO_VEHICLES;
-    }, [vehicle, vehicles]);
+        return apiVehicles;
+    }, [vehicle, vehicles, apiVehicles]);
 
     const [page, setPage] = useState(1);
 
@@ -56,7 +124,7 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
         return { data: source.slice(start, end), total };
     }, [source, page]);
 
-    const [openVeh, setOpenVeh] = useState<Vehicle | null>(null);
+    const [openVeh, setOpenVeh] = useState<VehicleDisplay | null>(null);
 
     const getTrips = (placa: string): Trip[] => {
         if (tripsByVehicle && tripsByVehicle[placa]) return tripsByVehicle[placa];
@@ -67,6 +135,37 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
         const totalPages = Math.max(1, Math.ceil(source.length / PER_PAGE));
         if (page > totalPages) setPage(totalPages);
     }, [source.length, page]);
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+                    <p className="text-slate-400">Cargando vehículos...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center max-w-md mx-auto p-8 fuel-card">
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-white mb-2">Error al cargar vehículos</h2>
+                    <p className="text-slate-400 mb-4">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Reintentar
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 w-full px-2 sm:px-4">
@@ -84,16 +183,22 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
                     const level = Math.max(0, Math.min(100, Math.round(v.nivel)));
                     const barColor = level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
                     const modeloToShow = v.modelo ?? v.estado ?? "—";
+                    const displayName = v.brand ? `${v.brand} ${v.tipo}` : v.tipo;
 
                     return (
-                        <div key={v.placa} className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all">
+                        <div key={v.id} className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all">
                             {/* Izquierda */}
                             <div className="flex-1 min-w-0 pr-4">
                                 <div className="font-semibold text-white text-lg truncate">
-                                    {v.alias ?? v.tipo} · {v.placa}
+                                    {displayName} · {v.placa}
                                 </div>
 
-                                <div className="text-sm text-slate-400">Modelo: {modeloToShow}</div>
+                                <div className="text-sm text-slate-400">
+                                    {modeloToShow}
+                                    {v.estado && <span className="ml-2 text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-300">
+                                        {v.estado}
+                                    </span>}
+                                </div>
 
                                 <div className="mt-3 flex items-center gap-2">
                                     <Gauge className="w-4 h-4 text-slate-400 shrink-0" />
@@ -110,7 +215,7 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
                             <div className="shrink-0">
                                 <button
                                     className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all"
-                                    title="Ver viajes del vehículo"
+                                    title="Ver detalles del vehículo"
                                     onClick={() => setOpenVeh(v)}
                                 >
                                     <Eye className="w-5 h-5 text-slate-200" />
@@ -121,7 +226,11 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
                 })}
 
                 {source.length === 0 && (
-                    <EmptyState asCard icon={Car} title="No tienes vehículos asignados" description="Cuando te asignen uno, aparecerá aquí." />
+                    <EmptyState 
+                        icon={Car} 
+                        title="No tienes vehículos asignados" 
+                        description="Cuando te asignen uno, aparecerá aquí." 
+                    />
                 )}
             </div>
 
