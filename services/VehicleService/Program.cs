@@ -1,3 +1,4 @@
+//
 using Microsoft.EntityFrameworkCore;
 using VehiclesService.Data;
 using VehiclesService.Services;
@@ -11,6 +12,8 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using VehicleService.Clients;
+using VehicleService.Configs;
 
 // Cargar .env si existe
 DotNetEnv.Env.Load();
@@ -46,16 +49,16 @@ builder.Services.AddSingleton<HealthServiceImpl>();
 builder.Services.AddHttpContextAccessor(); // Para el interceptor JWT
 builder.Services.AddScoped<JwtInterceptor>(); // Registrar el interceptor
 
+//Cosas del Paredes
+
 // Configurar cliente gRPC hacia DriversService
 var driversGrpc = Environment.GetEnvironmentVariable("DRIVERS_GRPC")
                    ?? builder.Configuration["Drivers:Grpc"]
                    ?? "http://localhost:5122";
 
-builder.Services.AddGrpcClient<ChoferService.Proto.DriversService.DriversServiceClient>(o =>
-{
-    o.Address = new Uri(driversGrpc);
-})
-.AddInterceptor<JwtInterceptor>(); // Interceptor para enviar JWT
+builder.Services
+    .AddGrpcCustomClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>(driversGrpc)
+    .AddInterceptor<JwtInterceptor>(); // Interceptor para enviar JWT
 
 // evitar remapeos de claims
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
