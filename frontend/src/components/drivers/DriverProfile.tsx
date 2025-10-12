@@ -21,8 +21,6 @@ type OutletContext = {
 const availabilityLabel = (v?: number) =>
   v === 1 ? "Disponible" : v === 2 ? "Ocupado" : v === 3 ? "Fuera de Servicio" : "—";
 
-const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
-
 const DriverProfile: React.FC = () => {
   const { driverData } = useOutletContext<OutletContext>();
   const { user } = useAuth();
@@ -78,11 +76,9 @@ const DriverProfile: React.FC = () => {
               </div>
               <div className="flex-1">
                 <div className="text-slate-400 text-sm mb-1">Rol</div>
-                <div className="font-semibold text-white text-lg">{profileData?.role ?? "—"}</div>
+                <div className="font-semibold text-white text-lg">{profile?.role ?? "—"}</div>
               </div>
             </div>
-            <div className="text-slate-400 text-sm mb-1">Rol</div>
-            <div className="font-semibold text-white text-lg">{profile.role}</div>
           </div>
 
           {/* Email */}
@@ -93,11 +89,9 @@ const DriverProfile: React.FC = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-slate-400 text-sm mb-1">Correo Electrónico</div>
-                <div className="font-semibold text-white text-lg truncate" title={profileData?.email ?? "—"}>{profileData?.email ?? "—"}</div>
+                <div className="font-semibold text-white text-lg truncate" title={profile?.email ?? "—"}>{profile?.email ?? "—"}</div>
               </div>
             </div>
-            <div className="text-slate-400 text-sm mb-1">Correo Electrónico</div>
-            <div className="font-semibold text-white text-lg break-all">{profile.email}</div>
           </div>
         </div>
 
@@ -127,11 +121,10 @@ const DriverProfile: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-slate-400 text-sm mb-1">Disponibilidad</div>
-                  <div className={`font-semibold text-lg ${
-                    driverData.availability === 1 ? "text-green-400" :
-                    driverData.availability === 2 ? "text-blue-400" :
-                    driverData.availability === 3 ? "text-red-400" : "text-slate-400"
-                  }`}>
+                  <div className={`font-semibold text-lg ${driverData.availability === 1 ? "text-green-400" :
+                      driverData.availability === 2 ? "text-blue-400" :
+                        driverData.availability === 3 ? "text-red-400" : "text-slate-400"
+                    }`}>
                     {availabilityLabel(driverData.availability)}
                   </div>
                 </div>
@@ -148,8 +141,8 @@ const DriverProfile: React.FC = () => {
                   <div className="text-slate-400 text-sm mb-1">Capacidades</div>
                   <div className="font-semibold text-white text-lg">
                     {driverData.capabilities === 1 ? "Liviana" :
-                     driverData.capabilities === 2 ? "Pesada" :
-                     driverData.capabilities === 3 ? "Ambas" : "—"}
+                      driverData.capabilities === 2 ? "Pesada" :
+                        driverData.capabilities === 3 ? "Ambas" : "—"}
                   </div>
                 </div>
               </div>

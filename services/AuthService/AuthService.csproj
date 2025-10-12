@@ -9,7 +9,7 @@
   <ItemGroup>
     <Protobuf Include="Protos\auth.proto" ProtoRoot="Protos" GrpcServices="Server" AdditionalImportDirs="../Protos" />
     <Protobuf Include="..\Protos\user.proto" ProtoRoot="..\Protos" GrpcServices="Server" AdditionalImportDirs="../Protos" />
-    <Protobuf Include="..\ChoferService\Protos\drivers.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Protos\drivers.proto" ProtoRoot="..\Protos" GrpcServices="Client" AdditionalImportDirs="../Protos" />
   </ItemGroup>
 
   <ItemGroup>
