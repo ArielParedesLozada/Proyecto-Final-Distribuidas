@@ -1,11 +1,9 @@
 using Grpc.Core;
 using ChoferService.Proto;
 using ChoferService.Data;
-using ChoferService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,12 +16,14 @@ public class DriversGrpc : DriversService.DriversServiceBase
     private readonly DriversDb _context;
     private readonly ILogger<DriversGrpc> _logger;
     private readonly UserClient _client;
+    private readonly VehicleClient _vehicleClient;
 
-    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger, UserClient client)
+    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger, UserClient client, VehicleClient vehicleClient)
     {
         _context = context;
         _logger = logger;
         _client = client;
+        _vehicleClient = vehicleClient;
     }
 
     // ==== Helper: obtiene el userId desde los claims (NameIdentifier o sub). Lanza 401 si no existe/invalid. ====
@@ -457,7 +457,8 @@ public class DriversGrpc : DriversService.DriversServiceBase
             {
                 throw new RpcException(new Status(StatusCode.NotFound, $"Mein Sigma Driver not found {driverId}"));
             }
-
+            //Elimina las nominas del driver
+            await _vehicleClient.DeleteDriverVehiclesCascade(existingDriver.Id.ToString(), context);
             // Eliminar el conductor
             _context.Drivers.Remove(existingDriver);
             await _context.SaveChangesAsync();

@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Cargar el archivo proto
-const protoPath = process.env.VEHICLES_PROTO || '../services/VehicleService/Protos/vehicles.proto';
+const protoPath = process.env.VEHICLES_PROTO || '../services/Protos/vehicles.proto';
 const packageDefinition = protoLoader.loadSync(protoPath, {
   keepCase: true,
   defaults: true,

@@ -11,6 +11,7 @@ using ChoferService.Proto;
 // ALIAS para evitar conflicto de nombres:
 using VehicleModel = VehiclesService.Models.Vehicle;
 using VehicleProto = VehiclesService.Proto.Vehicle;
+using VehicleService.Clients;
 
 namespace VehiclesService.Services;
 
@@ -18,13 +19,18 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 {
     private readonly VehiclesDb _db;
     private readonly ILogger<VehiclesGrpc> _log;
-    private readonly ChoferService.Proto.DriversService.DriversServiceClient _driversClient;
+    private readonly DriverClient _driversClient;
 
-    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log, ChoferService.Proto.DriversService.DriversServiceClient driversClient) 
-    { 
-        _db = db; 
-        _log = log; 
+    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log, DriverClient driversClient)
+    {
+        _db = db;
+        _log = log;
         _driversClient = driversClient;
+    }
+    //Utils
+    private string? GetAuthorization(ServerCallContext ctx)
+    {
+        return ctx.GetHttpContext()?.Request.Headers["Authorization"].ToString();
     }
 
     // ----- Vehículos -----
@@ -33,7 +39,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     public override async Task<VehicleResponse> CreateVehicle(CreateVehicleRequest req, ServerCallContext ctx)
     {
         Console.WriteLine($"[DEBUG] CreateVehicle - Plate: {req.Plate}, CapacityLiters: {req.CapacityLiters}, Year: {req.Year}");
-        
+
         if (string.IsNullOrWhiteSpace(req.Plate)) throw new RpcException(new(StatusCode.InvalidArgument, "plate required"));
         if (req.Year < 1980 || req.Year > DateTime.UtcNow.Year + 1) throw new RpcException(new(StatusCode.InvalidArgument, "year out of range"));
         if (req.CapacityLiters <= 0) throw new RpcException(new(StatusCode.InvalidArgument, $"capacity_liters > 0 (received: {req.CapacityLiters})"));
@@ -64,12 +70,12 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         if (!Guid.TryParse(req.Id, out var id)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid id"));
         var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
-        
+
         // Verificar si el vehículo tiene una asignación activa
         var hasActiveAssignment = await _db.DriverVehicles
             .AsNoTracking()
             .AnyAsync(x => x.VehicleId == id && x.UnassignedAt == null);
-        
+
         return new VehicleResponse { Vehicle = MapWithDynamicStatus(v, hasActiveAssignment ? new List<Guid> { id } : new List<Guid>()) };
     }
 
@@ -110,7 +116,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             PageSize = size,
             TotalPages = (int)Math.Ceiling(total / (double)size)
         };
-        
+
         // Mapear vehículos con estado calculado dinámicamente
         resp.Vehicles.AddRange(list.Select(v => MapWithDynamicStatus(v, activeAssignments)));
         return resp;
@@ -159,6 +165,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     {
         if (!Guid.TryParse(req.VehicleId, out var vid) || !Guid.TryParse(req.DriverId, out var did))
             throw new RpcException(new(StatusCode.InvalidArgument, "invalid ids"));
+        if (!(await _driversClient.DriverExists(req.DriverId, GetAuthorization(ctx)))) throw new RpcException(new(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
 
         var v = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == vid);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
@@ -201,11 +208,11 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Consultas por chofer -----
 
-    [Obsolete("DEPRECATED: Use ListVehiclesByDriver instead. This method only returns one vehicle.")]
     [Authorize(Policy = "VehiclesReadAll")]
     public override async Task<VehicleResponse> GetVehicleByDriver(GetVehicleByDriverRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.DriverId, out var did)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid driver_id"));
+        if (!(await _driversClient.DriverExists(req.DriverId, GetAuthorization(ctx)))) throw new RpcException(new(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
 
         var active = await _db.DriverVehicles.AsNoTracking().FirstOrDefaultAsync(x => x.DriverId == did && x.UnassignedAt == null);
         if (active == null) throw new RpcException(new Status(StatusCode.NotFound, "NO_ACTIVE_VEHICLE"));
@@ -221,13 +228,13 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     public override async Task<ListVehiclesByDriverResponse> ListMyVehicles(Empty _, ServerCallContext ctx)
     {
         var sub = ctx.GetHttpContext().User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(sub)) 
+        if (string.IsNullOrWhiteSpace(sub))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "INVALID_TOKEN"));
 
         // Llamar al DriversService para obtener el driver_id desde el user_id
         var getDriverRequest = new GetDriverByUserIdRequest { UserId = sub };
-        var driverResponse = await _driversClient.GetDriverByUserIdAsync(getDriverRequest);
-        
+        var driverResponse = await _driversClient.GetDriverByUserIdAsync(sub, GetAuthorization(ctx));
+
         if (!Guid.TryParse(driverResponse.Driver.Id, out var driverId))
             throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
 
@@ -236,7 +243,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             .Where(x => x.DriverId == driverId && x.UnassignedAt == null)
             .Join(_db.Vehicles.AsNoTracking(),
                   dv => dv.VehicleId,
-                  v  => v.Id,
+                  v => v.Id,
                   (dv, v) => v)
             .OrderBy(v => v.Plate)
             .ToListAsync();
@@ -261,7 +268,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
             .Where(x => x.DriverId == did && x.UnassignedAt == null)
             .Join(_db.Vehicles.AsNoTracking(),
                   dv => dv.VehicleId,
-                  v  => v.Id,
+                  v => v.Id,
                   (dv, v) => v)
             .OrderBy(v => v.Plate)
             .ToListAsync();
@@ -321,6 +328,21 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         }));
 
         return resp;
+    }
+
+    //Servicio para la integridad referencial
+    [Authorize(Policy = "VehiclesUpdateAny")] // Probablemente deba cambiar esto, pero soy demasiado weon para ello
+    public override async Task<Empty> DeleteVehiclesByDriverCascade(DeleteVehiclesByDriverRequest request, ServerCallContext context)
+    {
+        var driverId = request.DriverId;
+        if (!(await _driversClient.DriverExists(driverId, GetAuthorization(context))))
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
+        }
+        if (!Guid.TryParse(driverId, out var did))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid driver_id"));
+        await _db.DriverVehicles.Where(nomina => nomina.DriverId == did).ExecuteDeleteAsync();
+        return new Empty();
     }
 
     // <— Aquí el mapper usando alias para evitar ambigüedad

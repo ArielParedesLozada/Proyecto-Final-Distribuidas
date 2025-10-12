@@ -21,6 +21,9 @@ service VehiclesService {
   rpc ListAssignmentsByDriver (ListAssignmentsByDriverRequest) returns (ListAssignmentsByDriverResponse);
   rpc ListMyVehicles (google.protobuf.Empty) returns (ListVehiclesByDriverResponse);
   rpc ListActiveAssignments (google.protobuf.Empty) returns (ListActiveAssignmentsResponse);
+
+  //Cosas del Paredes --> Integridad referencial
+  rpc DeleteVehiclesByDriverCascade (DeleteVehiclesByDriverRequest) returns (google.protobuf.Empty);
 }
 
 message Vehicle {
@@ -124,3 +127,8 @@ message ListAssignmentsByDriverResponse {
 message ListActiveAssignmentsResponse {
   repeated AssignmentRow active_assignments = 1;
 }
+
+//Mensajes para la inetgridad referencial
+message DeleteVehiclesByDriverRequest {
+  string driver_id = 1;
+};
