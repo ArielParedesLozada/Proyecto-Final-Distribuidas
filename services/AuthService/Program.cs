@@ -1,8 +1,9 @@
-using System.Text;
+// using System.Text;
 using AuthService.Config;
 using AuthService.Services;
 using AuthService.Clients;
 using Steeltoe.Discovery.Eureka;
+using ChoferService.Proto;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,21 +16,15 @@ var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
 
+builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 builder.Services
     .AddGrpcServices()
     .AddDatabase(CONNECTION_STRING)
     .AddJwtAuth(JWT_SECRET, JWT_TIME, JWT_ISSUER)
     .AddAuthorization();
-
-// ====== Cliente gRPC para ChoferService ======
-var choferServiceUrl = 
-    Environment.GetEnvironmentVariable("CHOFER_SERVICE_URL") 
-    ?? builder.Configuration["ChoferService:Url"] 
-    ?? "localhost:5122";
-builder.Services.AddSingleton<DriverClient>(provider => new DriverClient(choferServiceUrl));
-
-builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 builder.Services.AddEurekaDiscoveryClient();
+// ====== Cliente gRPC para ChoferService ======
+builder.Services.AddGrpcClientDiscovered<DriversService.DriversServiceClient, DriverClient>("driver-service");
 
 var app = builder.Build();
 

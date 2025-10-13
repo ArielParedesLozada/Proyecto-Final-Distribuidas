@@ -72,11 +72,9 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // Comunicacion con gRPC-->AuthService
-var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE") ?? Cfg("Services:Users") ?? "http://localhost:7037";
-builder.Services.AddGrpcClient<UserServices.UserProtoService.UserProtoServiceClient, UserClient>(IP_USER_SERVICE);
+builder.Services.AddGrpcClientDiscovered<UserServices.UserProtoService.UserProtoServiceClient, UserClient>("auth-service");
 // Comunicacion con gRPC-->VehicleService
-var IP_VEHICLE_SERVICE = Environment.GetEnvironmentVariable("IP_VEHICLE_SERVICE") ?? Cfg("Services:Vehicles") ?? "http://localhost:5124";
-builder.Services.AddGrpcClient<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>(IP_VEHICLE_SERVICE);
+builder.Services.AddGrpcClientDiscovered<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>("vehicle-service");
 // ====== AuthN (JWT) ======
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

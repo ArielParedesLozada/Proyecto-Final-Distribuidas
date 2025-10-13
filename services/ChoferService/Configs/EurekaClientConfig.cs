@@ -1,9 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Steeltoe.Common.Discovery;
-using System;
-using System.Linq;
 
-namespace AdminService.Configs;
+namespace ChoferService.Configs;
 
 public static class GrpcConfig
 {
@@ -13,7 +11,7 @@ public static class GrpcConfig
         where TGrpcClient : class
         where TScopedClient : class
     {
-        services.AddGrpc().AddJsonTranscoding();
+        services.AddGrpc();
 
         services.AddGrpcClient<TGrpcClient>((sp, options) =>
         {
@@ -33,6 +31,7 @@ public static class GrpcConfig
             {
                 Port = usablePort
             }.Uri;
+            System.Console.WriteLine($"PORT {usablePort}");
             options.Address = grpcUri;
         });
 

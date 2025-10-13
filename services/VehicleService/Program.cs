@@ -51,14 +51,10 @@ builder.Services.AddHttpContextAccessor(); // Para el interceptor JWT
 builder.Services.AddScoped<JwtInterceptor>(); // Registrar el interceptor
 
 //Cosas del Paredes
-
 // Configurar cliente gRPC hacia DriversService
-var driversGrpc = Environment.GetEnvironmentVariable("DRIVERS_GRPC")
-                   ?? builder.Configuration["Drivers:Grpc"]
-                   ?? "http://localhost:5122";
-
+builder.Services.AddEurekaDiscoveryClient();
 builder.Services
-    .AddGrpcCustomClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>(driversGrpc)
+    .AddGrpcClientDiscovered<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>("driver-service")
     .AddInterceptor<JwtInterceptor>(); // Interceptor para enviar JWT
 
 // evitar remapeos de claims
@@ -154,7 +150,6 @@ builder.Services.AddAuthorization(options =>
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:assign"))));
 });
 
-builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 

@@ -1,21 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
 using Steeltoe.Common.Discovery;
-using System;
-using System.Linq;
 
-namespace AdminService.Configs;
+namespace VehicleService.Configs;
 
 public static class GrpcConfig
 {
-    public static IServiceCollection AddGrpcClientDiscovered<TGrpcClient, TScopedClient>(
+    public static IHttpClientBuilder AddGrpcClientDiscovered<TGrpcClient, TScopedClient>(
         this IServiceCollection services,
         string serviceName)
         where TGrpcClient : class
         where TScopedClient : class
     {
-        services.AddGrpc().AddJsonTranscoding();
+        services.AddGrpc();
 
-        services.AddGrpcClient<TGrpcClient>((sp, options) =>
+        var clientBuilder = services.AddGrpcClient<TGrpcClient>((sp, options) =>
         {
             var discovery = sp.GetRequiredService<IDiscoveryClient>();
             var instances = discovery.GetInstancesAsync(serviceName, CancellationToken.None).GetAwaiter().GetResult();
@@ -33,10 +31,11 @@ public static class GrpcConfig
             {
                 Port = usablePort
             }.Uri;
+            System.Console.WriteLine($"PORT {usablePort}");
             options.Address = grpcUri;
         });
 
         services.AddScoped<TScopedClient>();
-        return services;
+        return clientBuilder;
     }
 }

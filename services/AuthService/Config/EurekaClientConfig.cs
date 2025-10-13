@@ -1,9 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Steeltoe.Common.Discovery;
-using System;
-using System.Linq;
 
-namespace AdminService.Configs;
+namespace AuthService.Config;
 
 public static class GrpcConfig
 {
@@ -33,6 +31,7 @@ public static class GrpcConfig
             {
                 Port = usablePort
             }.Uri;
+            System.Console.WriteLine($"PORT {usablePort}");
             options.Address = grpcUri;
         });
 

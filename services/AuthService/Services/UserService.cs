@@ -88,36 +88,36 @@ namespace AuthService.Services
         {
             var id = Guid.Parse(request.Id);
             var userToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-            
+
             // Guardar el nombre anterior para comparar
             var previousName = userToUpdate.Nombre;
             var nameChanged = false;
-            
+
             // Actualizar nombre si se proporciona
             if (!string.IsNullOrWhiteSpace(request.User.Nombre))
             {
                 nameChanged = previousName != request.User.Nombre;
                 userToUpdate.Nombre = request.User.Nombre;
             }
-            
+
             // Actualizar email si se proporciona
             if (!string.IsNullOrWhiteSpace(request.User.Email))
             {
                 userToUpdate.Email = request.User.Email;
             }
-            
+
             // Actualizar rol si se proporciona
             if (!string.IsNullOrWhiteSpace(request.User.Roles))
             {
                 userToUpdate.Roles = request.User.Roles;
             }
-            
+
             // Actualizar contraseña solo si se proporciona
             if (!string.IsNullOrWhiteSpace(request.User.Password))
             {
                 userToUpdate.Password = BCrypt.Net.BCrypt.HashPassword(request.User.Password);
             }
-            
+
             var updated = await _repository.UpdateAsync(userToUpdate);
 
             // Sincronizar nombre con ChoferService si cambió y el usuario es CONDUCTOR
@@ -125,39 +125,24 @@ namespace AuthService.Services
             {
                 try
                 {
-                    // Obtener el token JWT del contexto
-                    var httpContext = context.GetHttpContext();
-                    var authHeader = httpContext?.Request.Headers["authorization"].FirstOrDefault();
-                    var jwtToken = authHeader?.Replace("Bearer ", "");
+                    var syncSuccess = await _driverClient.UpdateDriverNameAsync(
+                        updated.Id.ToString(),
+                        updated.Nombre,
+                        context
+                    );
 
-                    if (!string.IsNullOrEmpty(jwtToken))
+                    if (syncSuccess)
                     {
-                        Console.WriteLine($"Synchronizing user name with ChoferService for user: {updated.Id}");
-                        
-                        var syncSuccess = await _driverClient.UpdateDriverNameAsync(
-                            updated.Id.ToString(), 
-                            updated.Nombre, 
-                            jwtToken
-                        );
-
-                        if (syncSuccess)
-                        {
-                            Console.WriteLine("Successfully synchronized user name with ChoferService");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed to synchronize user name with ChoferService - user updated but driver name may be out of sync");
-                        }
+                        Console.WriteLine("Successfully synchronized user name with ChoferService");
                     }
                     else
                     {
-                        Console.WriteLine("No JWT token found - cannot synchronize with ChoferService");
+                        Console.WriteLine("Failed to synchronize user name with ChoferService - user updated but driver name may be out of sync");
                     }
                 }
                 catch (Exception syncEx)
                 {
                     Console.WriteLine($"Error synchronizing user name with ChoferService - user updated but driver name may be out of sync: {syncEx.Message}");
-                    // No lanzamos excepción aquí para no afectar la actualización del usuario
                 }
             }
 
