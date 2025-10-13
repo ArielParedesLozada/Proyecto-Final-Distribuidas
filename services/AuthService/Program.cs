@@ -2,6 +2,7 @@ using System.Text;
 using AuthService.Config;
 using AuthService.Services;
 using AuthService.Clients;
+using Steeltoe.Discovery.Eureka;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ var choferServiceUrl =
 builder.Services.AddSingleton<DriverClient>(provider => new DriverClient(choferServiceUrl));
 
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
+builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 

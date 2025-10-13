@@ -33,6 +33,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
+    <PackageReference Include="Steeltoe.Discovery.Configuration" Version="4.0.0" />
+    <PackageReference Include="Steeltoe.Discovery.Eureka" Version="4.0.0" />  
   </ItemGroup>
   
 </Project>

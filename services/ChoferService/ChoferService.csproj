@@ -36,6 +36,8 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.9" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.9" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageReference Include="Steeltoe.Discovery.Configuration" Version="4.0.0" />
+    <PackageReference Include="Steeltoe.Discovery.Eureka" Version="4.0.0" />  
   </ItemGroup>
 
 </Project>

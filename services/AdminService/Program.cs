@@ -3,6 +3,7 @@ using AdminService.Clients;
 using AdminService.Configs;
 using AdminService.Services.Admin;
 using ChoferService.Proto;
+using Steeltoe.Discovery.Eureka;
 using UserServices;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ builder.Services
     .AddAuthorization();
 
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
+builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 app.UseAuthentication();

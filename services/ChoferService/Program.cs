@@ -12,6 +12,7 @@ using Grpc.Health.V1;
 using Microsoft.AspNetCore.Authorization;
 using ChoferService.Clients;
 using ChoferService.Configs;
+using Steeltoe.Discovery.Eureka;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -153,6 +154,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("DriversReadOwn", p => RequireScope(p, "drivers:read:own"));
     options.AddPolicy("DriversUpdateAny", p => RequireAnyScope(p, "drivers:update", "drivers:update:any"));
 });
+
+builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 

@@ -1,21 +1,19 @@
-// gateway/src/app.js
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import crypto from 'crypto';
 import driversRouter from './routes/drivers.js';
 import vehiclesRouter from './routes/vehicles.js';
-import crypto from 'crypto';
+import AdminRoutes from "./routes/AdminRoutes.js";
+import AuthRoutes from "./routes/AuthRoutes.js";
+import { EurekaClient } from "./eureka/EurekaClient.js";
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../config.env'), override: true });
-
-import AdminRoutes from "./routes/AdminRoutes.js";
-import AuthRoutes from "./routes/AuthRoutes.js";
+dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
 
@@ -31,6 +29,16 @@ app.use((req, _res, next) => {
   console.log(`[${req.method}] ${req.path} auth=${req.headers.authorization ? 'yes' : 'no'}`);
   next();
 });
+
+//Usa Eureka
+const eurekaClient = new EurekaClient({
+  name: process.env.APP_NAME || 'api-gateway',
+  host: process.env.HOST || 'localhost',
+  ipAddr: process.env.IP || '127.0.0.1',
+  port: process.env.PORT || 4000,
+  eurekaHost: process.env.EUREKA_HOST || 'localhost',
+  eurekaPort: process.env.EUREKA_PORT || 8761
+})
 
 app.use(AuthRoutes)
 app.use(AdminRoutes)
@@ -61,6 +69,8 @@ const fp = crypto.createHash('sha256')
   .digest('hex')
   .slice(0, 16);
 console.log('[GATEWAY] JWT_SECRET fp:', fp, 'len:', (process.env.JWT_SECRET || '').length);
+
+eurekaClient.start()
 
 app.listen(PORT, () => {
   console.log(`🚪 API Gateway corriendo en http://localhost:${PORT}`);

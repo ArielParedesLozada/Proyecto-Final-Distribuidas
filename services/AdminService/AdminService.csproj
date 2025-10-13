@@ -22,6 +22,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
+    <PackageReference Include="Steeltoe.Discovery.Configuration" Version="4.0.0" />
+    <PackageReference Include="Steeltoe.Discovery.Eureka" Version="4.0.0" />  
   </ItemGroup>
 
 </Project>

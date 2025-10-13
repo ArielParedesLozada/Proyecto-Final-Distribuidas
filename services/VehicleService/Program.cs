@@ -14,6 +14,7 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using VehicleService.Clients;
 using VehicleService.Configs;
+using Steeltoe.Discovery.Eureka;
 
 // Cargar .env si existe
 DotNetEnv.Env.Load();
@@ -152,6 +153,8 @@ builder.Services.AddAuthorization(options =>
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:read:all")) ||
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:assign"))));
 });
+
+builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 
