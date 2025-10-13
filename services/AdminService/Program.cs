@@ -16,14 +16,14 @@ var AUTH_AUTHORITY = Environment.GetEnvironmentVariable("AUTH_AUTHORITY")!;
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
 
+builder.Services.AddEurekaDiscoveryClient();
 builder.Services
-    .AddGrpcClient<UserProtoService.UserProtoServiceClient, UserClient>(IP_USER_SERVICE)
-    .AddGrpcClient<DriversService.DriversServiceClient, DriverClient>(IP_DRIVER_SERVICE)
+    .AddGrpcClientDiscovered<UserProtoService.UserProtoServiceClient, UserClient>("auth-service")
+    .AddGrpcClientDiscovered<DriversService.DriversServiceClient, DriverClient>("driver-service")
     .AddJwtAuthentication(AUTH_AUTHORITY)
     .AddAuthorization();
 
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
-builder.Services.AddEurekaDiscoveryClient();
 
 var app = builder.Build();
 app.UseAuthentication();
