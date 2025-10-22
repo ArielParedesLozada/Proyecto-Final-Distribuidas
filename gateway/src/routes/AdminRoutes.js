@@ -1,11 +1,18 @@
 import express from "express";
 import { ProxyFactory } from "../middleware/BodyProxy.js";
 
-const router = express.Router();
-const adminProxy = ProxyFactory.create(
-    process.env.ADMIN_SERVICE || "http://localhost:5123",
-    { "^/admin": "" }
-)
-router.use("/admin", adminProxy);
-
-export default router;
+export class AdminRoutes {
+    constructor(serviceDiscovery) {
+        this.serviceDiscovery = serviceDiscovery
+    }
+    
+    async start(){        
+        const { host, port } = await this.serviceDiscovery.getInstance("ADMIN-SERVICE")
+        this.router = express.Router();
+        const adminProxy = ProxyFactory.create(
+            `http://${host}:${port}`,
+            { "^/admin": "" }
+        )
+        this.router.use("/admin", adminProxy);
+    }
+}

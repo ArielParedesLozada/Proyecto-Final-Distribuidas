@@ -4,11 +4,14 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
-import driversRouter from './routes/drivers.js';
-import vehiclesRouter from './routes/vehicles.js';
-import AdminRoutes from "./routes/AdminRoutes.js";
-import AuthRoutes from "./routes/AuthRoutes.js";
+import { DriverRoutes } from './routes/drivers.js';
+import { VehicleRoutes } from './routes/vehicles.js';
 import { EurekaClient } from "./eureka/EurekaClient.js";
+import { ServiceDiscovery } from './eureka/ServiceDiscovery.js';
+import { AdminRoutes } from './routes/AdminRoutes.js';
+import { AuthRoutes } from './routes/AuthRoutes.js';
+import { VehicleClient } from './grpc/vehiclesClient.js';
+import { DriverClient } from './grpc/driversClient.js';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
@@ -39,16 +42,34 @@ const eurekaClient = new EurekaClient({
   eurekaHost: process.env.EUREKA_HOST || 'localhost',
   eurekaPort: process.env.EUREKA_PORT || 8761
 })
+eurekaClient.start()
+await new Promise((resolve, reject) => {
+  eurekaClient.client.on('started', () => {
+    console.log("✅ Eureka client fully started");
+    resolve();
+  });
+  eurekaClient.client.on('error', reject);
+});
+const serviceDiscovery = new ServiceDiscovery(eurekaClient)
+const authRoutes = new AuthRoutes(serviceDiscovery)
+const adminRoutes = new AdminRoutes(serviceDiscovery)
+const vehicleClient = new VehicleClient(serviceDiscovery, process.env.VEHICLE_PROTO_PATH || "../services/Protos/vehicles.proto")
+await vehicleClient.start()
+const vehicleRoutes = new VehicleRoutes(vehicleClient)
+const driverClient = new DriverClient(serviceDiscovery, process.env.DRIVER_PROTO_PATH || "../services/Protos/drivers.proto")
+await driverClient.start()
+const driverRoutes = new DriverRoutes(driverClient)
+await adminRoutes.start()
+await authRoutes.start()
+await vehicleRoutes.start()
+await driverRoutes.start()
 
-app.use(AuthRoutes)
-app.use(AdminRoutes)
 
-// 2) Body parser solo para tus rutas propias
+app.use(adminRoutes.router)
+app.use(authRoutes.router)
 app.use(express.json());
-
-// Rutas propias
-app.use('/', driversRouter);
-app.use('/', vehiclesRouter);
+app.use('/', vehicleRoutes.router);
+app.use('/', driverRoutes.router);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {
@@ -70,7 +91,6 @@ const fp = crypto.createHash('sha256')
   .slice(0, 16);
 console.log('[GATEWAY] JWT_SECRET fp:', fp, 'len:', (process.env.JWT_SECRET || '').length);
 
-eurekaClient.start()
 
 app.listen(PORT, () => {
   console.log(`🚪 API Gateway corriendo en http://localhost:${PORT}`);
