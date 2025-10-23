@@ -13,11 +13,31 @@ using Microsoft.AspNetCore.Authorization;
 using ChoferService.Clients;
 using ChoferService.Configs;
 using Steeltoe.Discovery.Eureka;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ====== Carga .env (dev) ======
 DotNetEnv.Env.Load();
+
+// ====== Configuración Serilog (solo SEQ) ======
+var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "DRIVER-SERVICE";
+var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5134";
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.WithProperty("ServiceName", serviceName)
+    .Enrich.FromLogContext()
+    .Enrich.WithThreadId()
+    .WriteTo.Console()
+    .WriteTo.Seq(seqUrl)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+Log.Information("🚀 Iniciando ChoferService - enviando logs a {SeqUrl}", seqUrl);
 
 // ====== Helpers ======
 static string Fingerprint(string s)
@@ -54,92 +74,69 @@ var jwtSecret =
 
 var jwtIssuer =
     Cfg("Jwt:Issuer", "JWT:Issuer", "JWT_ISSUER")
-    ?? "http://localhost:5121"; // mismo valor que usa AuthService por defecto
+    ?? "http://localhost:5121";
 
 var jwtAudience =
     Cfg("Jwt:Audience", "JWT:Audience", "JWT_AUDIENCE")
-    ?? jwtIssuer; // por compatibilidad con AuthService que usa issuer = audience
+    ?? jwtIssuer;
 
-Console.WriteLine($"[CHOFER] JWT_SECRET fp: {Fingerprint(jwtSecret)} len:{jwtSecret.Length} | issuer:{jwtIssuer} | audience:{jwtAudience}");
+Log.Information("[CHOFER] JWT configurado. Fingerprint={Fp} Issuer={Issuer} Audience={Audience}",
+    Fingerprint(jwtSecret), jwtIssuer, jwtAudience);
 
 // ====== gRPC, Health y Reflection ======
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddSingleton<HealthServiceImpl>();
 
-// Limpia el mapeo de claims inbound para evitar renombres automáticos (sub -> nameidentifier, etc.)
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
-// Comunicacion con gRPC-->AuthService
+// ====== gRPC Clients ======
 builder.Services.AddGrpcClientDiscovered<UserServices.UserProtoService.UserProtoServiceClient, UserClient>("auth-service");
-// Comunicacion con gRPC-->VehicleService
 builder.Services.AddGrpcClientDiscovered<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>("vehicle-service");
+
 // ====== AuthN (JWT) ======
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false; // dev sin TLS
-        options.MapInboundClaims = false; // obligatorio
+        options.RequireHttpsMetadata = false;
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
-
             ValidateAudience = false,
-
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             NameClaimType = "sub",
-            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+            RoleClaimType = ClaimTypes.Role
         };
 
-        // gRPC envía el token en metadata 'authorization' (minúsculas). Asegura fallback correcto.
         options.Events = new JwtBearerEvents
         {
-            OnMessageReceived = ctx =>
-            {
-                var auth = ctx.Request.Headers["authorization"].ToString();
-                if (string.IsNullOrWhiteSpace(auth))
-                    auth = ctx.Request.Headers["Authorization"].ToString();
-                if (string.IsNullOrWhiteSpace(auth))
-                    auth = ctx.Request.Headers["grpc-metadata-authorization"].ToString();
-
-                if (!string.IsNullOrWhiteSpace(auth))
-                {
-                    ctx.Token = auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                        ? auth.Substring("Bearer ".Length).Trim()
-                        : auth.Trim();
-                }
-                return Task.CompletedTask;
-            },
             OnAuthenticationFailed = ctx =>
             {
-                Console.WriteLine($"[JWT/Chofer] ❌ Auth failed: {ctx.Exception.GetType().Name}: {ctx.Exception.Message}");
+                Log.Warning("[JWT] ❌ Auth failed: {Type}: {Message}", ctx.Exception.GetType().Name, ctx.Exception.Message);
                 return Task.CompletedTask;
             },
             OnTokenValidated = ctx =>
             {
-                var sub = ctx.Principal?.FindFirst("sub")?.Value
-                          ?? ctx.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var aud = ctx.Principal?.FindFirst("aud")?.Value;
-                Console.WriteLine($"[JWT/Chofer] ✅ Token válido. sub={sub} aud={aud}");
+                var sub = ctx.Principal?.FindFirst("sub")?.Value ?? ctx.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                Log.Information("[JWT] ✅ Token válido. sub={Sub}", sub);
                 return Task.CompletedTask;
             }
         };
     });
 
-// ====== AuthZ (políticas por scope) ======
+// ====== AuthZ ======
 static void RequireScope(AuthorizationPolicyBuilder p, string scope) =>
     p.RequireAssertion(ctx => ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains(scope)));
 
 static void RequireAnyScope(AuthorizationPolicyBuilder p, params string[] scopes) =>
-    p.RequireAssertion(ctx =>
-        ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Intersect(scopes).Any()));
+    p.RequireAssertion(ctx => ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Intersect(scopes).Any()));
 
 builder.Services.AddAuthorization(options =>
 {
@@ -162,31 +159,28 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DriversDb>();
     await DriversSeeder.SeedAsync(db);
+    Log.Information("✅ Base de datos inicializada correctamente");
 }
 
 // ====== Pipeline ======
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ====== Health ======
-var health = app.Services.GetRequiredService<Grpc.HealthCheck.HealthServiceImpl>();
+var health = app.Services.GetRequiredService<HealthServiceImpl>();
 health.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
 health.SetStatus("drivers.v1.DriversService", HealthCheckResponse.Types.ServingStatus.Serving);
 
 // ====== gRPC Services ======
-app.MapGrpcService<DriversGrpc>();   // métodos con [Authorize] funcionarán (sin RequireAuthorization global)
+app.MapGrpcService<DriversGrpc>();
+app.MapGrpcService<HealthServiceImpl>();
 
-app.MapGrpcService<Grpc.HealthCheck.HealthServiceImpl>();
-
-// ====== Reflection (solo dev) ======
 if (app.Environment.IsDevelopment())
 {
     app.MapGrpcReflectionService();
 }
 
-// ====== Endpoints HTTP ======
 app.MapGet("/", () => "ChoferService gRPC");
 app.MapGet("/healthz", () => "ok");
 app.MapGet("/readyz", async (DriversDb db) =>
@@ -196,10 +190,23 @@ app.MapGet("/readyz", async (DriversDb db) =>
         var canConnect = await db.Database.CanConnectAsync();
         return canConnect ? Results.Ok("ready") : Results.StatusCode(503);
     }
-    catch
+    catch (Exception ex)
     {
+        Log.Error(ex, "❌ Error verificando conexión a DB");
         return Results.StatusCode(503);
     }
 });
 
-app.Run();
+try
+{
+    Log.Information("🏁 Iniciando aplicación...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "❌ La aplicación falló al iniciarse");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

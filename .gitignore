@@ -3,4 +3,7 @@
 */obj/*
 */node_modules/*
 
-/docker/postgres-replication/volumes/*
+/docker/postgres-replication/*
+!/docker/postgres-replication/docker-compose.yml
+/docker/seq/*
+!/docker/seq/docker-compose.yml
