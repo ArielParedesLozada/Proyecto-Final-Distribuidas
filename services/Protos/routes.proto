@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+option csharp_namespace = "RoutesProto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+package route;
+
+enum RouteStates {
+  ROUTE_STATE_UNASSIGNED = 0;
+  ROUTE_STATE_ASSIGNED = 1;
+  ROUTE_STATE_STARTED = 2;
+  ROUTE_STATE_COMPLETED = 3;
+}
+message Coordinate{
+    double latitude = 1;
+    double longitude = 2;
+}
+message Route {
+  string id = 1;
+  string driver_vehicle_id = 2;
+  google.protobuf.Timestamp assigned_at = 3;
+  string origin_name = 4;
+  string destination_name = 5;
+  RouteStates status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  Coordinate coordinate_start = 10;
+  Coordinate coordinate_stop = 11;
+  double distance_km = 12;
+  double estimated_fuel_consumption_liters = 13;
+  double real_fuel_consumption_liters = 14;
+}
+
+//Request
+message CreateRouteRequest {
+  string origin_name = 1;
+  string destination_name = 2;
+  Coordinate coordinate_start = 6;
+  Coordinate coordinate_stop = 7;
+  double distance_km = 8;
+  double real_fuel_consumption_liters = 9;
+}
+message AssignRouteRequest {
+  string id = 1;
+  string driver_vehicle_id = 2;
+}
+message EditRouteRequest {
+  string id = 1;
+  string driver_vehicle_id = 2;
+  google.protobuf.Timestamp assigned_at = 3;
+  string origin_name = 4;
+  string destination_name = 5;
+  RouteStates status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  Coordinate coordinate_start = 10;
+  Coordinate coordinate_stop = 11;
+  double distance_km = 12;
+  double estimated_fuel_consumption_liters = 13;
+  double real_fuel_consumption_liters = 14;
+}
+message DeleteRouteRequest {
+    string id = 1;
+}
+message GetRouteRequest {
+    string id = 1;
+}
+message ListRoutesRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+//Request cuando finaliza una ruta
+message EditRouteEndingRequest {
+  string id = 1;
+  google.protobuf.Timestamp completed_at = 2;
+  RouteStates route_status = 3;
+  double real_fuel_consumption_liters = 4;
+}
+//Request para cambiar el estado de la ruta
+message EditStatusRouteRequest {
+  string id = 1;
+  RouteStates status = 2;
+}
+//Request para ver las rutas de un conductor
+message ListRoutesByDriverRequest {
+  string driver_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+//Request para ver las rutas por conductor y por vehiculo
+message ListRoutesByDriverVehicleRequest {
+  string driver_vehicle_id = 1;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+message GetMyRoutesRequest {
+  int32 page = 2;
+  int32 page_size = 3;
+}
+//Responses
+message ListRoutesResponse {
+  repeated Route routes = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int32 total_pages = 4;
+}
+
+//IntegridadReferencial
+message DeleteRoutesByDriverCascadeRequest {
+  string driver_id = 1;
+}
+message DeleteRouteByVehicleCascadeRequest {
+  string vehicle_id = 1;
+}
+message DeleteRouteByDriverVehicleCascadeRequest {
+  string driver_vehicle = 1;
+}
+
+service RoutesService {
+  rpc CreateRoute(CreateRouteRequest) returns (Route) {
+    option (google.api.http) = {
+      post: "/"
+      body: "*"
+    };
+  }
+
+  rpc EditRoute(EditRouteRequest) returns (Route) {
+    option (google.api.http) = {
+      put: "/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteRoute(DeleteRouteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/{id}"
+    };
+  }
+
+  rpc GetRoute(GetRouteRequest) returns (Route) {
+    option (google.api.http) = {
+      get: "/{id}"
+    };
+  }
+
+  // Listados y filtros
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/"
+    };
+  }
+
+  rpc GetRoutesByDriver(ListRoutesByDriverRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/drivers/{driver_id}"
+    };
+  }
+
+  rpc GetRoutesByDriverVehicle(ListRoutesByDriverVehicleRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/drivervehicles/{driver_vehicle_id}"
+    };
+  }
+
+  rpc GetMyRoutes(GetMyRoutesRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/my"
+    };
+  }
+
+  rpc AssignRoute (AssignRouteRequest) returns (Route){
+    option (google.api.http) = {
+      patch: "/assign/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc EditRouteEnding (EditRouteEndingRequest) returns (Route){
+    option (google.api.http) = {
+      patch: "/end/{id}"
+      body: "*"
+    };
+  }
+
+  rpc EditStatusRequest (EditStatusRouteRequest) returns (Route){
+    option (google.api.http) = {
+      patch: "/status/{id}"
+      body: "*"
+    };
+  }
+
+
+  rpc DeleteRoutesByDriverCascade (DeleteRoutesByDriverCascadeRequest) returns (google.protobuf.Empty);
+  rpc DeleteRoutesByVehicleCascade (DeleteRouteByVehicleCascadeRequest) returns (google.protobuf.Empty);
+  rpc DeleteRoutesByDriverVehicleCascade (DeleteRouteByDriverVehicleCascadeRequest) returns (google.protobuf.Empty);
+}

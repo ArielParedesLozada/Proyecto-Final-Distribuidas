@@ -44,6 +44,9 @@ namespace RouteService.Data.Migrations
                         .IsRequired()
                         .HasColumnType("geometry(Point, 4326)");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("DestinationName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -57,9 +60,6 @@ namespace RouteService.Data.Migrations
                     b.Property<double?>("EstimatedFuelConsumptionLiters")
                         .HasColumnType("double precision");
 
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("OriginName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -67,8 +67,11 @@ namespace RouteService.Data.Migrations
                     b.Property<double?>("RealFuelConsumptionLiters")
                         .HasColumnType("double precision");
 
-                    b.Property<DateTimeOffset>("StartedAt")
+                    b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

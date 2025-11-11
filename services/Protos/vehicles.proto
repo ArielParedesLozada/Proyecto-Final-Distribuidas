@@ -24,6 +24,7 @@ service VehiclesService {
 
   //Cosas del Paredes --> Integridad referencial
   rpc DeleteVehiclesByDriverCascade (DeleteVehiclesByDriverRequest) returns (google.protobuf.Empty);
+  rpc GetDriverVehicleExists (DriverVehicleIdExistsRequest) returns (AssignmentRow);
 }
 
 message Vehicle {
@@ -132,3 +133,6 @@ message ListActiveAssignmentsResponse {
 message DeleteVehiclesByDriverRequest {
   string driver_id = 1;
 };
+message DriverVehicleIdExistsRequest {
+  string driver_vechicle_id = 1;
+}

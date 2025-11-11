@@ -331,7 +331,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     }
 
     //Servicio para la integridad referencial
-    [Authorize(Policy = "VehiclesUpdateAny")] // Probablemente deba cambiar esto, pero soy demasiado weon para ello
+    [Authorize(Policy = "vehicles:update:any")] // Probablemente deba cambiar esto, pero soy demasiado weon para ello
     public override async Task<Empty> DeleteVehiclesByDriverCascade(DeleteVehiclesByDriverRequest request, ServerCallContext context)
     {
         var driverId = request.DriverId;
@@ -344,7 +344,30 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         await _db.DriverVehicles.Where(nomina => nomina.DriverId == did).ExecuteDeleteAsync();
         return new Empty();
     }
+    [Authorize(Policy = "vehicles:read:all")]
+    public override async Task<AssignmentRow> GetDriverVehicleExists(DriverVehicleIdExistsRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.DriverVechicleId, out var driverVehicleId))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid driver_vehicle_id"));
 
+        var driverVehicleRow = await _db.DriverVehicles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == driverVehicleId) ?? throw new RpcException(new Status(StatusCode.NotFound, "RELATION_DRIVER_VEHICLE_NOT_FOUND"));
+        if (driverVehicleRow.UnassignedAt != null)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "RELATION_DRIVER_VEHICLE_EXPIRED"));
+        }
+
+        return new AssignmentRow
+        {
+            VehicleId = driverVehicleRow.VehicleId.ToString(),
+            DriverId = driverVehicleRow.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(driverVehicleRow.AssignedAt),
+            UnassignedAt = driverVehicleRow.UnassignedAt.HasValue
+                ? Timestamp.FromDateTimeOffset(driverVehicleRow.UnassignedAt.Value)
+                : null
+        };
+    }
     // <— Aquí el mapper usando alias para evitar ambigüedad
     private static VehicleProto Map(VehicleModel v) => new VehicleProto
     {

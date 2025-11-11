@@ -12,6 +12,7 @@ import { AdminRoutes } from './routes/AdminRoutes.js';
 import { AuthRoutes } from './routes/AuthRoutes.js';
 import { VehicleClient } from './grpc/vehiclesClient.js';
 import { DriverClient } from './grpc/driversClient.js';
+import { RoutesRoutes } from './routes/RoutesRoutes.js';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
@@ -19,7 +20,6 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
-
 // ✅ CORS explícito (incluye Authorization)
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
@@ -53,6 +53,7 @@ await new Promise((resolve, reject) => {
 const serviceDiscovery = new ServiceDiscovery(eurekaClient)
 const authRoutes = new AuthRoutes(serviceDiscovery)
 const adminRoutes = new AdminRoutes(serviceDiscovery)
+const routeRoutes = new RoutesRoutes(serviceDiscovery)
 const vehicleClient = new VehicleClient(serviceDiscovery, process.env.VEHICLE_PROTO_PATH || "../services/Protos/vehicles.proto")
 await vehicleClient.start()
 const vehicleRoutes = new VehicleRoutes(vehicleClient)
@@ -63,10 +64,12 @@ await adminRoutes.start()
 await authRoutes.start()
 await vehicleRoutes.start()
 await driverRoutes.start()
+await routeRoutes.start()
 
 
 app.use(adminRoutes.router)
 app.use(authRoutes.router)
+app.use(routeRoutes.router)
 app.use(express.json());
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);

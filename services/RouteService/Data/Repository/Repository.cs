@@ -47,4 +47,17 @@ public class Repository<T, TKey> : IRepository<T, TKey> where T : class
         await _context.SaveChangesAsync();
         return entity;
     }
+    public async Task<(IEnumerable<T> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize)
+    {
+        if (page <= 0) page = 1;
+        if (pageSize <= 0) pageSize = 10;
+
+        var totalCount = await _dbSet.CountAsync();
+        var items = await _dbSet
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }

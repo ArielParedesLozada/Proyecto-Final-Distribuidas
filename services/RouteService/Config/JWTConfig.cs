@@ -31,7 +31,25 @@ public static class JWTConfig
                     ClockSkew = TimeSpan.Zero // elimina margen de tiempo por diferencia de relojes
                 };
             });
+        services.AddAuthorization(options =>
+        {
+            var scopes = new[]
+            {
+                "routes:create", "routes:delete", "routes:read:all", "routes:update:any", "routes:assign",
+                "routes:end:own"
+            };
 
+            foreach (var scope in scopes)
+            {
+                options.AddPolicy(scope, policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains(scope)
+                        )
+                    ));
+            }
+        });
         return services;
     }
 }
