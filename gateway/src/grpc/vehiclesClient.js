@@ -11,9 +11,10 @@ export class VehicleClient {
     // Esperar instancia registrada en Eureka
     const { host, port } = await this.serviceDiscovery.getInstance("VEHICLE-SERVICE");
     if (!host || !port) {
-      throw new Error("❌ No se encontró VEHICLE-SERVICE en Eureka");
+      console.log(`VEHICLE-SERVICE not found`)
+      this.client = null
+      return
     }
-
     const packageDefinition = protoLoader.loadSync(this.protoPath, {
       keepCase: true,
       longs: String,
@@ -42,5 +43,26 @@ export class VehicleClient {
       metadata.add("authorization", Array.isArray(authz) ? authz[0] : authz);
     }
     return metadata;
+  }
+  async retryClient() {
+    const { host, port } = await this.serviceDiscovery.getInstance("VEHICLE-SERVICE");
+    if (!host || !port) {
+      console.log(`VEHICLE-SERVICE not found`)
+      this.client = null
+      return
+    }
+    const packageDefinition = protoLoader.loadSync(this.protoPath, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    });
+
+    const grpcObj = grpc.loadPackageDefinition(packageDefinition);
+    this.client = new grpcObj.vehicles.v1.VehiclesService(
+      `${host}:${port}`,
+      grpc.credentials.createInsecure()
+    );
   }
 }

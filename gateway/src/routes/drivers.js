@@ -1,35 +1,18 @@
 import { Router } from "express";
 import { mapGrpcError } from "../utils/mapGrpcError.js";
 import { auth, requireScopes } from "../middleware/auth.js";
-import { Metadata } from "@grpc/grpc-js";
+import { GrpcRoutesBase } from "./GrpcRoutesBase.js";
 
-export class DriverRoutes {
+export class DriverRoutes extends GrpcRoutesBase {
   constructor(driverClient) {
-    this.driversClient = driverClient.client
-  }
-  mdFromHttp(req) {
-    const md = new Metadata();
-    const authz = req.headers.authorization || req.headers.Authorization;
-    if (authz) {
-      const val = Array.isArray(authz) ? authz[0] : authz;
-      md.add("authorization", val); // 👈 MUY IMPORTANTE: minúsculas
-      console.log("🔍 gRPC metadata - authorization:", String(val).slice(0, 24) + "...");
-    } else {
-      console.warn("⚠️ Sin Authorization en la request HTTP hacia gRPC");
-    }
-    return md;
-  }
-  toInt(v, def) {
-    const n = parseInt(v, 10);
-    return Number.isFinite(n) ? n : def;
-  }
-  toDouble(v, def) {
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : def;
+    super(driverClient, "DRIVER-SERVICE")
+    this.driversClient = driverClient
   }
   async start() {
     this.router = Router()
     this.router.post("/drivers", auth, requireScopes("drivers:create"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
       const { user_id, full_name, license_number, capabilities, availability } = req.body;
 
       const request = {
@@ -39,8 +22,8 @@ export class DriverRoutes {
         capabilities: this.toInt(capabilities, 1),
         availability: this.toInt(availability, 1),
       };
-
-      this.driversClient.CreateDriver(request, this.mdFromHttp(req), (err, response) => {
+      const caller = this.driversClient.client
+      caller.CreateDriver(request, this.mdFromHttp(req), (err, response) => {
         if (err) return mapGrpcError(err, res);
         res.json(response);
       });
@@ -48,6 +31,8 @@ export class DriverRoutes {
 
     /** GET /drivers - Listar conductores */
     this.router.get("/drivers", auth, requireScopes("drivers:read:all"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
       const { availability, page, page_size } = req.query;
 
       const request = {
@@ -55,8 +40,8 @@ export class DriverRoutes {
         page: this.toInt(page, 1),
         pageSize: this.toInt(page_size, 20),
       };
-
-      this.driversClient.ListDrivers(request, this.mdFromHttp(req), (err, response) => {
+      const caller = this.driversClient.client
+      caller.ListDrivers(request, this.mdFromHttp(req), (err, response) => {
         if (err) return mapGrpcError(err, res);
         res.json(response);
       });
@@ -64,6 +49,9 @@ export class DriverRoutes {
 
     /** GET /drivers/:id - Obtener conductor por ID */
     this.router.get("/drivers/:id", auth, requireScopes("drivers:read:all"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
+
       const { id } = req.params;
 
       this.driversClient.GetDriver({ id }, this.mdFromHttp(req), (err, response) => {
@@ -74,6 +62,8 @@ export class DriverRoutes {
 
     /** GET /me/profile-status - Verificar estado del perfil (siempre 200 OK) */
     this.router.get("/me/profile-status", auth, requireScopes("drivers:read:own"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
       this.driversClient.GetMyDriver({}, this.mdFromHttp(req), (err, response) => {
         if (err) {
           // Si el perfil no existe (NOT_FOUND), no es un error - es estado esperado
@@ -108,6 +98,8 @@ export class DriverRoutes {
 
     /** GET /me/driver - Obtener mi conductor */
     this.router.get("/me/driver", auth, requireScopes("drivers:read:own"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
       this.driversClient.GetMyDriver({}, this.mdFromHttp(req), (err, response) => {
         if (err) {
           // Caso especial: perfil de conductor no encontrado (estado esperado, no es error del sistema)
@@ -126,6 +118,9 @@ export class DriverRoutes {
 
     /** PATCH /drivers/:id/availability - Actualizar disponibilidad */
     this.router.patch("/drivers/:id/availability", auth, (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
+
       const { id } = req.params;
       const { availability } = req.body;
 
@@ -139,6 +134,9 @@ export class DriverRoutes {
 
     /** PATCH /drivers/:id - Actualizar conductor completo */
     this.router.patch("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
+
       const { id } = req.params;
       const { full_name, license_number, capabilities, availability } = req.body;
 
@@ -158,6 +156,9 @@ export class DriverRoutes {
 
     /** DELETE /drivers/:id - Eliminar conductor */
     this.router.delete("/drivers/:id", auth, requireScopes("drivers:update"), (req, res) => {
+      const grpc = this.grpc(res);
+      if (!grpc) return;
+
       const { id } = req.params;
 
       const request = { id };

@@ -1,6 +1,5 @@
 import { CircuitBreaker } from "../utils/CircuitBreaker.js";
 
-// eureka/ServiceDiscovery.js
 export class ServiceDiscovery {
     constructor(eurekaClient) {
         this.eurekaClient = eurekaClient.client;

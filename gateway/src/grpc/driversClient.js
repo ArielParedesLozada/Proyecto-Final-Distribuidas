@@ -10,7 +10,9 @@ export class DriverClient {
   async start() {
     const { host, port } = await this.serviceDiscovery.getInstance("DRIVER-SERVICE")
     if (!host || !port) {
-      throw new Error("❌ No se encontró DRIVER-SERVICE en Eureka");
+      console.log(`DRIVER-SERVICE not found`)
+      this.client = null
+      return
     }
     const packageDefinition = protoLoader.loadSync(this.protoPath, {
       keepCase: true,
@@ -37,5 +39,25 @@ export class DriverClient {
     if (!this.client)
       throw new Error("DriverClient no inicializado. Llama a start() antes de usarlo.");
     return this.client;
+  }
+  async retryClient() {
+    const { host, port } = await this.serviceDiscovery.getInstance("DRIVER-SERVICE")
+    if (!host || !port) {
+      console.log(`DRIVER-SERVICE not found`)
+      this.client = null
+      return
+    }
+    const packageDefinition = protoLoader.loadSync(this.protoPath, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true
+    });
+    const grpcObj = grpc.loadPackageDefinition(packageDefinition)
+    this.client = new grpcObj.drivers.v1.DriversService(
+      `${host}:${port}`,
+      grpc.credentials.createInsecure()
+    )
   }
 }

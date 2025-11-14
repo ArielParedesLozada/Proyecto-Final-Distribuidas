@@ -1,4 +1,3 @@
-// eureka/CircuitBreaker.js
 export class CircuitBreaker {
   constructor({
     failureThreshold = 3,
