@@ -76,11 +76,13 @@ message ListRoutesRequest {
   int32 page = 1;
   int32 page_size = 2;
 }
-//Request cuando finaliza una ruta
-message EditRouteEndingRequest {
+//Request cuando inicia la ruta
+message StartRouteRequest {
   string id = 1;
-  google.protobuf.Timestamp completed_at = 2;
-  RouteStates route_status = 3;
+}
+//Request cuando finaliza una ruta
+message EndRouteRequest {
+  string id = 1;
   double real_fuel_consumption_liters = 4;
 }
 //Request para cambiar el estado de la ruta
@@ -188,8 +190,15 @@ service RoutesService {
       body: "*"
     };
   }
+
+  rpc StartRoute (StartRouteRequest) returns (Route){
+    option (google.api.http) = {
+      patch: "/start/{id}"
+      body: "*"
+    };
+  }
   
-  rpc EditRouteEnding (EditRouteEndingRequest) returns (Route){
+  rpc EndRoute (EndRouteRequest) returns (Route){
     option (google.api.http) = {
       patch: "/end/{id}"
       body: "*"

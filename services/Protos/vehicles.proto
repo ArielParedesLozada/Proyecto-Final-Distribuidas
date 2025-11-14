@@ -25,6 +25,9 @@ service VehiclesService {
   //Cosas del Paredes --> Integridad referencial
   rpc DeleteVehiclesByDriverCascade (DeleteVehiclesByDriverRequest) returns (google.protobuf.Empty);
   rpc GetDriverVehicleExists (DriverVehicleIdExistsRequest) returns (AssignmentRow);
+
+  //Nueva cosa para ver un assignment en particular
+  rpc GetAssignment (GetAssignmentRequest) returns (AssignmentRow);
 }
 
 message Vehicle {
@@ -94,10 +97,11 @@ message AssignVehicleRequest {
 message UnassignVehicleRequest { string vehicle_id = 1; }
 
 message AssignmentResponse {
-  string vehicle_id = 1;
-  string driver_id = 2;
-  google.protobuf.Timestamp assigned_at = 3;
-  google.protobuf.Timestamp unassigned_at = 4;
+  string assignment_id = 1;
+  string vehicle_id = 2;
+  string driver_id = 3;
+  google.protobuf.Timestamp assigned_at = 4;
+  google.protobuf.Timestamp unassigned_at = 5;
 }
 
 message GetVehicleByDriverRequest { string driver_id = 1; }
@@ -111,10 +115,11 @@ message ListVehiclesByDriverResponse {
 }
 
 message AssignmentRow {
-  string vehicle_id = 1;
-  string driver_id = 2;
-  google.protobuf.Timestamp assigned_at = 3;
-  google.protobuf.Timestamp unassigned_at = 4; // null si sigue activo
+  string assignment_id = 1;
+  string vehicle_id = 2;
+  string driver_id = 3;
+  google.protobuf.Timestamp assigned_at = 4;
+  google.protobuf.Timestamp unassigned_at = 5; // null si sigue activo
 }
 
 message ListAssignmentsByDriverRequest { 
@@ -135,4 +140,9 @@ message DeleteVehiclesByDriverRequest {
 };
 message DriverVehicleIdExistsRequest {
   string driver_vechicle_id = 1;
+}
+
+//Mensaje para ver un assignment en particular
+message GetAssignmentRequest {
+  string assignment_id = 1;
 }

@@ -297,6 +297,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var resp = new ListAssignmentsByDriverResponse();
         resp.Items.AddRange(rows.Select(x => new AssignmentRow
         {
+            AssignmentId = x.Id.ToString(),
             VehicleId = x.VehicleId.ToString(),
             DriverId = x.DriverId.ToString(),
             AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
@@ -321,6 +322,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var resp = new ListActiveAssignmentsResponse();
         resp.ActiveAssignments.AddRange(activeAssignments.Select(x => new AssignmentRow
         {
+            AssignmentId = x.Id.ToString(),
             VehicleId = x.VehicleId.ToString(),
             DriverId = x.DriverId.ToString(),
             AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
@@ -360,11 +362,31 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
         return new AssignmentRow
         {
+            AssignmentId = driverVehicleRow.Id.ToString(),
             VehicleId = driverVehicleRow.VehicleId.ToString(),
             DriverId = driverVehicleRow.DriverId.ToString(),
             AssignedAt = Timestamp.FromDateTimeOffset(driverVehicleRow.AssignedAt),
             UnassignedAt = driverVehicleRow.UnassignedAt.HasValue
                 ? Timestamp.FromDateTimeOffset(driverVehicleRow.UnassignedAt.Value)
+                : null
+        };
+    }
+    [Authorize]
+    public override async Task<AssignmentRow> GetAssignment(GetAssignmentRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.AssignmentId, out var assignmentId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid assignment_id"));
+        }
+        var assignmentRow = await _db.DriverVehicles.FirstOrDefaultAsync(a => a.Id == assignmentId) ?? throw new RpcException(new Status(StatusCode.NotFound, "Assignment Not found"));
+        return new AssignmentRow
+        {
+            AssignmentId = assignmentRow.Id.ToString(),
+            VehicleId = assignmentRow.VehicleId.ToString(),
+            DriverId = assignmentRow.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(assignmentRow.AssignedAt),
+            UnassignedAt = assignmentRow.UnassignedAt.HasValue
+                ? Timestamp.FromDateTimeOffset(assignmentRow.UnassignedAt.Value)
                 : null
         };
     }

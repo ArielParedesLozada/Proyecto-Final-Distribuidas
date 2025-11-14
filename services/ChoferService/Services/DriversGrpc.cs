@@ -320,7 +320,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
 
             if (!isOwner && !canUpdateAny)
             {
-                throw new RpcException(new Status(StatusCode.PermissionDenied, "FORBIDDEN"));
+                throw new RpcException(new Status(StatusCode.PermissionDenied, $"FORBIDDEN ISOWNER {isOwner} CANUPDATE {canUpdateAny}"));
             }
 
             driver.Availability = (short)request.Availability;
@@ -391,6 +391,7 @@ public class DriversGrpc : DriversService.DriversServiceBase
         }
     }
 
+    [Authorize]
     public override async Task<DriverResponse> UpdateDriver(UpdateDriverRequest request, ServerCallContext context)
     {
         try

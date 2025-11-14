@@ -200,9 +200,36 @@ public class RoutesService : RoutesProtoService
         return response;
     }
     [Authorize(Policy = "routes:assign")]
-    public override Task<RouteProto> AssignRoute(AssignRouteRequest request, ServerCallContext context)
-    {
-        return base.AssignRoute(request, context);
+    public override async Task<RouteProto> AssignRoute(AssignRouteRequest request, ServerCallContext context)
+    { 
+        var bearer = GetAuthorization(context);
+        System.Console.WriteLine(bearer);
+        var routeId = request.Id;
+        var route = await _repository.GetByIdAsync(Guid.Parse(routeId)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+        if (route.Status == RouteStatesDomain.Completed || route.Status == RouteStatesDomain.Started)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_COMPLETED"));
+        }
+        var driverVehicleId = request.DriverVehicleId;
+        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        System.Console.WriteLine("SIGMA PAPU 1");
+        var driverId = assignment.DriverId;
+        var vehicleId = assignment.VehicleId;
+        if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_AVAILABLE"));
+        }
+        route.AssignedAt = DateTimeOffset.UtcNow;
+        route.DriverVehicleId = Guid.Parse(driverVehicleId);
+        route.Status = RouteStatesDomain.Assigned;
+        System.Console.WriteLine("SKIBIDI");
+        await _driverClient.SetDriverAvailability(driverId, 2, bearer);
+        System.Console.WriteLine("SIGMA PAPU 2");
+        await _vehicleClient.UpdateVehicleStatus(vehicleId, 2, bearer);
+        System.Console.WriteLine("SIGMA PAPU 3");
+        await _repository.UpdateAsync(route);
+        var response = MapToProto(route);
+        return response;
     }
 
     private static RouteProto MapToProto(Route route)

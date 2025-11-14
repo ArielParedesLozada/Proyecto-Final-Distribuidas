@@ -27,8 +27,6 @@ export class VehicleClient {
       `${host}:${port}`,
       grpc.credentials.createInsecure()
     );
-
-    console.log("✅ VehicleService gRPC client inicializado");
   }
 
   getClient() {
