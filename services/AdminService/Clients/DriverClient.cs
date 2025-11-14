@@ -5,11 +5,12 @@ namespace AdminService.Clients;
 
 public class DriverClient
 {
-    private readonly DriversService.DriversServiceClient _drivers;
+    private readonly Lazy<DriversService.DriversServiceClient> _hiddenDrivers;
+    private DriversService.DriversServiceClient _drivers => _hiddenDrivers.Value;
 
-    public DriverClient(DriversService.DriversServiceClient client)
+    public DriverClient(Lazy<DriversService.DriversServiceClient> client)
     {
-        _drivers = client;
+        _hiddenDrivers = client;
     }
     private static CallOptions MakeCallOptions(string? bearer)
     {

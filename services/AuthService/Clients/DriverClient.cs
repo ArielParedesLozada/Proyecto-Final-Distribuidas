@@ -5,11 +5,11 @@ namespace AuthService.Clients;
 
 public class DriverClient
 {
-    private readonly DriversService.DriversServiceClient _drivers;
-
-    public DriverClient(DriversService.DriversServiceClient drivers)
+    private readonly Lazy<DriversService.DriversServiceClient> _hiddenDrivers;
+    private DriversService.DriversServiceClient _drivers => _hiddenDrivers.Value;
+    public DriverClient(Lazy<DriversService.DriversServiceClient> drivers)
     {
-        _drivers = drivers;
+        _hiddenDrivers = drivers;
     }
     private static CallOptions MakeCallOptions(ServerCallContext ctx)
     {

@@ -92,8 +92,8 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 // ====== gRPC Clients ======
-builder.Services.AddGrpcClientDiscovered<UserServices.UserProtoService.UserProtoServiceClient, UserClient>("auth-service");
-builder.Services.AddGrpcClientDiscovered<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>("vehicle-service");
+builder.Services.AddLazyGrpcClient<UserServices.UserProtoService.UserProtoServiceClient, UserClient>("auth-service");
+builder.Services.AddLazyGrpcClient<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>("vehicle-service");
 
 // ====== AuthN (JWT) ======
 builder.Services

@@ -24,8 +24,8 @@ builder.Services
     .AddGrpc()
     .AddJsonTranscoding();
 
-builder.Services.AddGrpcClientDiscovered<VehicleService, VehicleClient>("vehicle-service");
-builder.Services.AddGrpcClientDiscovered<DriverService, DriverClient>("driver-service");
+builder.Services.AddLazyGrpcClient<VehicleService, VehicleClient>("vehicle-service");
+builder.Services.AddLazyGrpcClient<DriverService, DriverClient>("driver-service");
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();

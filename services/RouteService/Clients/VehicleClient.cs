@@ -5,11 +5,11 @@ namespace RouteService.Clients;
 
 public class VehicleClient
 {
-    private readonly VehicleServiceClient _vehicleClient;
-
-    public VehicleClient(VehicleServiceClient client)
+    private readonly Lazy<VehicleServiceClient> _hiddenVehicleClient;
+    private VehicleServiceClient _vehicleClient => _hiddenVehicleClient.Value;
+    public VehicleClient(Lazy<VehicleServiceClient> client)
     {
-        _vehicleClient = client;
+        _hiddenVehicleClient = client;
     }
     private static CallOptions MakeCallOptions(string? bearer)
     {
@@ -100,7 +100,7 @@ public class VehicleClient
     }
     public async Task<AssignmentRow> GetAssignmentRow(string assignmentRow, string? bearer)
     {
-        var request = new GetAssignmentRequest {AssignmentId = assignmentRow};
+        var request = new GetAssignmentRequest { AssignmentId = assignmentRow };
         var response = await _vehicleClient.GetAssignmentAsync(request, MakeCallOptions(bearer));
         if (response == null)
         {

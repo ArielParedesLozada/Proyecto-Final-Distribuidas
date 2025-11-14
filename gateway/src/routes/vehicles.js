@@ -12,8 +12,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
   }
   async start() {
     this.router = Router();
-    this.router.post("/vehicles", auth, requireScopes("vehicles:create"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.post("/vehicles", auth, requireScopes("vehicles:create"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { plate, type, brand, model, year, capacity_liters, odometer_km } = req.body;
 
@@ -34,8 +34,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** GET /vehicles - Listar vehículos */
-    this.router.get("/vehicles", auth, requireScopes("vehicles:read:all"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/vehicles", auth, requireScopes("vehicles:read:all"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { plate, type, status, page, page_size } = req.query;
 
@@ -54,8 +54,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** GET /vehicles/active-assignments - Obtener asignaciones activas */
-    this.router.get("/vehicles/active-assignments", auth, requireScopes("vehicles:read:all"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/vehicles/active-assignments", auth, requireScopes("vehicles:read:all"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       console.log('🔄 Gateway: Llamando a ListActiveAssignments...');
       const caller = this.vehicleClient.client
@@ -68,8 +68,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** GET /vehicles/:id - Obtener vehículo por ID */
-    this.router.get("/vehicles/:id", auth, requireScopes("vehicles:read:all"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/vehicles/:id", auth, requireScopes("vehicles:read:all"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { id } = req.params;
       const caller = this.vehicleClient.client
@@ -80,8 +80,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** PUT /vehicles/:id - Actualizar vehículo */
-    this.router.put("/vehicles/:id", auth, requireScopes("vehicles:update:any"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.put("/vehicles/:id", auth, requireScopes("vehicles:update:any"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { id } = req.params;
       const { type, brand, model, year, capacity_liters, odometer_km } = req.body;
@@ -103,8 +103,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** PATCH /vehicles/:id/status - Cambiar estado del vehículo */
-    this.router.patch("/vehicles/:id/status", auth, requireScopes("vehicles:update:any"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.patch("/vehicles/:id/status", auth, requireScopes("vehicles:update:any"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { id } = req.params;
       const { status } = req.body;
@@ -123,8 +123,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     // ----- Asignaciones (Admin + Supervisor) -----
 
     /** POST /vehicles/assign - Asignar vehículo a conductor */
-    this.router.post("/vehicles/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.post("/vehicles/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { vehicle_id, driver_id } = req.body;
 
@@ -140,8 +140,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** DELETE /vehicles/:vehicle_id/assign - Desasignar vehículo */
-    this.router.delete("/vehicles/:vehicle_id/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.delete("/vehicles/:vehicle_id/assign", auth, requireAnyScope("vehicles:assign", "vehicles:read:all"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { vehicle_id } = req.params;
       const caller = this.vehicleClient.client
@@ -154,8 +154,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     // ----- Consultas por Conductor (Admin + Supervisor) -----
 
     /** GET /drivers/:driver_id/vehicles - Listar vehículos activos de un conductor */
-    this.router.get("/drivers/:driver_id/vehicles", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/drivers/:driver_id/vehicles", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { driver_id } = req.params;
       const caller = this.vehicleClient.client
@@ -166,8 +166,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     });
 
     /** GET /drivers/:driver_id/assignments - Historial de asignaciones de un conductor */
-    this.router.get("/drivers/:driver_id/assignments", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/drivers/:driver_id/assignments", auth, requireAnyScope("vehicles:read:all", "vehicles:assign"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const { driver_id } = req.params;
       const caller = this.vehicleClient.client
@@ -180,8 +180,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
     // ----- Consultas del Propio Conductor -----
 
     /** GET /me/vehicles - Listar mis vehículos activos */
-    this.router.get("/me/vehicles", auth, requireScopes("vehicles:read:own"), (req, res) => {
-      const grpc = this.grpc(res);
+    this.router.get("/me/vehicles", auth, requireScopes("vehicles:read:own"), async (req, res) => {
+      const grpc = await this.grpc(res);
       if (!grpc) return;
       const caller = this.vehicleClient.client
       caller.ListMyVehicles({}, this.mdFromHttp(req), (err, response) => {

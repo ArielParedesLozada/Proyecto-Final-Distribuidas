@@ -43,8 +43,8 @@ try
     // ====== 5️⃣ Registrar dependencias ======
     builder.Services.AddEurekaDiscoveryClient();
     builder.Services
-        .AddGrpcClientDiscovered<UserProtoService.UserProtoServiceClient, UserClient>("auth-service")
-        .AddGrpcClientDiscovered<DriversService.DriversServiceClient, DriverClient>("driver-service")
+        .AddLazyGrpcClient<UserProtoService.UserProtoServiceClient, UserClient>("auth-service")
+        .AddLazyGrpcClient<DriversService.DriversServiceClient, DriverClient>("driver-service")
         .AddJwtAuthentication(AUTH_AUTHORITY)
         .AddAuthorization();
 

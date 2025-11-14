@@ -7,11 +7,13 @@ using VehiclesService.Proto;
 using VehiclesService = VehiclesService.Proto.VehiclesService;
 public class VehicleClient
 {
-    private readonly VehiclesService.VehiclesServiceClient _client;
+    private readonly Lazy<VehiclesService.VehiclesServiceClient> _hiddenClient;
 
-    public VehicleClient(VehiclesService.VehiclesServiceClient client)
+    private VehiclesService.VehiclesServiceClient _client => _hiddenClient.Value;
+
+    public VehicleClient(Lazy<VehiclesService.VehiclesServiceClient> client)
     {
-        _client = client;
+        _hiddenClient = client;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {

@@ -6,11 +6,11 @@ namespace AdminService.Clients;
 
 public class UserClient
 {
-    private readonly UserProtoService.UserProtoServiceClient _users;
-
-    public UserClient(UserProtoService.UserProtoServiceClient users)
+    private readonly Lazy<UserProtoService.UserProtoServiceClient> _hiddenUsers;
+    private UserProtoService.UserProtoServiceClient _users => _hiddenUsers.Value;
+    public UserClient(Lazy<UserProtoService.UserProtoServiceClient> users)
     {
-        _users = users;
+        _hiddenUsers = users;
     }
 
     private static CallOptions MakeCallOptions(string? bearer)

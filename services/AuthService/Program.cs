@@ -50,7 +50,7 @@ try
     builder.Services.AddEurekaDiscoveryClient();
 
     // ====== Cliente gRPC descubierto ======
-    builder.Services.AddGrpcClientDiscovered<DriversService.DriversServiceClient, DriverClient>("driver-service");
+    builder.Services.AddLazyGrpcClient<DriversService.DriversServiceClient, DriverClient>("driver-service");
 
     var app = builder.Build();
 
