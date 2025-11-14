@@ -14,11 +14,13 @@ public class RoutesService : RoutesProtoService
 {
     private readonly IRepository<Route, Guid> _repository;
     private readonly VehicleClient _vehicleClient;
+    private readonly DriverClient _driverClient;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient)
+    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient)
     {
         _repository = repository;
         _vehicleClient = vehicleClient;
+        _driverClient = driverClient;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {
@@ -163,6 +165,44 @@ public class RoutesService : RoutesProtoService
         var response = new ListRoutesResponse();
         response.Routes.AddRange(routes.Select(MapToProto));
         return response;
+    }
+    [Authorize(Policy = "routes:read:all")]
+    public override async Task<ListRoutesResponse> GetRoutesByDriverVehicle(ListRoutesByDriverVehicleRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
+        }
+        var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && r.DriverVehicleId.Value == driverVehicleId);
+        var response = new ListRoutesResponse();
+        response.Routes.AddRange(routes.Select(MapToProto));
+        return response;
+    }
+    [Authorize(Policy = "routes:read:own")]
+    public override async Task<ListRoutesResponse> GetMyRoutes(GetMyRoutesRequest request, ServerCallContext context)
+    {
+        var driverId = context.GetHttpContext().User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(driverId) || !(await _driverClient.DriverExists(driverId, GetAuthorization(context))))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT FOUND"));
+        }
+        var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, GetAuthorization(context));
+        var vehicleIds = assignments.Items
+            .Select(a => Guid.Parse(a.VehicleId))
+            .ToList();
+        if (!vehicleIds.Any())
+        {
+            return new ListRoutesResponse();
+        }
+        var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && vehicleIds.Contains(r.DriverVehicleId.Value));
+        var response = new ListRoutesResponse();
+        response.Routes.AddRange(routes.Select(MapToProto));
+        return response;
+    }
+    [Authorize(Policy = "routes:assign")]
+    public override Task<RouteProto> AssignRoute(AssignRouteRequest request, ServerCallContext context)
+    {
+        return base.AssignRoute(request, context);
     }
 
     private static RouteProto MapToProto(Route route)

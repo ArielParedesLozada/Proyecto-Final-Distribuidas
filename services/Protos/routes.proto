@@ -47,6 +47,9 @@ message AssignRouteRequest {
   string id = 1;
   string driver_vehicle_id = 2;
 }
+message UnassignRouteRequest {
+  string id = 1;
+}
 message EditRouteRequest {
   string id = 1;
   string driver_vehicle_id = 2;
@@ -171,10 +174,17 @@ service RoutesService {
       get: "/my"
     };
   }
-
+  
+  // Logica de negocio
   rpc AssignRoute (AssignRouteRequest) returns (Route){
     option (google.api.http) = {
       patch: "/assign/{id}"
+      body: "*"
+    };
+  }
+  rpc UnassignRoutes (UnassignRouteRequest) returns (Route){
+    option (google.api.http) = {
+      patch: "/unassign/{id}"
       body: "*"
     };
   }

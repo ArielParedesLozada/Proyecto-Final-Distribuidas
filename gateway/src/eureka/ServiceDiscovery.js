@@ -1,7 +1,10 @@
+import { CircuitBreaker } from "../utils/CircuitBreaker.js";
+
 // eureka/ServiceDiscovery.js
 export class ServiceDiscovery {
     constructor(eurekaClient) {
         this.eurekaClient = eurekaClient.client;
+        this.circuitBreaker = new CircuitBreaker()
     }
 
     /**
@@ -9,18 +12,38 @@ export class ServiceDiscovery {
      * @param {string} serviceName - nombre del servicio (por ejemplo, "AUTH-SERVICE")
      * @returns {object|null} instancia con { host, port }
      */
-    async getInstance(serviceName) {        
-        const appInfo = await this.eurekaClient.getInstancesByAppId(serviceName.toUpperCase());
-        if (!appInfo || appInfo.length === 0) {
-            console.error(`⚠️ Servicio ${serviceName} no encontrado en Eureka`);
-            return null;
+    async getInstance(serviceName) {
+        const name = serviceName.toUpperCase();
+        const cached = this.circuitBreaker.getCache(name);
+        if (cached) return cached;
+        if (!this.circuitBreaker.canRequest(name)) {
+            return { host: null, port: null };
         }
 
-        // Selección simple (podrías usar round-robin o aleatoria)
-        const instance = appInfo[Math.floor(Math.random() * appInfo.length)];
-        const host = instance.hostName || instance.ipAddr;
-        const port = instance.port.$;
-        return { host, port };
+        try {
+            const instances = await this.eurekaClient.getInstancesByAppId(name);
+
+            if (!instances || instances.length === 0) {
+                throw new Error(`No instances for ${name}`);
+            }
+
+            const instance = instances[Math.floor(Math.random() * instances.length)];
+
+            const host = instance.hostName || instance.ipAddr;
+            const port = instance.port.$;
+
+            const result = { host, port };
+            this.circuitBreaker.registerSuccess(name);
+            this.circuitBreaker.saveCache(name, result);
+
+            return result;
+
+        } catch (err) {
+            console.error(`⚠️ Error descubriendo ${name}:`, err.message);
+            this.circuitBreaker.registerFailure(name);
+
+            return { host: null, port: null };
+        }
     }
 
     /**

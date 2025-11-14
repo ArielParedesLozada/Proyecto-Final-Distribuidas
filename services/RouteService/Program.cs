@@ -1,5 +1,6 @@
 //
 using VehicleService = VehiclesService.Proto.VehiclesService.VehiclesServiceClient;
+using DriverService = ChoferService.Proto.DriversService.DriversServiceClient;
 using RouteService.Clients;
 using RouteService.Config;
 using RouteService.Services;
@@ -24,7 +25,7 @@ builder.Services
     .AddJsonTranscoding();
 
 builder.Services.AddGrpcClientDiscovered<VehicleService, VehicleClient>("vehicle-service");
-// builder.Services.AddGrpcClientDiscovered<>("vehicle-service");
+builder.Services.AddGrpcClientDiscovered<DriverService, DriverClient>("driver-service");
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();

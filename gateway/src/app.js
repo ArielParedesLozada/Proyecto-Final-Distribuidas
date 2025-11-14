@@ -8,11 +8,9 @@ import { DriverRoutes } from './routes/drivers.js';
 import { VehicleRoutes } from './routes/vehicles.js';
 import { EurekaClient } from "./eureka/EurekaClient.js";
 import { ServiceDiscovery } from './eureka/ServiceDiscovery.js';
-import { AdminRoutes } from './routes/AdminRoutes.js';
-import { AuthRoutes } from './routes/AuthRoutes.js';
 import { VehicleClient } from './grpc/vehiclesClient.js';
 import { DriverClient } from './grpc/driversClient.js';
-import { RoutesRoutes } from './routes/RoutesRoutes.js';
+import { CommonRoutes } from './routes/CommonRoutes.js';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
@@ -51,9 +49,9 @@ await new Promise((resolve, reject) => {
   eurekaClient.client.on('error', reject);
 });
 const serviceDiscovery = new ServiceDiscovery(eurekaClient)
-const authRoutes = new AuthRoutes(serviceDiscovery)
-const adminRoutes = new AdminRoutes(serviceDiscovery)
-const routeRoutes = new RoutesRoutes(serviceDiscovery)
+const authRoutes = new CommonRoutes("AUTH-SERVICE","/auth",serviceDiscovery)
+const adminRoutes = new CommonRoutes("ADMIN-SERVICE","/admin",serviceDiscovery)
+const routeRoutes = new CommonRoutes("ROUTES-SERVICE","/routes",serviceDiscovery)
 const vehicleClient = new VehicleClient(serviceDiscovery, process.env.VEHICLE_PROTO_PATH || "../services/Protos/vehicles.proto")
 await vehicleClient.start()
 const vehicleRoutes = new VehicleRoutes(vehicleClient)
