@@ -151,6 +151,16 @@ builder.Services.AddAuthorization(options =>
         p.RequireAssertion(ctx =>
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:read:all")) ||
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:assign"))));
+    ///Paredes: Para las rutas
+    options.AddPolicy(AuthPolicies.RoutesReadOwn, p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("vehicles:read:all") ||
+                c.Value.Split(' ').Contains("vehicles:assign") ||
+                c.Value.Split(' ').Contains("routes:read:own")
+            )
+        )));
 });
 
 var app = builder.Build();

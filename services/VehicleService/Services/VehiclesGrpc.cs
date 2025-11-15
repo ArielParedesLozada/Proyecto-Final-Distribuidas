@@ -294,7 +294,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Historial completo de asignaciones por conductor -----
 
-    [Authorize(Policy = "VehiclesReadAllOrAssign")]
+    [Authorize(Policy = "RoutesReadOwn")]
     public override async Task<ListAssignmentsByDriverResponse> ListAssignmentsByDriver(
         ListAssignmentsByDriverRequest req, ServerCallContext ctx)
     {

@@ -27,6 +27,32 @@ public class DriverClient
         var req = new GetDriverByUserIdRequest { UserId = userId };
         return await _drivers.GetDriverByUserIdAsync(req, MakeCallOptions(bearer));
     }
+    public async Task<bool> DriverExistsByUserIdAsync(string userId, string? bearer)
+    {
+        var req = new GetDriverByUserIdRequest { UserId = userId };
+        try
+        {
+            var result = await _drivers.GetDriverByUserIdAsync(req, MakeCallOptions(bearer));
+            return result?.Driver != null;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+    public async Task<string?> FindDriverByUserIdAsync(string userId, string? bearer)
+    {
+        var req = new GetDriverByUserIdRequest { UserId = userId };
+        try
+        {
+            var result = await _drivers.GetDriverByUserIdAsync(req, MakeCallOptions(bearer));
+            return result.Driver.Id;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
     public async Task<bool> DriverExists(string driverId, string? bearer)
     {
         try

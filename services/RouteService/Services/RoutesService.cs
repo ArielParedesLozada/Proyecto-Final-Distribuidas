@@ -182,20 +182,22 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:read:own")]
     public override async Task<ListRoutesResponse> GetMyRoutes(GetMyRoutesRequest request, ServerCallContext context)
     {
-        var driverId = context.GetHttpContext().User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(driverId) || !(await _driverClient.DriverExists(driverId, GetAuthorization(context))))
+        var bearer = GetAuthorization(context);
+        var userId = context.GetHttpContext().User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT FOUND"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"NULL_USER {userId}"));
         }
-        var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, GetAuthorization(context));
-        var vehicleIds = assignments.Items
-            .Select(a => Guid.Parse(a.VehicleId))
+        var driverId = await _driverClient.FindDriverByUserIdAsync(userId, bearer) ?? throw new RpcException(new Status(StatusCode.InvalidArgument, $"DRIVER_NOT_FOUND {userId} SIGMA"));
+        var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, bearer);
+        var assignmentIds = assignments.Items
+            .Select(a => Guid.Parse(a.AssignmentId))
             .ToList();
-        if (!vehicleIds.Any())
+        if (!assignmentIds.Any())
         {
             return new ListRoutesResponse();
         }
-        var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && vehicleIds.Contains(r.DriverVehicleId.Value));
+        var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
         var response = new ListRoutesResponse();
         response.Routes.AddRange(routes.Select(MapToProto));
         return response;

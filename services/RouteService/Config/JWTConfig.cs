@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -9,7 +10,8 @@ public static class JWTConfig
     public static IServiceCollection AddJwtAuth(this IServiceCollection services, string jwtSecret, double jwtTime, string issuer)
     {
         var key = Encoding.ASCII.GetBytes(jwtSecret);
-
+        JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+        JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
         services
             .AddAuthentication(options =>
             {
@@ -28,7 +30,8 @@ public static class JWTConfig
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = issuer,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero // elimina margen de tiempo por diferencia de relojes
+                    ClockSkew = TimeSpan.Zero, // elimina margen de tiempo por diferencia de relojes
+                    NameClaimType = "sub"
                 };
             });
         services.AddAuthorization(options =>
@@ -36,7 +39,7 @@ public static class JWTConfig
             var scopes = new[]
             {
                 "routes:create", "routes:delete", "routes:read:all", "routes:update:any", "routes:assign",
-                "routes:end:own"
+                "routes:end:own", "routes:read:own"
             };
 
             foreach (var scope in scopes)
