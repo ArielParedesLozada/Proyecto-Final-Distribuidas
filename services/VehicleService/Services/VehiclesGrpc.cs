@@ -157,6 +157,19 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         await _db.SaveChangesAsync();
         return new VehicleResponse { Vehicle = Map(v) };
     }
+    [Authorize(Policy = "VehiclesUpdateAny")]
+    public override async Task<VehicleProto> UpdateVehicleRouteEnding(UpdateVehicleRouteEndingRequest request, ServerCallContext context)
+    {
+        if (request.DistanceRouteKm < 0)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_DISTANCE"));
+        }
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.Id.ToString() == request.VehicleId) ?? throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
+        vehicle.OdometerKm += (int)request.DistanceRouteKm;
+        vehicle.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+        return Map(vehicle);
+    }
 
     // ----- Asignaciones -----
 

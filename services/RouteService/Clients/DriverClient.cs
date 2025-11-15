@@ -92,7 +92,7 @@ public class DriverClient
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.PermissionDenied)
         {
-            throw new RpcException(new Status(StatusCode.PermissionDenied, "FORBIDDEN"));
+            throw new RpcException(new Status(StatusCode.PermissionDenied, $"FORBIDDEN {ex.Status.Detail}"));
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.Unauthenticated)
         {

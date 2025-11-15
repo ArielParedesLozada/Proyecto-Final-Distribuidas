@@ -1,6 +1,7 @@
 using Grpc.Core;
 using VehiclesService.Proto;
 using VehicleServiceClient = VehiclesService.Proto.VehiclesService.VehiclesServiceClient;
+using RouteDomain = RouteService.Domain.Route;
 namespace RouteService.Clients;
 
 public class VehicleClient
@@ -101,11 +102,20 @@ public class VehicleClient
     public async Task<AssignmentRow> GetAssignmentRow(string assignmentRow, string? bearer)
     {
         var request = new GetAssignmentRequest { AssignmentId = assignmentRow };
-        var response = await _vehicleClient.GetAssignmentAsync(request, MakeCallOptions(bearer));
-        if (response == null)
-        {
-            throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
-        }
+        var response = await _vehicleClient.GetAssignmentAsync(request, MakeCallOptions(bearer)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        return response;
+    }
+    public async Task<Vehicle> GetVehicle(string vehicleId, string? bearer)
+    {
+        var request = new GetVehicleRequest { Id = vehicleId };
+        var vehicle = await _vehicleClient.GetVehicleAsync(request, MakeCallOptions(bearer));
+        var response = vehicle.Vehicle ?? throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
+        return response;
+    }
+    public async Task<Vehicle> UpdateVehicleRouteEnded(string vehicleId, RouteDomain route, string? bearer)
+    {
+        var request = new UpdateVehicleRouteEndingRequest { VehicleId = vehicleId, DistanceRouteKm = route.DistanceKm };
+        var response = await _vehicleClient.UpdateVehicleRouteEndingAsync(request, MakeCallOptions(bearer));
         return response;
     }
 }

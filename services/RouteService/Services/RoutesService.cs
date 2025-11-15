@@ -8,6 +8,7 @@ using Grpc.Core;
 using RoutesProto;
 using Google.Protobuf.WellKnownTypes;
 using RouteService.Clients;
+using FuelConsumptionService = RouteService.Domain.FuelConsumptionService;
 namespace RouteService.Services;
 
 public class RoutesService : RoutesProtoService
@@ -201,9 +202,8 @@ public class RoutesService : RoutesProtoService
     }
     [Authorize(Policy = "routes:assign")]
     public override async Task<RouteProto> AssignRoute(AssignRouteRequest request, ServerCallContext context)
-    { 
+    {
         var bearer = GetAuthorization(context);
-        System.Console.WriteLine(bearer);
         var routeId = request.Id;
         var route = await _repository.GetByIdAsync(Guid.Parse(routeId)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
         if (route.Status == RouteStatesDomain.Completed || route.Status == RouteStatesDomain.Started)
@@ -212,7 +212,6 @@ public class RoutesService : RoutesProtoService
         }
         var driverVehicleId = request.DriverVehicleId;
         var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
-        System.Console.WriteLine("SIGMA PAPU 1");
         var driverId = assignment.DriverId;
         var vehicleId = assignment.VehicleId;
         if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
@@ -222,14 +221,80 @@ public class RoutesService : RoutesProtoService
         route.AssignedAt = DateTimeOffset.UtcNow;
         route.DriverVehicleId = Guid.Parse(driverVehicleId);
         route.Status = RouteStatesDomain.Assigned;
-        System.Console.WriteLine("SKIBIDI");
         await _driverClient.SetDriverAvailability(driverId, 2, bearer);
-        System.Console.WriteLine("SIGMA PAPU 2");
         await _vehicleClient.UpdateVehicleStatus(vehicleId, 2, bearer);
-        System.Console.WriteLine("SIGMA PAPU 3");
         await _repository.UpdateAsync(route);
         var response = MapToProto(route);
         return response;
+    }
+
+    [Authorize(Policy = "routes:assign")]
+    public async override Task<RouteProto> UnassignRoutes(UnassignRouteRequest request, ServerCallContext context)
+    {
+        var bearer = GetAuthorization(context);
+        var routeId = request.Id;
+        var route = await _repository.GetByIdAsync(Guid.Parse(routeId)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+        if (route.Status == RouteStatesDomain.Completed || route.Status == RouteStatesDomain.Started)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_COMPLETED"));
+        }
+        if (route.Status == RouteStatesDomain.Unassigned || route.DriverVehicleId == null)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
+        }
+        var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
+        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        var driverId = assignment.DriverId;
+        route.AssignedAt = null;
+        route.DriverVehicleId = null;
+        route.Status = RouteStatesDomain.Unassigned;
+        await _driverClient.SetDriverAvailability(driverId, 1, bearer);
+        await _repository.UpdateAsync(route);
+        var response = MapToProto(route);
+        return response;
+    }
+    [Authorize(Policy = "routes:assign")]
+    public async override Task<RouteProto> StartRoute(StartRouteRequest request, ServerCallContext context)
+    {
+        var bearer = GetAuthorization(context);
+        var routeId = request.Id;
+        var route = await _repository.GetByIdAsync(Guid.Parse(routeId)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+        if (route.Status == RouteStatesDomain.Completed || route.Status == RouteStatesDomain.Started)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_STARTABLE"));
+        }
+        if (route.Status == RouteStatesDomain.Unassigned || route.DriverVehicleId == null)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
+        }
+        var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
+        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        var vehicle = await _vehicleClient.GetVehicle(assignment.VehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_ASSIGNED"));
+        FuelConsumptionService.CalculateEstimatedConsumption(route, vehicle.Type, vehicle.Model, vehicle.Year, vehicle.CapacityLiters);
+        route.Status = RouteStatesDomain.Started;
+        route.StartedAt = DateTimeOffset.UtcNow;
+        await _repository.UpdateAsync(route);
+        return MapToProto(route);
+    }
+    [Authorize(Policy = "routes:assign")]
+    public async override Task<RouteProto> EndRoute(EndRouteRequest request, ServerCallContext context)
+    {
+        var bearer = GetAuthorization(context);
+        var routeId = request.Id;
+        var route = await _repository.GetByIdAsync(Guid.Parse(routeId)) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+        if (route.Status != RouteStatesDomain.Started)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ENDABLE"));
+        }
+        var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
+        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        route.CompletedAt = DateTimeOffset.UtcNow;
+        //Falta logica de consumo real
+        route.Status = RouteStatesDomain.Completed;
+        await _vehicleClient.UpdateVehicleRouteEnded(assignment.VehicleId, route, bearer);
+        await _driverClient.SetDriverAvailability(assignment.DriverId, 2, bearer);
+        await _repository.UpdateAsync(route);
+        return MapToProto(route);
     }
 
     private static RouteProto MapToProto(Route route)

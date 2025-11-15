@@ -23,11 +23,4 @@ public class Route
     public double DistanceKm { get; set; }
     public double? EstimatedFuelConsumptionLiters { get; set; }
     public double? RealFuelConsumptionLiters { get; set; }
-    public void CalculateEstimatedConsumption(double averageConsumptionPerKm)
-    {
-        if (DistanceKm <= 0)
-            throw new InvalidOperationException("Distance must be greater than zero.");
-
-        EstimatedFuelConsumptionLiters = DistanceKm * averageConsumptionPerKm;
-    }
 }

@@ -1,3 +1,4 @@
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Steeltoe.Common.Discovery;
@@ -47,7 +48,6 @@ public static class GrpcConfig
     {
         services.AddGrpc();
 
-        // Creamos un IHttpClientBuilder (aunque no lo usemos para gRPC directo)
         var httpClientBuilder = services.AddHttpClient(typeof(TGrpcClient).Name);
 
         services.AddScoped(provider =>
@@ -81,13 +81,22 @@ public static class GrpcConfig
 
                 Console.WriteLine($"[LazyDI] GRPC URI = {grpcUri}");
 
-                // Lazy creación de canal GRPC
                 var channel = GrpcChannel.ForAddress(grpcUri);
 
-                // Instanciación del cliente gRPC
-                return (TGrpcClient)Activator.CreateInstance(
-                    typeof(TGrpcClient), channel
-                )!;
+                // Cliente base
+                var baseClient =
+                    (TGrpcClient)Activator.CreateInstance(typeof(TGrpcClient), channel)!;
+
+                // Interceptor manual (aquí se aplica)
+                var interceptor = provider.GetService<Interceptor>();
+
+                if (interceptor != null)
+                {
+                    var invoker = channel.Intercept(interceptor);
+                    return (TGrpcClient)Activator.CreateInstance(typeof(TGrpcClient), invoker)!;
+                }
+
+                return baseClient;
             });
         });
 

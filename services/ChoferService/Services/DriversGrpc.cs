@@ -316,8 +316,9 @@ public class DriversGrpc : DriversService.DriversServiceBase
             var callerUserId = RequireUserId(httpContext);
 
             var isOwner = driver.UserId == callerUserId;
-            var canUpdateAny = httpContext.User.HasClaim("scope", "drivers:update:any");
-
+            var canUpdateAny = httpContext.User.Claims
+                .Where(c => c.Type == "scope")
+                .Any(c => c.Value.Split(' ').Contains("drivers:update:any"));
             if (!isOwner && !canUpdateAny)
             {
                 throw new RpcException(new Status(StatusCode.PermissionDenied, $"FORBIDDEN ISOWNER {isOwner} CANUPDATE {canUpdateAny}"));

@@ -85,11 +85,6 @@ message EndRouteRequest {
   string id = 1;
   double real_fuel_consumption_liters = 4;
 }
-//Request para cambiar el estado de la ruta
-message EditStatusRouteRequest {
-  string id = 1;
-  RouteStates status = 2;
-}
 //Request para ver las rutas de un conductor
 message ListRoutesByDriverRequest {
   string driver_id = 1;
@@ -204,14 +199,6 @@ service RoutesService {
       body: "*"
     };
   }
-
-  rpc EditStatusRequest (EditStatusRouteRequest) returns (Route){
-    option (google.api.http) = {
-      patch: "/status/{id}"
-      body: "*"
-    };
-  }
-
 
   rpc DeleteRoutesByDriverCascade (DeleteRoutesByDriverCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByVehicleCascade (DeleteRouteByVehicleCascadeRequest) returns (google.protobuf.Empty);

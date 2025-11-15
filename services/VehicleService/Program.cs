@@ -71,8 +71,7 @@ builder.Services.AddScoped<JwtInterceptor>();
 // ====== gRPC hacia DriversService ======
 builder.Services.AddEurekaDiscoveryClient();
 builder.Services
-    .AddLazyGrpcClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>("driver-service")
-    .AddInterceptor<JwtInterceptor>();
+    .AddLazyGrpcClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>("driver-service");
 
 // ====== JWT ======
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
