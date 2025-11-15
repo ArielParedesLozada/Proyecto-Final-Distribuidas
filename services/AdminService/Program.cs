@@ -41,6 +41,7 @@ try
     var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
 
     // ====== 5️⃣ Registrar dependencias ======
+    builder.Services.AddGrpc().AddJsonTranscoding();
     builder.Services.AddEurekaDiscoveryClient();
     builder.Services
         .AddLazyGrpcClient<UserProtoService.UserProtoServiceClient, UserClient>("auth-service")
@@ -59,7 +60,7 @@ try
     // ====== 7️⃣ Endpoints ======
     app.MapGrpcService<UserService>();
     app.MapGet("/", () =>
-        "Communication with gRPC endpoints must be made through a gRPC client. Visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+        "Soy AdminService");
 
     app.Run();
 }
