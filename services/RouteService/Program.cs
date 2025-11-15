@@ -7,6 +7,7 @@ using RouteService.Services;
 using Steeltoe.Discovery.Eureka;
 using Serilog;
 using Serilog.Events;
+using RouteService.Infraestructure.Distance;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,9 +43,11 @@ builder.Services
     .AddJwtAuth(JWT_SECRET, 2, JWT_ISSUER)
     .AddGrpc()
     .AddJsonTranscoding();
-
 builder.Services.AddLazyGrpcClient<VehicleService, VehicleClient>("vehicle-service");
 builder.Services.AddLazyGrpcClient<DriverService, DriverClient>("driver-service");
+
+builder.Services.AddScoped<IDistanceService, PostgisDistanceService>();
+builder.Services.AddScoped<DistanceValidator>();
 
 var app = builder.Build();
 

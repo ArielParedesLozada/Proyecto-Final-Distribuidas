@@ -9,6 +9,7 @@ using RoutesProto;
 using Google.Protobuf.WellKnownTypes;
 using RouteService.Clients;
 using FuelConsumptionService = RouteService.Domain.FuelConsumptionService;
+using RouteService.Infraestructure.Distance;
 namespace RouteService.Services;
 
 public class RoutesService : RoutesProtoService
@@ -16,12 +17,14 @@ public class RoutesService : RoutesProtoService
     private readonly IRepository<Route, Guid> _repository;
     private readonly VehicleClient _vehicleClient;
     private readonly DriverClient _driverClient;
+    private readonly DistanceValidator _distanceValidator;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient)
+    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator)
     {
         _repository = repository;
         _vehicleClient = vehicleClient;
         _driverClient = driverClient;
+        _distanceValidator = distanceValidator;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {
@@ -48,6 +51,9 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:create")]
     public override async Task<RouteProto> CreateRoute(CreateRouteRequest request, ServerCallContext context)
     {
+        var coordinateStart = new Domain.Coordinate(request.CoordinateStart.Latitude, request.CoordinateStart.Longitude);
+        var coordinateStop = new Domain.Coordinate(request.CoordinateStop.Latitude, request.CoordinateStop.Longitude);
+        var distance = await _distanceValidator.ValidateDistanceAsync(request.DistanceKm, coordinateStart, coordinateStop);
         var newRoute = new Route
         {
             DriverVehicleId = null,
@@ -58,15 +64,9 @@ public class RoutesService : RoutesProtoService
             CreatedAt = DateTimeOffset.UtcNow,
             StartedAt = null,
             CompletedAt = null,
-            CoordinatesStart = new Domain.Coordinate(
-                request.CoordinateStart.Latitude,
-                request.CoordinateStart.Longitude
-            ),
-            CoordinatesStop = new Domain.Coordinate(
-                request.CoordinateStop.Latitude,
-                request.CoordinateStop.Longitude
-            ),
-            EstimatedDistanceKm = request.DistanceKm,
+            CoordinatesStart = coordinateStart,
+            CoordinatesStop = coordinateStop,
+            EstimatedDistanceKm = distance,
             RealDistanceKm = null,
             EstimatedFuelConsumptionLiters = null,
             RealFuelConsumptionLiters = null,
@@ -97,6 +97,19 @@ public class RoutesService : RoutesProtoService
             ? routeToUpdate.DriverVehicleId
             : Guid.Parse(request.DriverVehicleId);
 
+        var coordinateStart = new Domain.Coordinate(request.CoordinateStart.Latitude, request.CoordinateStart.Longitude);
+        var coordinateStop = new Domain.Coordinate(request.CoordinateStop.Latitude, request.CoordinateStop.Longitude);
+        var distanceEstimated = await _distanceValidator.ValidateDistanceAsync(request.DistanceKm, coordinateStart, coordinateStop);
+        double? distanceReal = null;
+
+        if (request.RealDistanceKm > 0)
+        {
+            distanceReal = await _distanceValidator.ValidateDistanceAsync(
+                request.RealDistanceKm,
+                coordinateStart,
+                coordinateStop
+            );
+        }
         routeToUpdate.AssignedAt = assignedAt ?? routeToUpdate.AssignedAt;
         routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
         routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
@@ -107,21 +120,15 @@ public class RoutesService : RoutesProtoService
 
         if (request.CoordinateStart != null)
         {
-            routeToUpdate.CoordinatesStart = new Domain.Coordinate(
-                request.CoordinateStart.Latitude,
-                request.CoordinateStart.Longitude
-            );
+            routeToUpdate.CoordinatesStart = coordinateStart;
         }
 
         if (request.CoordinateStop != null)
         {
-            routeToUpdate.CoordinatesStop = new Domain.Coordinate(
-                request.CoordinateStop.Latitude,
-                request.CoordinateStop.Longitude
-            );
+            routeToUpdate.CoordinatesStop = coordinateStop;
         }
-        routeToUpdate.EstimatedDistanceKm = request.DistanceKm;
-        routeToUpdate.RealDistanceKm = request.RealDistanceKm;
+        routeToUpdate.EstimatedDistanceKm = distanceEstimated;
+        routeToUpdate.RealDistanceKm = distanceReal ?? routeToUpdate.RealDistanceKm; ;
         routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
         routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
 
@@ -137,7 +144,7 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
         }
         var route = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "NOT FOUND"));
-        if (route.Status != RouteStatesDomain.Unassigned || route.Status != RouteStatesDomain.Completed)
+        if (route.Status == RouteStatesDomain.Assigned || route.Status == RouteStatesDomain.Started)
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE"));
         }
@@ -221,6 +228,10 @@ public class RoutesService : RoutesProtoService
         var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         var driverId = assignment.DriverId;
         var vehicleId = assignment.VehicleId;
+        if (assignment.UnassignedAt != null)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ASSIGNMENT_NOT_AVAILABLE"));
+        }
         if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_AVAILABLE"));
@@ -296,10 +307,10 @@ public class RoutesService : RoutesProtoService
         var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
         var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         route.CompletedAt = DateTimeOffset.UtcNow;
-        route.RealDistanceKm = request.RealDistanceKm;
+        route.RealDistanceKm = request.RealFuelConsumptionLiters <= 0 ? route.EstimatedDistanceKm : request.RealDistanceKm;
         route.Status = RouteStatesDomain.Completed;
         //Falta logica de consumo real
-        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters == 0 ? route.EstimatedDistanceKm : request.RealFuelConsumptionLiters;
+        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters <= 0 ? route.EstimatedFuelConsumptionLiters : request.RealFuelConsumptionLiters;
         await _vehicleClient.UpdateVehicleRouteEnded(assignment.VehicleId, route, bearer);
         await _driverClient.SetDriverAvailability(assignment.DriverId, 1, bearer);
         await _repository.UpdateAsync(route);
