@@ -7,7 +7,7 @@ using NetTopologySuite.Geometries;
 namespace RouteService.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigrate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,7 +30,8 @@ namespace RouteService.Data.Migrations
                     CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CoordinatesStart = table.Column<Point>(type: "geometry(Point, 4326)", nullable: false),
                     CoordinatesStop = table.Column<Point>(type: "geometry(Point, 4326)", nullable: false),
-                    DistanceKm = table.Column<double>(type: "double precision", nullable: false),
+                    EstimatedDistanceKm = table.Column<double>(type: "double precision", nullable: false),
+                    RealDistanceKm = table.Column<double>(type: "double precision", nullable: true),
                     EstimatedFuelConsumptionLiters = table.Column<double>(type: "double precision", nullable: true),
                     RealFuelConsumptionLiters = table.Column<double>(type: "double precision", nullable: true)
                 },

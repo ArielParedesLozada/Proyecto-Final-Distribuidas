@@ -51,11 +51,11 @@ namespace RouteService.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("DistanceKm")
-                        .HasColumnType("double precision");
-
                     b.Property<Guid?>("DriverVehicleId")
                         .HasColumnType("uuid");
+
+                    b.Property<double>("EstimatedDistanceKm")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("EstimatedFuelConsumptionLiters")
                         .HasColumnType("double precision");
@@ -63,6 +63,9 @@ namespace RouteService.Data.Migrations
                     b.Property<string>("OriginName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<double?>("RealDistanceKm")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("RealFuelConsumptionLiters")
                         .HasColumnType("double precision");

@@ -60,4 +60,10 @@ public class Repository<T, TKey> : IRepository<T, TKey> where T : class
 
         return (items, totalCount);
     }
+    public async Task DeleteWhereAsync(Expression<Func<T, bool>> predicate)
+    {
+        await _dbSet
+            .Where(predicate)
+            .ExecuteDeleteAsync();
+    }
 }

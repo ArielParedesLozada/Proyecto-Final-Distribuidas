@@ -30,8 +30,9 @@ message Route {
   Coordinate coordinate_start = 10;
   Coordinate coordinate_stop = 11;
   double distance_km = 12;
-  double estimated_fuel_consumption_liters = 13;
-  double real_fuel_consumption_liters = 14;
+  double real_distance_km = 13;
+  double estimated_fuel_consumption_liters = 14;
+  double real_fuel_consumption_liters = 15;
 }
 
 //Request
@@ -63,8 +64,9 @@ message EditRouteRequest {
   Coordinate coordinate_start = 10;
   Coordinate coordinate_stop = 11;
   double distance_km = 12;
-  double estimated_fuel_consumption_liters = 13;
-  double real_fuel_consumption_liters = 14;
+  double real_distance_km = 13;
+  double estimated_fuel_consumption_liters = 14;
+  double real_fuel_consumption_liters = 15;
 }
 message DeleteRouteRequest {
     string id = 1;
@@ -83,7 +85,8 @@ message StartRouteRequest {
 //Request cuando finaliza una ruta
 message EndRouteRequest {
   string id = 1;
-  double real_fuel_consumption_liters = 4;
+  double real_fuel_consumption_liters = 2;
+  double real_distance_km = 3;
 }
 //Request para ver las rutas de un conductor
 message ListRoutesByDriverRequest {

@@ -15,7 +15,7 @@ public class DriverClient
     {
         var md = new Metadata();
         if (!string.IsNullOrWhiteSpace(bearer)) md.Add("Authorization", bearer);
-        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(5));
+        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(1000));
     }
     public async Task<DriverResponse> GetDriverAsync(string id, string? bearer)
     {

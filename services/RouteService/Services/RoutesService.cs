@@ -66,7 +66,8 @@ public class RoutesService : RoutesProtoService
                 request.CoordinateStop.Latitude,
                 request.CoordinateStop.Longitude
             ),
-            DistanceKm = request.DistanceKm,
+            EstimatedDistanceKm = request.DistanceKm,
+            RealDistanceKm = null,
             EstimatedFuelConsumptionLiters = null,
             RealFuelConsumptionLiters = null,
         };
@@ -119,8 +120,8 @@ public class RoutesService : RoutesProtoService
                 request.CoordinateStop.Longitude
             );
         }
-
-        routeToUpdate.DistanceKm = request.DistanceKm;
+        routeToUpdate.EstimatedDistanceKm = request.DistanceKm;
+        routeToUpdate.RealDistanceKm = request.RealDistanceKm;
         routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
         routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
 
@@ -136,6 +137,10 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
         }
         var route = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "NOT FOUND"));
+        if (route.Status != RouteStatesDomain.Unassigned || route.Status != RouteStatesDomain.Completed)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE"));
+        }
         await _repository.DeleteAsync(route);
         return new Empty();
     }
@@ -291,12 +296,45 @@ public class RoutesService : RoutesProtoService
         var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
         var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         route.CompletedAt = DateTimeOffset.UtcNow;
-        //Falta logica de consumo real
+        route.RealDistanceKm = request.RealDistanceKm;
         route.Status = RouteStatesDomain.Completed;
+        //Falta logica de consumo real
+        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters == 0 ? route.EstimatedDistanceKm : request.RealFuelConsumptionLiters;
         await _vehicleClient.UpdateVehicleRouteEnded(assignment.VehicleId, route, bearer);
-        await _driverClient.SetDriverAvailability(assignment.DriverId, 2, bearer);
+        await _driverClient.SetDriverAvailability(assignment.DriverId, 1, bearer);
         await _repository.UpdateAsync(route);
         return MapToProto(route);
+    }
+    [Authorize(Policy = "routes:delete")]
+    public override async Task<Empty> DeleteRoutesByDriverCascade(DeleteRoutesByDriverCascadeRequest request, ServerCallContext context)
+    {
+        var bearer = GetAuthorization(context);
+        var driverId = request.DriverId;
+        var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, bearer);
+        var assignmentIds = assignments.Items.Select(a => Guid.Parse(a.AssignmentId)).ToList();
+        await _repository.DeleteWhereAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
+        return new Empty();
+    }
+    [Authorize(Policy = "routes:delete")]
+    public override async Task<Empty> DeleteRoutesByVehicleCascade(DeleteRouteByVehicleCascadeRequest request, ServerCallContext context)
+    {
+        var bearer = GetAuthorization(context);
+        var vehicleId = request.VehicleId;
+        var assignments = await _vehicleClient.GetAssignmentRowsByVehicleId(vehicleId, bearer);
+        var assignmentIds = assignments.Assignments.Select(a => Guid.Parse(a.AssignmentId)).ToList();
+        await _repository.DeleteWhereAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
+        return new Empty();
+    }
+    [Authorize(Policy = "routes:delete")]
+    public override async Task<Empty> DeleteRoutesByDriverVehicleCascade(DeleteRouteByDriverVehicleCascadeRequest request, ServerCallContext context)
+    {
+        var driverVehicleId = request.DriverVehicle;
+        if (!Guid.TryParse(driverVehicleId, out var dvId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid driverVehicleId"));
+        }
+        await _repository.DeleteWhereAsync(r => r.DriverVehicleId.HasValue && dvId == r.DriverVehicleId);
+        return new Empty();
     }
 
     private static RouteProto MapToProto(Route route)
@@ -332,7 +370,8 @@ public class RoutesService : RoutesProtoService
                                Longitude = route.CoordinatesStop.Longitude
                            }
                            : null,
-            DistanceKm = route.DistanceKm,
+            DistanceKm = route.EstimatedDistanceKm,
+            RealDistanceKm = route.RealDistanceKm ?? 0,
             EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? 0,
             RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? 0
         };

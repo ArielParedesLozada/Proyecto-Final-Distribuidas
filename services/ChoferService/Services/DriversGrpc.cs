@@ -17,13 +17,15 @@ public class DriversGrpc : DriversService.DriversServiceBase
     private readonly ILogger<DriversGrpc> _logger;
     private readonly UserClient _client;
     private readonly VehicleClient _vehicleClient;
+    private readonly RouteClient _routeClient;
 
-    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger, UserClient client, VehicleClient vehicleClient)
+    public DriversGrpc(DriversDb context, ILogger<DriversGrpc> logger, UserClient client, VehicleClient vehicleClient, RouteClient routeClient)
     {
         _context = context;
         _logger = logger;
         _client = client;
         _vehicleClient = vehicleClient;
+        _routeClient = routeClient;
     }
 
     // ==== Helper: obtiene el userId desde los claims (NameIdentifier o sub). Lanza 401 si no existe/invalid. ====
@@ -454,12 +456,10 @@ public class DriversGrpc : DriversService.DriversServiceBase
             }
 
             // Buscar el conductor existente
-            var existingDriver = await _context.Drivers.FindAsync(driverId);
-            if (existingDriver == null)
-            {
-                throw new RpcException(new Status(StatusCode.NotFound, $"Mein Sigma Driver not found {driverId}"));
-            }
-            //Elimina las nominas del driver
+            var existingDriver = await _context.Drivers.FindAsync(driverId) ?? throw new RpcException(new Status(StatusCode.NotFound, $"Mein Sigma Driver not found {driverId}"));
+            // Elimina las rutas del conductor
+            // await _routeClient.DeleteRoutesByDriverCascade(existingDriver.Id.ToString(), GetAuthorization(context));
+            // Elimina las nominas del driver
             await _vehicleClient.DeleteDriverVehiclesCascade(existingDriver.Id.ToString(), context);
             // Eliminar el conductor
             _context.Drivers.Remove(existingDriver);

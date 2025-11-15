@@ -20,7 +20,9 @@ public class Route
     public DateTimeOffset? CompletedAt { get; set; }
     public required Coordinate CoordinatesStart { get; set; }
     public required Coordinate CoordinatesStop { get; set; }
-    public double DistanceKm { get; set; }
+    public double EstimatedDistanceKm { get; set; }
+    public double? RealDistanceKm { get; set; }
+
     public double? EstimatedFuelConsumptionLiters { get; set; }
     public double? RealFuelConsumptionLiters { get; set; }
 }

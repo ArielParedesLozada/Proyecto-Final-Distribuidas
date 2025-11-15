@@ -29,6 +29,7 @@ service VehiclesService {
   //Nueva cosa para ver un assignment en particular
   rpc GetAssignment (GetAssignmentRequest) returns (AssignmentRow);
   rpc UpdateVehicleRouteEnding (UpdateVehicleRouteEndingRequest) returns (Vehicle);
+  rpc GetAssignmentRowsByVehicleId (GetAssignmentsByVehicleRequest) returns (ListAssignmentsByVehicleResponse);
 }
 
 message Vehicle {
@@ -150,4 +151,10 @@ message GetAssignmentRequest {
 message UpdateVehicleRouteEndingRequest {
   string vehicle_id = 1;
   double distance_route_km = 2;
+}
+message GetAssignmentsByVehicleRequest {
+  string vehicle_id = 1;
+}
+message ListAssignmentsByVehicleResponse {
+  repeated AssignmentRow assignments = 1;
 }

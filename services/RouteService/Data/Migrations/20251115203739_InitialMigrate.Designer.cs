@@ -13,8 +13,8 @@ using RouteService.Data.Databases;
 namespace RouteService.Data.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20251110221321_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251115203739_InitialMigrate")]
+    partial class InitialMigrate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,11 +54,11 @@ namespace RouteService.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("DistanceKm")
-                        .HasColumnType("double precision");
-
                     b.Property<Guid?>("DriverVehicleId")
                         .HasColumnType("uuid");
+
+                    b.Property<double>("EstimatedDistanceKm")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("EstimatedFuelConsumptionLiters")
                         .HasColumnType("double precision");
@@ -66,6 +66,9 @@ namespace RouteService.Data.Migrations
                     b.Property<string>("OriginName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<double?>("RealDistanceKm")
+                        .HasColumnType("double precision");
 
                     b.Property<double?>("RealFuelConsumptionLiters")
                         .HasColumnType("double precision");

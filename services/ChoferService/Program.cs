@@ -94,7 +94,7 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 // ====== gRPC Clients ======
 builder.Services.AddLazyGrpcClient<UserServices.UserProtoService.UserProtoServiceClient, UserClient>("auth-service");
 builder.Services.AddLazyGrpcClient<VehiclesService.Proto.VehiclesService.VehiclesServiceClient, VehicleClient>("vehicle-service");
-
+builder.Services.AddLazyGrpcClient<RoutesProto.RoutesService.RoutesServiceClient, RouteClient>("routes-service");
 // ====== AuthN (JWT) ======
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

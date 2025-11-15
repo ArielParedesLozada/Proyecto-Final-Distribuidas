@@ -28,7 +28,7 @@ public class FuelConsumptionService
 
         double finalConsumptionPer100Km = baseConsumption * ageFactor * engineFactor;
 
-        double estimatedLiters = finalConsumptionPer100Km * (route.DistanceKm / 100.0);
+        double estimatedLiters = finalConsumptionPer100Km * (route.EstimatedDistanceKm / 100.0);
 
         route.EstimatedFuelConsumptionLiters = Math.Round(estimatedLiters, 2);
     }

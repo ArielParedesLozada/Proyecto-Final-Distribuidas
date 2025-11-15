@@ -16,7 +16,7 @@ public class VehicleClient
     {
         var md = new Metadata();
         if (!string.IsNullOrWhiteSpace(bearer)) md.Add("Authorization", bearer);
-        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(5));
+        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(1000));
     }
     public async Task<bool> VehicleExists(string vehicleId, string? bearer)
     {
@@ -114,8 +114,15 @@ public class VehicleClient
     }
     public async Task<Vehicle> UpdateVehicleRouteEnded(string vehicleId, RouteDomain route, string? bearer)
     {
-        var request = new UpdateVehicleRouteEndingRequest { VehicleId = vehicleId, DistanceRouteKm = route.DistanceKm };
+        var realDistanceKm = (double)(route.RealDistanceKm.HasValue && route.RealDistanceKm.Value > 0 ? route.RealDistanceKm : route.EstimatedDistanceKm);
+        var request = new UpdateVehicleRouteEndingRequest { VehicleId = vehicleId, DistanceRouteKm = realDistanceKm };
         var response = await _vehicleClient.UpdateVehicleRouteEndingAsync(request, MakeCallOptions(bearer));
+        return response;
+    }
+    public async Task<ListAssignmentsByVehicleResponse> GetAssignmentRowsByVehicleId(string vehicleId, string? bearer)
+    {
+        var request = new GetAssignmentsByVehicleRequest { VehicleId = vehicleId };
+        var response = await _vehicleClient.GetAssignmentRowsByVehicleIdAsync(request, MakeCallOptions(bearer));
         return response;
     }
 }
