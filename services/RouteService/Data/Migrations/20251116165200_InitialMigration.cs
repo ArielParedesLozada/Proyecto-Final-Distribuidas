@@ -7,7 +7,7 @@ using NetTopologySuite.Geometries;
 namespace RouteService.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigrate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,6 +21,8 @@ namespace RouteService.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     DriverVehicleId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DriverId = table.Column<Guid>(type: "uuid", nullable: true),
+                    VehicleId = table.Column<Guid>(type: "uuid", nullable: true),
                     AssignedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     OriginName = table.Column<string>(type: "text", nullable: false),
                     DestinationName = table.Column<string>(type: "text", nullable: false),

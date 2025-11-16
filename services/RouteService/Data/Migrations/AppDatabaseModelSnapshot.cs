@@ -51,6 +51,9 @@ namespace RouteService.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("DriverVehicleId")
                         .HasColumnType("uuid");
 
@@ -75,6 +78,9 @@ namespace RouteService.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

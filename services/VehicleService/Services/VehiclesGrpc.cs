@@ -363,7 +363,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         await _db.DriverVehicles.Where(nomina => nomina.DriverId == did).ExecuteDeleteAsync();
         return new Empty();
     }
-    [Authorize(Policy = "vehicles:read:all")]
+    [Authorize(Policy = "VehiclesReadOwnOrAll")]
     public override async Task<AssignmentRow> GetDriverVehicleExists(DriverVehicleIdExistsRequest request, ServerCallContext context)
     {
         if (!Guid.TryParse(request.DriverVechicleId, out var driverVehicleId))

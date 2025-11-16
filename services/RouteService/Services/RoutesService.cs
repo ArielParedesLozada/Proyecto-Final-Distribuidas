@@ -58,6 +58,8 @@ public class RoutesService : RoutesProtoService
         {
             DriverVehicleId = null,
             AssignedAt = null,
+            DriverId = null,
+            VehicleId = null,
             OriginName = request.OriginName,
             DestinationName = request.DestinationName,
             Status = RouteStatesDomain.Unassigned,
@@ -81,22 +83,32 @@ public class RoutesService : RoutesProtoService
         var id = Guid.Parse(request.Id);
         var routeToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, $"Route with ID {id} not found"));
 
-        DateTimeOffset? assignedAt = request.AssignedAt?.ToDateTimeOffset();
-        DateTimeOffset? createdAt = request.CreatedAt?.ToDateTimeOffset();
-        DateTimeOffset? startedAt = request.StartedAt?.ToDateTimeOffset();
-        DateTimeOffset? completedAt = request.CompletedAt?.ToDateTimeOffset();
+        DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
+        DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
+        DateTimeOffset? newStarted = request.StartedAt?.ToDateTimeOffset();
+        DateTimeOffset? newCompleted = request.CompletedAt?.ToDateTimeOffset();
 
-        if (!(await _vehicleClient.GetDriverVehicleExists(request.DriverVehicleId.ToString(), GetAuthorization(context))))
+        bool isTemporalOrderValid =
+            (newCreated == null || newAssigned == null || newCreated <= newAssigned) &&
+            (newAssigned == null || newStarted == null || newAssigned <= newStarted) &&
+            (newStarted == null || newCompleted == null || newStarted <= newCompleted);
+
+        if (!isTemporalOrderValid)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_TEMPORAL_ORDER"));
+
+        if (!string.IsNullOrWhiteSpace(request.DriverVehicleId))
         {
-            throw new RpcException(new Status(
-                StatusCode.NotFound,
-                $"The specified driver_vehicle_id '{request.DriverVehicleId}' does not exist or is inactive in VehicleService"
-            ));
-        }
-        routeToUpdate.DriverVehicleId = string.IsNullOrWhiteSpace(request.DriverVehicleId)
-            ? routeToUpdate.DriverVehicleId
-            : Guid.Parse(request.DriverVehicleId);
+            if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleGuid))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_VEHICLE_ID_INVALID"));
 
+            var assignmentRow = await _vehicleClient.GetDriverVehicleExists(
+                request.DriverVehicleId,
+                GetAuthorization(context)
+            ) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+            routeToUpdate.DriverVehicleId = driverVehicleGuid;
+            routeToUpdate.DriverId = Guid.Parse(assignmentRow.DriverId);
+            routeToUpdate.VehicleId = Guid.Parse(assignmentRow.VehicleId);
+        }
         var coordinateStart = new Domain.Coordinate(request.CoordinateStart.Latitude, request.CoordinateStart.Longitude);
         var coordinateStop = new Domain.Coordinate(request.CoordinateStop.Latitude, request.CoordinateStop.Longitude);
         var distanceEstimated = await _distanceValidator.ValidateDistanceAsync(request.DistanceKm, coordinateStart, coordinateStop);
@@ -110,13 +122,13 @@ public class RoutesService : RoutesProtoService
                 coordinateStop
             );
         }
-        routeToUpdate.AssignedAt = assignedAt ?? routeToUpdate.AssignedAt;
+        routeToUpdate.AssignedAt = newAssigned ?? routeToUpdate.AssignedAt;
         routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
         routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
         routeToUpdate.Status = (RouteStatesDomain)request.Status;
-        routeToUpdate.CreatedAt = createdAt ?? routeToUpdate.CreatedAt;
-        routeToUpdate.StartedAt = startedAt ?? routeToUpdate.StartedAt;
-        routeToUpdate.CompletedAt = completedAt ?? routeToUpdate.CompletedAt;
+        routeToUpdate.CreatedAt = newCreated ?? routeToUpdate.CreatedAt;
+        routeToUpdate.StartedAt = newStarted ?? routeToUpdate.StartedAt;
+        routeToUpdate.CompletedAt = newCompleted ?? routeToUpdate.CompletedAt;
 
         if (request.CoordinateStart != null)
         {
@@ -170,7 +182,7 @@ public class RoutesService : RoutesProtoService
         var vehicleIds = assignments.Items
             .Select(a => Guid.Parse(a.VehicleId))
             .ToList();
-        if (!vehicleIds.Any())
+        if (vehicleIds.Count == 0)
         {
             return new ListRoutesResponse();
         }
@@ -205,7 +217,7 @@ public class RoutesService : RoutesProtoService
         var assignmentIds = assignments.Items
             .Select(a => Guid.Parse(a.AssignmentId))
             .ToList();
-        if (!assignmentIds.Any())
+        if (assignmentIds.Count == 0)
         {
             return new ListRoutesResponse();
         }
@@ -225,22 +237,19 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_COMPLETED"));
         }
         var driverVehicleId = request.DriverVehicleId;
-        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        var assignment = await _vehicleClient.GetDriverVehicleExists(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         var driverId = assignment.DriverId;
         var vehicleId = assignment.VehicleId;
-        if (assignment.UnassignedAt != null)
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "ASSIGNMENT_NOT_AVAILABLE"));
-        }
         if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_AVAILABLE"));
         }
         route.AssignedAt = DateTimeOffset.UtcNow;
         route.DriverVehicleId = Guid.Parse(driverVehicleId);
+        route.DriverId = Guid.Parse(driverId);
+        route.VehicleId = Guid.Parse(vehicleId);
         route.Status = RouteStatesDomain.Assigned;
         await _driverClient.SetDriverAvailability(driverId, 2, bearer);
-        await _vehicleClient.UpdateVehicleStatus(vehicleId, 2, bearer);
         await _repository.UpdateAsync(route);
         var response = MapToProto(route);
         return response;
@@ -260,11 +269,11 @@ public class RoutesService : RoutesProtoService
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
         }
-        var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
-        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
-        var driverId = assignment.DriverId;
+        var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : string.Empty;
         route.AssignedAt = null;
         route.DriverVehicleId = null;
+        route.DriverId = null;
+        route.VehicleId = null;
         route.Status = RouteStatesDomain.Unassigned;
         await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
@@ -285,8 +294,13 @@ public class RoutesService : RoutesProtoService
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
         }
+        var userId = context.GetHttpContext().User.FindFirst("sub")?.Value ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "NOT_AUTHENTICATED"));
+        var driver = await _driverClient.FindDriverByUserIdAsync(userId, bearer)
+            ?? throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
+        if (route.DriverId != Guid.Parse(driver))
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "NOT_OWNER_OF_ROUTE"));
         var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
-        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        var assignment = await _vehicleClient.GetDriverVehicleExists(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         var vehicle = await _vehicleClient.GetVehicle(assignment.VehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_ASSIGNED"));
         FuelConsumptionService.CalculateEstimatedConsumption(route, vehicle.Type, vehicle.Model, vehicle.Year, vehicle.CapacityLiters);
         route.Status = RouteStatesDomain.Started;
@@ -304,15 +318,32 @@ public class RoutesService : RoutesProtoService
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ENDABLE"));
         }
-        var driverVehicleId = route.DriverVehicleId.ToString() ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_ASSIGNED"));
-        var assignment = await _vehicleClient.GetAssignmentRow(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+        var userId = context.GetHttpContext().User.FindFirst("sub")?.Value ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "NOT_AUTHENTICATED"));
+        var driver = await _driverClient.FindDriverByUserIdAsync(userId, bearer)
+                ?? throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
+        if (route.DriverId != Guid.Parse(driver))
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "NOT_OWNER_OF_ROUTE"));
         route.CompletedAt = DateTimeOffset.UtcNow;
-        route.RealDistanceKm = request.RealFuelConsumptionLiters <= 0 ? route.EstimatedDistanceKm : request.RealDistanceKm;
+        if (request.RealDistanceKm > 0)
+        {
+            var validatedRealDistance = await _distanceValidator.ValidateDistanceAsync(
+                request.RealDistanceKm,
+                route.CoordinatesStart,
+                route.CoordinatesStop
+            );
+            route.RealDistanceKm = validatedRealDistance;
+        }
+        else
+        {
+            route.RealDistanceKm = route.EstimatedDistanceKm;
+        }
         route.Status = RouteStatesDomain.Completed;
         //Falta logica de consumo real
+        var vehicleId = route.VehicleId.HasValue ? route.VehicleId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "VEHICLE_NOT_FOUND_CORRUP_ROUTE"));
+        var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_FOUND_CORRUP_ROUTE"));
         route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters <= 0 ? route.EstimatedFuelConsumptionLiters : request.RealFuelConsumptionLiters;
-        await _vehicleClient.UpdateVehicleRouteEnded(assignment.VehicleId, route, bearer);
-        await _driverClient.SetDriverAvailability(assignment.DriverId, 1, bearer);
+        await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer);
+        await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
         return MapToProto(route);
     }
@@ -320,20 +351,20 @@ public class RoutesService : RoutesProtoService
     public override async Task<Empty> DeleteRoutesByDriverCascade(DeleteRoutesByDriverCascadeRequest request, ServerCallContext context)
     {
         var bearer = GetAuthorization(context);
-        var driverId = request.DriverId;
-        var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, bearer);
-        var assignmentIds = assignments.Items.Select(a => Guid.Parse(a.AssignmentId)).ToList();
-        await _repository.DeleteWhereAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
+        var driverId = Guid.Parse(request.DriverId);
+        // var assignments = await _vehicleClient.GetDriverAssignmentRows(driverId, bearer);
+        // var assignmentIds = assignments.Items.Select(a => Guid.Parse(a.AssignmentId)).ToList();
+        await _repository.DeleteWhereAsync(r => r.DriverId.HasValue && r.DriverId == driverId);
         return new Empty();
     }
     [Authorize(Policy = "routes:delete")]
     public override async Task<Empty> DeleteRoutesByVehicleCascade(DeleteRouteByVehicleCascadeRequest request, ServerCallContext context)
     {
         var bearer = GetAuthorization(context);
-        var vehicleId = request.VehicleId;
-        var assignments = await _vehicleClient.GetAssignmentRowsByVehicleId(vehicleId, bearer);
-        var assignmentIds = assignments.Assignments.Select(a => Guid.Parse(a.AssignmentId)).ToList();
-        await _repository.DeleteWhereAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
+        var vehicleId = Guid.Parse(request.VehicleId);
+        // var assignments = await _vehicleClient.GetAssignmentRowsByVehicleId(vehicleId, bearer);
+        // var assignmentIds = assignments.Assignments.Select(a => Guid.Parse(a.AssignmentId)).ToList();
+        await _repository.DeleteWhereAsync(r => r.VehicleId.HasValue && r.VehicleId == vehicleId);
         return new Empty();
     }
     [Authorize(Policy = "routes:delete")]
@@ -354,6 +385,8 @@ public class RoutesService : RoutesProtoService
         {
             Id = route.Id.ToString(),
             DriverVehicleId = route.DriverVehicleId?.ToString() ?? string.Empty,
+            DriverId = route.DriverId?.ToString() ?? string.Empty,
+            VehicleId = route.VehicleId?.ToString() ?? string.Empty,
             AssignedAt = route.AssignedAt.HasValue
                            ? Timestamp.FromDateTimeOffset(route.AssignedAt.Value)
                            : null,

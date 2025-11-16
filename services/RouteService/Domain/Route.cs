@@ -11,6 +11,8 @@ public class Route
 {
     public Guid Id { get; set; }
     public Guid? DriverVehicleId { get; set; }
+    public Guid? DriverId { get; set; }
+    public Guid? VehicleId { get; set; }
     public DateTimeOffset? AssignedAt { get; set; }
     public string OriginName { get; set; } = string.Empty;
     public string DestinationName { get; set; } = string.Empty;

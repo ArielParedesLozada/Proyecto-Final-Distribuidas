@@ -13,8 +13,8 @@ using RouteService.Data.Databases;
 namespace RouteService.Data.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20251115203739_InitialMigrate")]
-    partial class InitialMigrate
+    [Migration("20251116165200_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,6 +54,9 @@ namespace RouteService.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("DriverVehicleId")
                         .HasColumnType("uuid");
 
@@ -78,6 +81,9 @@ namespace RouteService.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 

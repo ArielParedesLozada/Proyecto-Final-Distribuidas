@@ -77,18 +77,11 @@ public class VehicleClient
             throw new RpcException(new Status(StatusCode.Unavailable, $"VehicleService unavailable: {ex.Message}"));
         }
     }
-    public async Task<bool> GetDriverVehicleExists(string driverVehicleId, string? bearer)
+    public async Task<AssignmentRow> GetDriverVehicleExists(string driverVehicleId, string? bearer)
     {
         var req = new DriverVehicleIdExistsRequest { DriverVechicleId = driverVehicleId };
-        try
-        {
-            await _vehicleClient.GetDriverVehicleExistsAsync(req, MakeCallOptions(bearer));
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
+        var result = await _vehicleClient.GetDriverVehicleExistsAsync(req, MakeCallOptions(bearer));
+        return result;
     }
     public async Task<ListAssignmentsByDriverResponse> GetDriverAssignmentRows(string driverId, string? bearer)
     {
