@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -38,8 +39,8 @@ public static class JWTConfig
         {
             var scopes = new[]
             {
-                "routes:create", "routes:delete", "routes:read:all", "routes:update:any", "routes:assign",
-                "routes:end:own", "routes:read:own"
+                "routes:create", "routes:delete", "routes:read:all", "routes:update:any",
+                "routes:end:own", "routes:read:own", "routes:end", "routes:assign", "routes:start:own"
             };
 
             foreach (var scope in scopes)
@@ -52,6 +53,27 @@ public static class JWTConfig
                         )
                     ));
             }
+            options.AddPolicy("routes:start-or-start-own", policy =>
+                policy.RequireAssertion(context => 
+                    context.User.HasClaim(c => 
+                        c.Type == "scope" && 
+                        (
+                            c.Value.Split(' ').Contains("routes:assign") ||
+                            c.Value.Split(' ').Contains("routes:start:own")
+                        )
+                    )
+                )
+            );
+            options.AddPolicy("routes:end-or-end-own", policy =>
+                policy.RequireAssertion(context =>
+                    context.User.HasClaim(c =>
+                        c.Type == "scope" &&
+                        (
+                            c.Value.Split(' ').Contains("routes:assign") ||
+                            c.Value.Split(' ').Contains("routes:end:own")
+                        )
+                    )
+                ));
         });
         return services;
     }

@@ -24,7 +24,7 @@ public class DistanceValidator
         if (distanceKm < realDistance)
             throw new RpcException(new Status(
                 StatusCode.InvalidArgument,
-                $"INVALID_DISTANCE: la distancia{distanceKm} debe ser mayor a {realDistance}"
+                $"INVALID_DISTANCE: la distancia {distanceKm} debe ser mayor a {realDistance}"
             ));
         return distanceKm;
     }

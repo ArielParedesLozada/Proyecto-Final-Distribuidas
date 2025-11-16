@@ -15,10 +15,14 @@ public class PostgisDistanceService : IDistanceService
     public async Task<double> CalculateDistanceKmAsync(Coordinate start, Coordinate finish)
     {
         var sql = @"
-            SELECT ST_DistanceSphere(
-                        ST_SetSRID(ST_MakePoint({0}, {1}), 4326),
-                        ST_SetSRID(ST_MakePoint({2}, {3}), 4326)
-                   ) / 1000 AS distanceKm;
+            SELECT *
+            FROM (
+                SELECT ST_DistanceSphere(
+                            ST_SetSRID(ST_MakePoint(@p0, @p1), 4326),
+                            ST_SetSRID(ST_MakePoint(@p2, @p3), 4326)
+                    ) / 1000 AS ""Value""
+            ) AS t
+            ORDER BY 1
         ";
 
         var distanceKm = await _db.Database

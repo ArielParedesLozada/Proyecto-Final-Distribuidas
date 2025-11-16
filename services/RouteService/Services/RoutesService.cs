@@ -271,7 +271,7 @@ public class RoutesService : RoutesProtoService
         var response = MapToProto(route);
         return response;
     }
-    [Authorize(Policy = "routes:assign")]
+    [Authorize(Policy = "routes:start-or-start-own")]
     public async override Task<RouteProto> StartRoute(StartRouteRequest request, ServerCallContext context)
     {
         var bearer = GetAuthorization(context);
@@ -294,7 +294,7 @@ public class RoutesService : RoutesProtoService
         await _repository.UpdateAsync(route);
         return MapToProto(route);
     }
-    [Authorize(Policy = "routes:assign")]
+    [Authorize(Policy = "routes:end-or-end-own")]
     public async override Task<RouteProto> EndRoute(EndRouteRequest request, ServerCallContext context)
     {
         var bearer = GetAuthorization(context);

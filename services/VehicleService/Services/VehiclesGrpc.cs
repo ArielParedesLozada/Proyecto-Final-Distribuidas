@@ -66,7 +66,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         return new VehicleResponse { Vehicle = Map(v) };
     }
 
-    [Authorize(Policy = "VehiclesReadAll")]
+    [Authorize(Policy = "VehiclesReadOwnOrAll")]
     public override async Task<VehicleResponse> GetVehicle(GetVehicleRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.Id, out var id)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid id"));
@@ -159,7 +159,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         await _db.SaveChangesAsync();
         return new VehicleResponse { Vehicle = Map(v) };
     }
-    [Authorize(Policy = "VehiclesUpdateAny")]
+    [Authorize(Policy = "VehiclesEndAnyOrOwn")]
     public override async Task<VehicleProto> UpdateVehicleRouteEnding(UpdateVehicleRouteEndingRequest request, ServerCallContext context)
     {
         if (request.DistanceRouteKm < 0)

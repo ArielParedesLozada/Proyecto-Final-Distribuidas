@@ -161,6 +161,22 @@ builder.Services.AddAuthorization(options =>
                 c.Value.Split(' ').Contains("routes:read:own")
             )
         )));
+    options.AddPolicy("VehiclesReadOwnOrAll", p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("routes:read:all") ||
+                c.Value.Split(' ').Contains("routes:read:own")
+            )
+    )));
+    options.AddPolicy("VehiclesEndAnyOrOwn", p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("routes:update:any") ||
+                c.Value.Split(' ').Contains("routes:end:own")
+            )
+    )));
 });
 
 var app = builder.Build();
