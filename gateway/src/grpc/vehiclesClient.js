@@ -1,39 +1,68 @@
-import grpc from '@grpc/grpc-js';
-import protoLoader from '@grpc/proto-loader';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import grpc from "@grpc/grpc-js";
+import protoLoader from "@grpc/proto-loader";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Cargar el archivo proto
-const protoPath = process.env.VEHICLES_PROTO || '../services/Protos/vehicles.proto';
-const packageDefinition = protoLoader.loadSync(protoPath, {
-  keepCase: true,
-  defaults: true,
-  oneofs: true
-});
-
-const grpcObj = grpc.loadPackageDefinition(packageDefinition);
-
-// Crear el cliente gRPC
-export const vehiclesClient = new grpcObj.vehicles.v1.VehiclesService(
-  process.env.VEHICLES_GRPC_ADDR || "localhost:5124",
-  grpc.credentials.createInsecure()
-);
-
-// Función para crear metadata desde la request HTTP
-export const metaFromReq = (req) => {
-  const metadata = new grpc.Metadata();
-
-  const raw = req.headers.authorization || req.headers.Authorization;
-  if (raw) {
-    metadata.add('authorization', raw); // minúsculas
+export class VehicleClient {
+  constructor(serviceDiscovery, protoPath) {
+    this.serviceDiscovery = serviceDiscovery;
+    this.protoPath = protoPath
   }
 
-  return metadata;
-};
+  async start() {
+    // Esperar instancia registrada en Eureka
+    const { host, port } = await this.serviceDiscovery.getInstance("VEHICLE-SERVICE");
+    if (!host || !port) {
+      console.log(`VEHICLE-SERVICE not found`)
+      this.client = null
+      return
+    }
+    const packageDefinition = protoLoader.loadSync(this.protoPath, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    });
 
-// Exportar grpc para uso en otros archivos
-export { grpc };
+    const grpcObj = grpc.loadPackageDefinition(packageDefinition);
+    this.client = new grpcObj.vehicles.v1.VehiclesService(
+      `${host}:${port}`,
+      grpc.credentials.createInsecure()
+    );
+  }
 
+  getClient() {
+    if (!this.client)
+      throw new Error("VehicleClient no inicializado. Llama a start() antes de usarlo.");
+    return this.client;
+  }
+
+  static metaFromReq(req) {
+    const metadata = new grpc.Metadata();
+    const authz = req.headers.authorization || req.headers.Authorization;
+    if (authz) {
+      metadata.add("authorization", Array.isArray(authz) ? authz[0] : authz);
+    }
+    return metadata;
+  }
+  async retryClient() {
+    const { host, port } = await this.serviceDiscovery.getInstance("VEHICLE-SERVICE");
+    if (!host || !port) {
+      console.log(`VEHICLE-SERVICE not found`)
+      this.client = null
+      return
+    }
+    const packageDefinition = protoLoader.loadSync(this.protoPath, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    });
+
+    const grpcObj = grpc.loadPackageDefinition(packageDefinition);
+    this.client = new grpcObj.vehicles.v1.VehiclesService(
+      `${host}:${port}`,
+      grpc.credentials.createInsecure()
+    );
+  }
+}

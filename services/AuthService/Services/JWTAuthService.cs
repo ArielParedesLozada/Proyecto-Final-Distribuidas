@@ -36,16 +36,23 @@ public class JWTAuthService : AuthService.AuthServiceBase
             switch (role)
             {
                 case "ADMIN":
-                    scopes.AddRange(new[] { 
-                        "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update",
-                        "vehicles:create", "vehicles:read:all", "vehicles:update:any", "vehicles:assign"
+                    scopes.AddRange(new[] {
+                        "drivers:create", "drivers:read:all", "drivers:read:own", "drivers:update", "drivers:update:any",
+                        "vehicles:create", "vehicles:read:all", "vehicles:update:any", "vehicles:assign",
+                        "routes:create", "routes:read:all", "routes:update:any", "routes:delete" ,"routes:assign",
                     });
                     break;
                 case "SUPERVISOR":
-                    scopes.AddRange(new[] { "drivers:read:all", "drivers:read:own", "vehicles:read:all", "vehicles:assign" });
+                    scopes.AddRange(new[] {
+                        "drivers:read:all", "drivers:read:own", "vehicles:read:all", "vehicles:assign", "drivers:update:any",
+                        "routes:create", "routes:read:all", "routes:update:any", "routes:delete" ,"routes:assign",
+                    });
                     break;
                 case "CONDUCTOR":
-                    scopes.AddRange(new[] { "drivers:read:own", "vehicles:read:own" });
+                    scopes.AddRange(new[] {
+                        "drivers:read:own", "vehicles:read:own",
+                        "routes:read:own", "routes:end:own", "routes:start:own"
+                    });
                     break;
             }
         }
@@ -58,7 +65,7 @@ public class JWTAuthService : AuthService.AuthServiceBase
         var expiration = DateTime.UtcNow.AddHours(_time);
         // Mapear roles a scopes
         var scopes = GetScopesFromRoles(user.Roles);
-        
+
         Claim[] claims = new[]
         {
         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),

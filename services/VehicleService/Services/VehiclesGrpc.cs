@@ -20,12 +20,14 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     private readonly VehiclesDb _db;
     private readonly ILogger<VehiclesGrpc> _log;
     private readonly DriverClient _driversClient;
+    private readonly RouteClient _routeClient;
 
-    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log, DriverClient driversClient)
+    public VehiclesGrpc(VehiclesDb db, ILogger<VehiclesGrpc> log, DriverClient driversClient, RouteClient routeClient)
     {
         _db = db;
         _log = log;
         _driversClient = driversClient;
+        _routeClient = routeClient;
     }
     //Utils
     private string? GetAuthorization(ServerCallContext ctx)
@@ -64,7 +66,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         return new VehicleResponse { Vehicle = Map(v) };
     }
 
-    [Authorize(Policy = "VehiclesReadAll")]
+    [Authorize(Policy = "VehiclesReadOwnOrAll")]
     public override async Task<VehicleResponse> GetVehicle(GetVehicleRequest req, ServerCallContext ctx)
     {
         if (!Guid.TryParse(req.Id, out var id)) throw new RpcException(new(StatusCode.InvalidArgument, "invalid id"));
@@ -156,6 +158,19 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         v.Status = (short)req.Status;
         await _db.SaveChangesAsync();
         return new VehicleResponse { Vehicle = Map(v) };
+    }
+    [Authorize(Policy = "VehiclesEndAnyOrOwn")]
+    public override async Task<VehicleProto> UpdateVehicleRouteEnding(UpdateVehicleRouteEndingRequest request, ServerCallContext context)
+    {
+        if (request.DistanceRouteKm < 0)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_DISTANCE"));
+        }
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.Id.ToString() == request.VehicleId) ?? throw new RpcException(new Status(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
+        vehicle.OdometerKm += (int)request.DistanceRouteKm;
+        vehicle.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync();
+        return Map(vehicle);
     }
 
     // ----- Asignaciones -----
@@ -281,7 +296,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
 
     // ----- Historial completo de asignaciones por conductor -----
 
-    [Authorize(Policy = "VehiclesReadAllOrAssign")]
+    [Authorize(Policy = "RoutesReadOwn")]
     public override async Task<ListAssignmentsByDriverResponse> ListAssignmentsByDriver(
         ListAssignmentsByDriverRequest req, ServerCallContext ctx)
     {
@@ -297,6 +312,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var resp = new ListAssignmentsByDriverResponse();
         resp.Items.AddRange(rows.Select(x => new AssignmentRow
         {
+            AssignmentId = x.Id.ToString(),
             VehicleId = x.VehicleId.ToString(),
             DriverId = x.DriverId.ToString(),
             AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
@@ -321,6 +337,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var resp = new ListActiveAssignmentsResponse();
         resp.ActiveAssignments.AddRange(activeAssignments.Select(x => new AssignmentRow
         {
+            AssignmentId = x.Id.ToString(),
             VehicleId = x.VehicleId.ToString(),
             DriverId = x.DriverId.ToString(),
             AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
@@ -341,10 +358,71 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         }
         if (!Guid.TryParse(driverId, out var did))
             throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid driver_id"));
+        // Elimina las rutas
+        await _routeClient.DeleteRoutesByDriverCascade(driverId, GetAuthorization(context));
         await _db.DriverVehicles.Where(nomina => nomina.DriverId == did).ExecuteDeleteAsync();
         return new Empty();
     }
+    [Authorize(Policy = "VehiclesReadOwnOrAll")]
+    public override async Task<AssignmentRow> GetDriverVehicleExists(DriverVehicleIdExistsRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.DriverVechicleId, out var driverVehicleId))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid driver_vehicle_id"));
 
+        var driverVehicleRow = await _db.DriverVehicles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == driverVehicleId) ?? throw new RpcException(new Status(StatusCode.NotFound, "RELATION_DRIVER_VEHICLE_NOT_FOUND"));
+        if (driverVehicleRow.UnassignedAt != null)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "RELATION_DRIVER_VEHICLE_EXPIRED"));
+        }
+
+        return new AssignmentRow
+        {
+            AssignmentId = driverVehicleRow.Id.ToString(),
+            VehicleId = driverVehicleRow.VehicleId.ToString(),
+            DriverId = driverVehicleRow.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(driverVehicleRow.AssignedAt),
+            UnassignedAt = driverVehicleRow.UnassignedAt.HasValue
+                ? Timestamp.FromDateTimeOffset(driverVehicleRow.UnassignedAt.Value)
+                : null
+        };
+    }
+    [Authorize]
+    public override async Task<AssignmentRow> GetAssignment(GetAssignmentRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.AssignmentId, out var assignmentId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "invalid assignment_id"));
+        }
+        var assignmentRow = await _db.DriverVehicles.FirstOrDefaultAsync(a => a.Id == assignmentId) ?? throw new RpcException(new Status(StatusCode.NotFound, "Assignment Not found"));
+        return new AssignmentRow
+        {
+            AssignmentId = assignmentRow.Id.ToString(),
+            VehicleId = assignmentRow.VehicleId.ToString(),
+            DriverId = assignmentRow.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(assignmentRow.AssignedAt),
+            UnassignedAt = assignmentRow.UnassignedAt.HasValue
+                ? Timestamp.FromDateTimeOffset(assignmentRow.UnassignedAt.Value)
+                : null
+        };
+    }
+    [Authorize]
+    public override async Task<ListAssignmentsByVehicleResponse> GetAssignmentRowsByVehicleId(GetAssignmentsByVehicleRequest request, ServerCallContext context)
+    {
+        var vehicleId = request.VehicleId;
+        var assignments = await _db.DriverVehicles.Where(a => a.VehicleId.ToString() == vehicleId).ToListAsync();
+        var response = new ListAssignmentsByVehicleResponse();
+        response.Assignments.AddRange(assignments.Select(x => new AssignmentRow
+        {
+            AssignmentId = x.Id.ToString(),
+            VehicleId = x.VehicleId.ToString(),
+            DriverId = x.DriverId.ToString(),
+            AssignedAt = Timestamp.FromDateTimeOffset(x.AssignedAt),
+            UnassignedAt = x.UnassignedAt.HasValue ? Timestamp.FromDateTimeOffset(x.UnassignedAt.Value) : null,
+        }));
+        return response;
+    }
     // <— Aquí el mapper usando alias para evitar ambigüedad
     private static VehicleProto Map(VehicleModel v) => new VehicleProto
     {

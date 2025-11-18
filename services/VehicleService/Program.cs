@@ -14,13 +14,33 @@ using Grpc.Core;
 using Grpc.Core.Interceptors;
 using VehicleService.Clients;
 using VehicleService.Configs;
+using Steeltoe.Discovery.Eureka;
+using Serilog;
+using Serilog.Events;
 
 // Cargar .env si existe
 DotNetEnv.Env.Load();
 
-var builder = WebApplication.CreateBuilder(args);
+// ====== Configuración de Serilog ======
+var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "VEHCILE-SERVICE";
+var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5134";
 
-// Valores desde .env o appsettings
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("ServiceName", serviceName)
+    .Enrich.WithThreadId()
+    .WriteTo.Console()
+    .WriteTo.Seq(seqUrl)
+    .CreateLogger();
+
+Log.Information("🚀 Iniciando VehiclesService... enviando logs a {SeqUrl}", seqUrl);
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog(); // 🔗 Integrar Serilog con el host
+
+// ====== Configuración de variables ======
 string Conn(string key) =>
     Environment.GetEnvironmentVariable(key) ??
     builder.Configuration.GetConnectionString("VehiclesDb") ??
@@ -37,30 +57,23 @@ string Cfg(params string[] keys)
 }
 
 var connectionString = Conn("CONNECTION_STRING");
-var jwtSecret  = Cfg("JWT_SECRET", "Jwt:Secret");
-var jwtIssuer  = Cfg("JWT_ISSUER", "Jwt:Issuer");
-// var jwtAudience = Cfg("JWT_AUDIENCE", "Jwt:Audience"); // si decides validar audience
+var jwtSecret = Cfg("JWT_SECRET", "Jwt:Secret");
+var jwtIssuer = Cfg("JWT_ISSUER", "Jwt:Issuer");
 
+// ====== Servicios ======
 builder.Services.AddDbContext<VehiclesDb>(opt => opt.UseNpgsql(connectionString));
-
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddSingleton<HealthServiceImpl>();
-builder.Services.AddHttpContextAccessor(); // Para el interceptor JWT
-builder.Services.AddScoped<JwtInterceptor>(); // Registrar el interceptor
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<JwtInterceptor>();
 
-//Cosas del Paredes
+// ====== gRPC hacia DriversService ======
+builder.Services.AddEurekaDiscoveryClient();
+builder.Services.AddLazyGrpcClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>("DRIVER-SERVICE");
+builder.Services.AddLazyGrpcClient<RoutesProto.RoutesService.RoutesServiceClient, RouteClient>("ROUTES-SERVICE");
 
-// Configurar cliente gRPC hacia DriversService
-var driversGrpc = Environment.GetEnvironmentVariable("DRIVERS_GRPC")
-                   ?? builder.Configuration["Drivers:Grpc"]
-                   ?? "http://localhost:5122";
-
-builder.Services
-    .AddGrpcCustomClient<ChoferService.Proto.DriversService.DriversServiceClient, DriverClient>(driversGrpc)
-    .AddInterceptor<JwtInterceptor>(); // Interceptor para enviar JWT
-
-// evitar remapeos de claims
+// ====== JWT ======
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
@@ -76,95 +89,111 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
             ValidateAudience = false,
-            // ValidAudience = jwtIssuer,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             NameClaimType = "sub",
             RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
 
-        // gRPC envía el token en metadata 'authorization' (minúsculas). Asegura fallback correcto.
-        o.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        o.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
             {
-                // Para gRPC, el token viene en los headers de metadata
-                var auth = ctx.Request.Headers["authorization"].FirstOrDefault() ??
-                          ctx.Request.Headers["Authorization"].FirstOrDefault() ??
-                          ctx.Request.Headers["grpc-metadata-authorization"].FirstOrDefault();
-
-                Console.WriteLine($"[JWT/Vehicles] 🔍 Headers disponibles: {string.Join(", ", ctx.Request.Headers.Keys)}");
-                Console.WriteLine($"[JWT/Vehicles] 🔍 authorization header: '{ctx.Request.Headers["authorization"].FirstOrDefault()}'");
-                Console.WriteLine($"[JWT/Vehicles] 🔍 Authorization header: '{ctx.Request.Headers["Authorization"].FirstOrDefault()}'");
+                var auth = ctx.Request.Headers["authorization"].FirstOrDefault()
+                        ?? ctx.Request.Headers["Authorization"].FirstOrDefault()
+                        ?? ctx.Request.Headers["grpc-metadata-authorization"].FirstOrDefault();
 
                 if (!string.IsNullOrWhiteSpace(auth))
                 {
-                    // Remover "Bearer " si está presente
                     ctx.Token = auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
                         ? auth.Substring("Bearer ".Length).Trim()
                         : auth.Trim();
-                    
-                    Console.WriteLine($"[JWT/Vehicles] 🔑 Token recibido: {ctx.Token.Substring(0, Math.Min(20, ctx.Token.Length))}...");
+
+                    Log.Information("[JWT/Vehicles] 🔑 Token recibido ({Length} chars)", ctx.Token.Length);
                 }
                 else
                 {
-                    Console.WriteLine("[JWT/Vehicles] ⚠️ No se encontró token de autorización");
+                    Log.Warning("[JWT/Vehicles] ⚠️ No se encontró token de autorización");
                 }
                 return Task.CompletedTask;
             },
             OnAuthenticationFailed = ctx =>
             {
-                Console.WriteLine($"[JWT/Vehicles] ❌ Auth failed: {ctx.Exception.GetType().Name}: {ctx.Exception.Message}");
-                Console.WriteLine($"[JWT/Vehicles] ❌ Stack trace: {ctx.Exception.StackTrace}");
+                Log.Error(ctx.Exception, "[JWT/Vehicles] ❌ Error de autenticación: {Message}", ctx.Exception.Message);
                 return Task.CompletedTask;
             },
             OnTokenValidated = ctx =>
             {
                 var sub = ctx.Principal?.FindFirst("sub")?.Value
                           ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var aud = ctx.Principal?.FindFirst("aud")?.Value;
-                var scope = ctx.Principal?.FindFirst("scope")?.Value;
-                var role = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-                
-                Console.WriteLine($"[JWT/Vehicles] ✅ Token válido. sub={sub} aud={aud} role={role} scope={scope}");
+                Log.Information("[JWT/Vehicles] ✅ Token válido. sub={Sub}", sub);
                 return Task.CompletedTask;
             }
         };
     });
 
+// ====== Autorización ======
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
 
-    // Helper para requerir scope
     static void RequireScope(AuthorizationPolicyBuilder p, string scope) =>
         p.RequireAssertion(ctx => ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains(scope)));
 
-    options.AddPolicy(AuthPolicies.VehiclesCreate,    p => RequireScope(p, "vehicles:create"));
-    options.AddPolicy(AuthPolicies.VehiclesReadAll,   p => RequireScope(p, "vehicles:read:all"));
-    options.AddPolicy(AuthPolicies.VehiclesReadOwn,   p => RequireScope(p, "vehicles:read:own"));
+    options.AddPolicy(AuthPolicies.VehiclesCreate, p => RequireScope(p, "vehicles:create"));
+    options.AddPolicy(AuthPolicies.VehiclesReadAll, p => RequireScope(p, "vehicles:read:all"));
+    options.AddPolicy(AuthPolicies.VehiclesReadOwn, p => RequireScope(p, "vehicles:read:own"));
     options.AddPolicy(AuthPolicies.VehiclesUpdateAny, p => RequireScope(p, "vehicles:update:any"));
-    options.AddPolicy(AuthPolicies.VehiclesAssign,    p => RequireScope(p, "vehicles:assign"));
-    options.AddPolicy(AuthPolicies.VehiclesReadAllOrAssign, p => 
-        p.RequireAssertion(ctx => 
+    options.AddPolicy(AuthPolicies.VehiclesAssign, p => RequireScope(p, "vehicles:assign"));
+    options.AddPolicy(AuthPolicies.VehiclesReadAllOrAssign, p =>
+        p.RequireAssertion(ctx =>
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:read:all")) ||
             ctx.User.Claims.Any(c => c.Type == "scope" && c.Value.Split(' ').Contains("vehicles:assign"))));
+    ///Paredes: Para las rutas
+    options.AddPolicy(AuthPolicies.RoutesReadOwn, p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("vehicles:read:all") ||
+                c.Value.Split(' ').Contains("vehicles:assign") ||
+                c.Value.Split(' ').Contains("routes:read:own")
+            )
+        )));
+    options.AddPolicy("VehiclesReadOwnOrAll", p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("routes:read:all") ||
+                c.Value.Split(' ').Contains("routes:read:own")
+            )
+    )));
+    options.AddPolicy("VehiclesEndAnyOrOwn", p => p.RequireAssertion(ctx =>
+        ctx.User.Claims.Any(c =>
+            c.Type == "scope" &&
+            (
+                c.Value.Split(' ').Contains("routes:update:any") ||
+                c.Value.Split(' ').Contains("routes:end:own")
+            )
+    )));
 });
 
 var app = builder.Build();
 
-// aplicar migraciones automáticamente (dev/qa)
+// ====== Migración automática ======
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<VehiclesDb>();
     db.Database.Migrate();
+    Log.Information("📦 Base de datos migrada correctamente.");
 }
 
+// ====== Middleware ======
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ====== Healthcheck ======
 var health = app.Services.GetRequiredService<HealthServiceImpl>();
 health.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
 health.SetStatus("vehicles.v1.VehiclesService", HealthCheckResponse.Types.ServingStatus.Serving);
@@ -176,48 +205,49 @@ if (app.Environment.IsDevelopment()) app.MapGrpcReflectionService();
 app.MapGet("/", [AllowAnonymous] () => "Vehicles gRPC up");
 app.MapGet("/healthz", [AllowAnonymous] () => "ok");
 
-app.Run();
+try
+{
+    Log.Information("✅ VehiclesService iniciado correctamente en {Env}", app.Environment.EnvironmentName);
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "❌ VehiclesService no pudo iniciarse correctamente.");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
-// Interceptor para enviar JWT en llamadas gRPC hacia DriversService
+// ====== Interceptor para enviar JWT ======
 public class JwtInterceptor : Interceptor
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public JwtInterceptor(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
+    public JwtInterceptor(IHttpContextAccessor httpContextAccessor) => _httpContextAccessor = httpContextAccessor;
 
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
-        // Obtener el token JWT del contexto HTTP actual
         var headers = _httpContextAccessor.HttpContext?.Request.Headers;
         var token = headers?["authorization"].FirstOrDefault()
                  ?? headers?["Authorization"].FirstOrDefault()
                  ?? headers?["grpc-metadata-authorization"].FirstOrDefault();
-        
-        if (!string.IsNullOrEmpty(token) &&
-            token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
+
+        if (!string.IsNullOrEmpty(token) && token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             token = token.Substring("Bearer ".Length).Trim();
-        }
 
         if (!string.IsNullOrEmpty(token))
         {
-            // Agregar el token a los headers de la llamada gRPC
-            var metadata = new Metadata();
-            metadata.Add("authorization", $"Bearer {token}");
+            var metadata = new Metadata { { "authorization", $"Bearer {token}" } };
             context = new ClientInterceptorContext<TRequest, TResponse>(
                 context.Method, context.Host, context.Options.WithHeaders(metadata));
-            
-            Console.WriteLine($"[JWT/Interceptor] 🔑 Enviando token a DriversService: {token.Substring(0, Math.Min(20, token.Length))}...");
+            Log.Debug("[JWT/Interceptor] 🔑 Enviando token a DriversService ({Len} chars)", token.Length);
         }
         else
         {
-            Console.WriteLine("[JWT/Interceptor] ⚠️ No se encontró token para enviar a DriversService");
+            Log.Warning("[JWT/Interceptor] ⚠️ No se encontró token para enviar a DriversService");
         }
 
         return continuation(request, context);

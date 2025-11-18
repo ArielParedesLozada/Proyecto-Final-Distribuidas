@@ -6,18 +6,18 @@ namespace AdminService.Clients;
 
 public class UserClient
 {
-    private readonly UserProtoService.UserProtoServiceClient _users;
-
-    public UserClient(UserProtoService.UserProtoServiceClient users)
+    private readonly Lazy<UserProtoService.UserProtoServiceClient> _hiddenUsers;
+    private UserProtoService.UserProtoServiceClient _users => _hiddenUsers.Value;
+    public UserClient(Lazy<UserProtoService.UserProtoServiceClient> users)
     {
-        _users = users;
+        _hiddenUsers = users;
     }
 
     private static CallOptions MakeCallOptions(string? bearer)
     {
         var md = new Metadata();
         if (!string.IsNullOrWhiteSpace(bearer)) md.Add("Authorization", bearer);
-        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(5));
+        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(1000));
     }
     public async Task<ListUsersResponse> ListUsersAsync(string? bearer)
     {

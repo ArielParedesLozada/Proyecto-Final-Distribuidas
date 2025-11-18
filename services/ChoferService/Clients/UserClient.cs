@@ -6,17 +6,17 @@ namespace ChoferService.Clients;
 
 public class UserClient
 {
-    private readonly UserProtoService.UserProtoServiceClient _user;
-
-    public UserClient(UserProtoService.UserProtoServiceClient user)
+    private readonly Lazy<UserProtoService.UserProtoServiceClient> _hiddenUser;
+    private UserProtoService.UserProtoServiceClient _user => _hiddenUser.Value;
+    public UserClient(Lazy<UserProtoService.UserProtoServiceClient> user)
     {
-        _user = user;
+        _hiddenUser = user;
     }
     private static CallOptions MakeCallOptions(string? bearer)
     {
         var md = new Metadata();
         if (!string.IsNullOrWhiteSpace(bearer)) md.Add("Authorization", bearer);
-        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(5));
+        return new CallOptions(md, deadline: DateTime.UtcNow.AddSeconds(1000));
     }
     public async Task<ListUsersResponse> ListUsersAsync(string? bearer)
     {
