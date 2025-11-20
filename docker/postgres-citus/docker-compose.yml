@@ -1,0 +1,51 @@
+services:
+  coordinator:
+    image: citusdata/citus:latest
+    container_name: citus_coordinator_ad
+    restart: unless-stopped
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./volumes/coordinator:/var/lib/postgresql/data
+      - ./init/coordinator:/docker-entrypoint-initdb.d
+    depends_on:
+      - worker1
+      - worker2
+    networks:
+      - citus_network
+
+  worker1:
+    image: citusdata/citus:latest
+    container_name: citus_worker1_ad
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./volumes/worker1:/var/lib/postgresql/data
+      - ./init/worker:/docker-entrypoint-initdb.d
+    networks:
+      - citus_network
+
+  worker2:
+    image: citusdata/citus:latest
+    container_name: citus_worker2_ad
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./volumes/worker2:/var/lib/postgresql/data
+      - ./init/worker:/docker-entrypoint-initdb.d
+    networks:
+      - citus_network
+
+networks:
+  citus_network:
+    driver: bridge
