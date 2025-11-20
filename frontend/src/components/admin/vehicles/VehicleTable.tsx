@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit, Car, User, AlertCircle, Loader2 } from 'lucide-react';
 import type { VehicleWithDriver } from '../../../types/vehicle';
-import { VEHICLE_STATUS, VEHICLE_STATUS_LABELS } from '../../../utils/constants';
+import { VEHICLE_MACHINERY, VEHICLE_MACHINERY_LABELS, VEHICLE_STATUS, VEHICLE_STATUS_LABELS } from '../../../utils/constants';
 
 interface VehicleTableProps {
   vehicles: VehicleWithDriver[];
@@ -33,7 +33,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
         color: 'bg-blue-600/20 border border-blue-600/30 text-blue-400'
       };
     }
-    
+
     return {
       label: 'Desconocido',
       color: 'bg-gray-600/20 border border-gray-600/30 text-gray-400'
@@ -83,6 +83,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
         <tbody>
           {vehicles.map((vehicle) => {
             const statusInfo = getStatusInfo(vehicle.status);
+            const machineryInfo = VEHICLE_MACHINERY_LABELS[VEHICLE_MACHINERY[vehicle.machinery]]
             
             return (
               <tr key={vehicle.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
@@ -95,7 +96,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                 <td className="py-4 px-4">
                   <div>
                     <div className="font-medium text-white">{vehicle.brand} {vehicle.model}</div>
-                    <div className="text-sm text-slate-400">{vehicle.type} • {vehicle.year}</div>
+                    <div className="text-sm text-slate-400">{machineryInfo} • {vehicle.type} • {vehicle.year}</div>
                   </div>
                 </td>
                 {!showAsAvailable && (

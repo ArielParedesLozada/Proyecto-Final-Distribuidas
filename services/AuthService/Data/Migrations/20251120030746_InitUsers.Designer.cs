@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace AuthService.Migrations
+namespace AuthService.Data.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20251003172110_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251120030746_InitUsers")]
+    partial class InitUsers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

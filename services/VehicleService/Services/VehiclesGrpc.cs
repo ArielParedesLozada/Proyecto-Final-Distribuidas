@@ -11,6 +11,9 @@ using ChoferService.Proto;
 // ALIAS para evitar conflicto de nombres:
 using VehicleModel = VehiclesService.Models.Vehicle;
 using VehicleProto = VehiclesService.Proto.Vehicle;
+using VehicleMachinery = VehiclesService.Models.VehicleMachineryTypes;
+using VehicleMachineryProto = VehiclesService.Proto.VehicleMachineryTypes;
+
 using VehicleService.Clients;
 
 namespace VehiclesService.Services;
@@ -41,7 +44,6 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     public override async Task<VehicleResponse> CreateVehicle(CreateVehicleRequest req, ServerCallContext ctx)
     {
         Console.WriteLine($"[DEBUG] CreateVehicle - Plate: {req.Plate}, CapacityLiters: {req.CapacityLiters}, Year: {req.Year}");
-
         if (string.IsNullOrWhiteSpace(req.Plate)) throw new RpcException(new(StatusCode.InvalidArgument, "plate required"));
         if (req.Year < 1980 || req.Year > DateTime.UtcNow.Year + 1) throw new RpcException(new(StatusCode.InvalidArgument, "year out of range"));
         if (req.CapacityLiters <= 0) throw new RpcException(new(StatusCode.InvalidArgument, $"capacity_liters > 0 (received: {req.CapacityLiters})"));
@@ -50,7 +52,8 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         {
             Id = Guid.NewGuid(),
             Plate = req.Plate.Trim().ToUpperInvariant(),
-            Type = string.IsNullOrWhiteSpace(req.Type) ? "liviano" : req.Type.Trim(),
+            Machinery = (VehicleMachinery)req.Machinery,
+            Type = string.IsNullOrWhiteSpace(req.Type) ? "automovil" : req.Type.Trim(),
             Brand = req.Brand,
             Model = req.Model,
             Year = req.Year,
@@ -134,6 +137,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         if (!string.IsNullOrWhiteSpace(req.Type)) v.Type = req.Type;
         if (!string.IsNullOrWhiteSpace(req.Brand)) v.Brand = req.Brand;
         if (!string.IsNullOrWhiteSpace(req.Model)) v.Model = req.Model;
+        if ((VehicleMachinery)req.Machinery != v.Machinery) v.Machinery = (VehicleMachinery)req.Machinery;
         if (req.Year != 0)
         {
             if (req.Year < 1980 || req.Year > DateTime.UtcNow.Year + 1) throw new RpcException(new(StatusCode.InvalidArgument, "year out of range"));
@@ -428,6 +432,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     {
         Id = v.Id.ToString(),
         Plate = v.Plate,
+        Machinery = (VehicleMachineryProto)v.Machinery,
         Type = v.Type,
         Brand = v.Brand,
         Model = v.Model,
@@ -444,6 +449,7 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
     {
         Id = v.Id.ToString(),
         Plate = v.Plate,
+        Machinery = (VehicleMachineryProto)v.Machinery,
         Type = v.Type,
         Brand = v.Brand,
         Model = v.Model,

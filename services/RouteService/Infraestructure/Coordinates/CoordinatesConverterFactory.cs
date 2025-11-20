@@ -3,7 +3,7 @@ using NetTopologySuite;
 using NetTopologySuite.Geometries;
 using DomainCoordinate = RouteService.Domain.Coordinate;
 
-namespace RouteService.Infraestructure;
+namespace RouteService.Infraestructure.Coordinates;
 
 public class CoordinatesConverterFactory
 {

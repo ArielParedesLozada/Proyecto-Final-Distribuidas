@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Car, AlertCircle } from 'lucide-react';
 import type { Vehicle } from '../../../types/vehicle';
+import { VEHICLE_MACHINERY, VEHICLE_MACHINERY_LABELS } from '../../../utils/constants';
 // Interface local para el formulario
 interface DriverForm {
   id: string;
@@ -10,6 +11,7 @@ interface DriverForm {
 
 export interface VehicleFormData {
   plate: string;
+  machinery: number,
   type: string;
   brand: string;
   model: string;
@@ -39,6 +41,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<VehicleFormData>({
     plate: '',
+    machinery: 0,
     type: '',
     brand: '',
     model: '',
@@ -54,8 +57,8 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   // Vehicle types
   const vehicleTypes = [
     { value: 'camioneta', label: 'Camioneta' },
-    { value: 'camión', label: 'Camión' },
-    { value: 'automóvil', label: 'Automóvil' },
+    { value: 'camion', label: 'Camión' },
+    { value: 'automovil', label: 'Automóvil' },
     { value: 'moto', label: 'Motocicleta' },
     { value: 'bus', label: 'Bus' }
   ];
@@ -67,6 +70,11 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     'BMW', 'Audi', 'Volvo', 'Scania', 'MAN', 'Iveco'
   ];
 
+  const vehicleMachinery = [
+    { value: VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_LIVIANO, label: VEHICLE_MACHINERY_LABELS[VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_LIVIANO] },
+    { value: VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_PESADO, label: VEHICLE_MACHINERY_LABELS[VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_PESADO] }
+  ]
+
 
   // Initialize form data when modal opens or vehicle changes
   useEffect(() => {
@@ -74,6 +82,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       if (vehicle) {
         setFormData({
           plate: vehicle.plate,
+          machinery: vehicle.machinery,
           type: vehicle.type,
           brand: vehicle.brand,
           model: vehicle.model,
@@ -86,6 +95,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       } else {
         setFormData({
           plate: '',
+          machinery: 0,
           type: '',
           brand: '',
           model: '',
@@ -117,9 +127,9 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   // Función para obtener el mensaje del tooltip
   const getButtonTooltip = (): string => {
     if (isLoading) return '';
-    
+
     if (isFormComplete()) return vehicle ? 'Actualizar vehículo' : 'Crear vehículo';
-    
+
     // Determinar qué campo específico falta
     if (!formData.plate.trim()) return 'Complete la placa';
     if (!formData.type.trim()) return 'Seleccione un tipo de vehículo';
@@ -128,7 +138,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     if (formData.year < 1900 || formData.year > new Date().getFullYear() + 1) return 'Ingrese un año válido';
     if (formData.capacity_liters <= 0) return 'Ingrese una capacidad mayor a 0';
     if (formData.odometer_km < 0) return 'El odómetro no puede ser negativo';
-    
+
     return 'Complete todos los campos requeridos';
   };
 
@@ -171,7 +181,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -189,7 +199,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => {
@@ -203,19 +213,19 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   // Función especial para manejar el input de la placa
   const handlePlateChange = (value: string) => {
     let formattedValue = '';
-    
+
     // Si el valor incluye un guión, separar en letras y números
     if (value.includes('-')) {
       const parts = value.split('-');
       const letters = parts[0] || '';
       const numbers = parts[1] || '';
-      
+
       // Procesar letras (solo permitir letras, máximo 3)
       const validLetters = letters.replace(/[^A-Za-z]/g, '').toUpperCase().substring(0, 3);
-      
+
       // Procesar números (solo permitir números, máximo 4)
       const validNumbers = numbers.replace(/[^0-9]/g, '').substring(0, 4);
-      
+
       // Construir el valor formateado
       formattedValue = validLetters;
       if (validNumbers.length > 0) {
@@ -224,7 +234,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     } else {
       // Si no hay guión, verificar si son letras o números
       const currentLength = value.length;
-      
+
       if (currentLength <= 3) {
         // Primeros 3 caracteres: solo letras
         formattedValue = value.replace(/[^A-Za-z]/g, '').toUpperCase();
@@ -232,17 +242,17 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         // Más de 3 caracteres: separar letras y números
         const letters = value.substring(0, 3).replace(/[^A-Za-z]/g, '').toUpperCase();
         const numbers = value.substring(3).replace(/[^0-9]/g, '').substring(0, 4);
-        
+
         formattedValue = letters;
         if (numbers.length > 0) {
           formattedValue += '-' + numbers;
         }
       }
     }
-    
+
     // Actualizar el estado solo si el valor es válido
     setFormData(prev => ({ ...prev, plate: formattedValue }));
-    
+
     // Clear error when user starts typing
     if (errors.plate) {
       setErrors(prev => {
@@ -300,7 +310,30 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   </div>
                 )}
               </div>
+              {/* Maquinaria (pesada o liviana) */}
 
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Tipo de Vehículo</label>
+                <select
+                  value={formData.machinery}
+                  onChange={(e) => handleInputChange('machinery', Number(e.target.value))}
+                  className="fuel-input"
+                  required
+                >
+                  <option value="">Seleccione un tipo...</option>
+                  {vehicleMachinery.map(machinery => (
+                    <option key={machinery.value} value={machinery.value}>
+                      {machinery.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.machinery && (
+                  <div className="flex items-center gap-1 text-red-400 text-xs mt-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.machinery}
+                  </div>
+                )}
+              </div>
               {/* Tipo */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Tipo de Vehículo</label>
@@ -456,13 +489,12 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
               >
                 Cancelar
               </button>
-              <button 
-                type="submit" 
-                className={`fuel-button flex-1 py-3 ${
-                  (isLoading || !isFormComplete()) 
-                    ? 'opacity-50 cursor-not-allowed hover:shadow-none' 
-                    : ''
-                }`}
+              <button
+                type="submit"
+                className={`fuel-button flex-1 py-3 ${(isLoading || !isFormComplete())
+                  ? 'opacity-50 cursor-not-allowed hover:shadow-none'
+                  : ''
+                  }`}
                 disabled={isLoading || !isFormComplete()}
                 title={getButtonTooltip()}
               >

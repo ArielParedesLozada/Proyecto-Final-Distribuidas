@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
-using RouteService.Infraestructure;
+using RouteService.Infraestructure.Coordinates;
 using RouteDomain = RouteService.Domain.Route;
 namespace RouteService.Data.Databases;
 

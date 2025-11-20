@@ -43,6 +43,7 @@ public class VehiclesDb : DbContext
             e.HasIndex(x => x.Plate).IsUnique().HasDatabaseName("IX_vehicles_plate_unique");
             e.HasIndex(x => x.Status).HasDatabaseName("IX_vehicles_status");
             e.HasIndex(x => x.Type).HasDatabaseName("IX_vehicles_type");
+            e.HasIndex(x => x.Machinery).HasDatabaseName("IX_vehicles_machinery");
 
             e.Property(x => x.CapacityLiters).HasColumnType("numeric(10,2)");
             e.Property(x => x.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
