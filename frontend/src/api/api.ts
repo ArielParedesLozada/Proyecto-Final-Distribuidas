@@ -110,12 +110,43 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       throw error;
     }
 
-    // Si es 401, borra el token corrupto para evitar loops
+    // Si es 401, verificar si es un problema de token o de servicio
     if (response.status === 401) {
-      try {
-        localStorage.removeItem("auth");
-      } catch {
-        /* ignore */
+      // Solo redirigir al login si el error es específicamente de token inválido/expirado
+      // No redirigir si es un error de servicio no disponible o gRPC
+      const isTokenError = 
+        details.includes("Invalid token") || 
+        details.includes("Token expired") ||
+        (details.includes("Unauthorized") && !details.includes("gRPC") && !details.includes("Bad gRPC"));
+      
+      // Si es un error de gRPC o servicio no disponible, NO limpiar el token
+      const isServiceError = 
+        details.includes("gRPC") || 
+        details.includes("Bad gRPC") ||
+        details.includes("Service Unavailable");
+      
+      if (isTokenError && !isServiceError) {
+        try {
+          localStorage.removeItem("auth");
+          localStorage.removeItem("token"); // Limpiar también tokens legacy
+          // Solo redirigir si no estamos ya en la página de login
+          if (!window.location.pathname.includes("/auth/login")) {
+            console.warn("⚠️ Token inválido o expirado. Redirigiendo al login...");
+            // Usar setTimeout para evitar problemas con el estado de React
+            setTimeout(() => {
+              window.location.href = "/auth/login";
+            }, 100);
+          }
+        } catch {
+          /* ignore */
+        }
+      } else if (isServiceError) {
+        // Si es un error de servicio, solo loguear el error sin cerrar sesión
+        console.warn("⚠️ Error 401 por servicio no disponible:", details);
+        console.warn("💡 Verifica que AdminService esté corriendo");
+      } else {
+        // Otros errores 401, solo limpiar token si es explícitamente de autenticación
+        console.warn("⚠️ Error 401:", details);
       }
     }
 
