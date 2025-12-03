@@ -355,12 +355,12 @@ public class RoutesService : RoutesProtoService
         }
         else
         {
-            route.RealDistanceKm = route.EstimatedDistanceKm;
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_DISTANCE_TRAVELED_MUST_BE_PROVIDED"));
         }
         route.Status = RouteStatesDomain.Completed;
         var vehicleId = route.VehicleId.HasValue ? route.VehicleId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "VEHICLE_NOT_FOUND_CORRUP_ROUTE"));
         var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_FOUND_CORRUP_ROUTE"));
-        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters <= 0 ? route.EstimatedFuelConsumptionLiters : request.RealFuelConsumptionLiters;
+        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters > 0 ? request.RealFuelConsumptionLiters : throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_FUEL_CONSUMPTION_MUST_BE_PROVIDED"));
         await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer);
         await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
