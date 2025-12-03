@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersPage from "./pages/admin/UsersPage";
 import AdminDrivers from "./pages/admin/AdminDrivers";
 import AdminVehicles from "./pages/admin/AdminVehicles";
+import AdminReports from "./pages/admin/AdminReports";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import SupervisorVehicles from "./pages/supervisor/SupervisorVehicles";
 import SupervisorDrivers from "./pages/supervisor/SupervisorDrivers";
@@ -42,6 +43,7 @@ const App: React.FC = () => {
                 <Route path="users" element={<UsersPage />} />
                 <Route path="drivers" element={<AdminDrivers />} />
                 <Route path="vehicles" element={<AdminVehicles />} />
+                <Route path="reports" element={<AdminReports />} />
               </Route>
             </Route>
 

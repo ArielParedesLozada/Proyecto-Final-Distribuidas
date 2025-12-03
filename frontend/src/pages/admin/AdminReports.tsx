@@ -50,7 +50,7 @@ interface ConsumptionComparisonResponse {
   summary: ComparisonSummary;
 }
 
-const SupervisorReports: React.FC = () => {
+const AdminReports: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'machinery' | 'comparison'>('machinery');
@@ -237,7 +237,7 @@ const SupervisorReports: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent mb-2">
             Reportes de Combustible
           </h1>
           <p className="text-slate-400">Análisis de consumo y rendimiento</p>
@@ -250,7 +250,7 @@ const SupervisorReports: React.FC = () => {
           onClick={() => setActiveTab('machinery')}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'machinery'
-              ? 'text-amber-400 border-b-2 border-amber-400'
+              ? 'text-red-400 border-b-2 border-red-400'
               : 'text-slate-400 hover:text-slate-300'
           }`}
         >
@@ -263,7 +263,7 @@ const SupervisorReports: React.FC = () => {
           onClick={() => setActiveTab('comparison')}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'comparison'
-              ? 'text-amber-400 border-b-2 border-amber-400'
+              ? 'text-red-400 border-b-2 border-red-400'
               : 'text-slate-400 hover:text-slate-300'
           }`}
         >
@@ -283,7 +283,7 @@ const SupervisorReports: React.FC = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -292,7 +292,7 @@ const SupervisorReports: React.FC = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -300,7 +300,7 @@ const SupervisorReports: React.FC = () => {
             <select
               value={machineryType === null ? '' : machineryType}
               onChange={(e) => setMachineryType(e.target.value === '' ? null : parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">Todos</option>
               <option value="0">Liviano</option>
@@ -309,7 +309,7 @@ const SupervisorReports: React.FC = () => {
           </div>
           <button
             onClick={handleApplyFilters}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
           >
             <Filter className="w-4 h-4" />
             Aplicar Filtros
@@ -320,7 +320,7 @@ const SupervisorReports: React.FC = () => {
       {/* Contenido de Reportes */}
       {loading ? (
         <div className="fuel-card p-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-red-400 mx-auto mb-4" />
           <p className="text-slate-400">Cargando reporte...</p>
         </div>
       ) : error ? (
@@ -569,4 +569,5 @@ const SupervisorReports: React.FC = () => {
   );
 };
 
-export default SupervisorReports;
+export default AdminReports;
+

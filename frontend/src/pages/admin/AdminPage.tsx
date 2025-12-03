@@ -34,6 +34,12 @@ const adminNavItems = [
     icon: <Car className="w-5 h-5" />
   },
   {
+    key: "reports",
+    label: "Reportes",
+    to: "/admin/dashboard/reports",
+    icon: <BarChart3 className="w-5 h-5" />
+  },
+  {
     key: "settings",
     label: "Configuración",
     to: "/admin/dashboard/settings",

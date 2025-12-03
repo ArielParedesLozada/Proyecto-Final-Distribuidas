@@ -70,6 +70,7 @@ export class ServiceDiscovery {
         try {
             const instances = await this.eurekaClient.getInstancesByAppId(name);
             if (!instances || instances.length === 0) {
+                console.log(`[ServiceDiscovery] No instances found for ${name}`);
                 return null;
             }
             const instance = instances[Math.floor(Math.random() * instances.length)];
@@ -78,8 +79,13 @@ export class ServiceDiscovery {
             let port = instance.port.$;
             if (instance.metadata && instance.metadata.grpcPort) {
                 port = parseInt(instance.metadata.grpcPort, 10);
+                console.log(`[ServiceDiscovery] ${name} usando grpcPort de metadata: ${port} (puerto principal: ${instance.port.$})`);
+            } else {
+                console.log(`[ServiceDiscovery] ${name} usando puerto principal para gRPC: ${port} (metadata:`, instance.metadata, ')');
             }
-            return `${host}:${port}`;
+            const address = `${host}:${port}`;
+            console.log(`[ServiceDiscovery] Dirección gRPC para ${name}: ${address}`);
+            return address;
         } catch (err) {
             console.error(`⚠️ Error obteniendo dirección gRPC para ${name}:`, err.message);
             return null;

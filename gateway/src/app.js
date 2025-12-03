@@ -10,6 +10,8 @@ import { EurekaClient } from "./eureka/EurekaClient.js";
 import { ServiceDiscovery } from './eureka/ServiceDiscovery.js';
 import { VehicleClient } from './grpc/vehiclesClient.js';
 import { DriverClient } from './grpc/driversClient.js';
+import { FuelClient } from './grpc/fuelClient.js';
+import { FuelRoutes } from './routes/fuel.js';
 import { CommonRoutes } from './routes/CommonRoutes.js';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
@@ -58,11 +60,15 @@ const vehicleRoutes = new VehicleRoutes(vehicleClient)
 const driverClient = new DriverClient(serviceDiscovery, process.env.DRIVER_PROTO_PATH || "../services/Protos/drivers.proto")
 await driverClient.start()
 const driverRoutes = new DriverRoutes(driverClient)
+const fuelClient = new FuelClient(serviceDiscovery, process.env.FUEL_PROTO_PATH || "../services/Protos/fuel.proto")
+await fuelClient.start()
+const fuelRoutes = new FuelRoutes(fuelClient)
 await adminRoutes.start()
 await authRoutes.start()
 await vehicleRoutes.start()
 await driverRoutes.start()
 await routeRoutes.start()
+await fuelRoutes.start()
 
 
 app.use(adminRoutes.router)
@@ -71,6 +77,7 @@ app.use(routeRoutes.router)
 app.use(express.json());
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);
+app.use('/', fuelRoutes.router);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {
