@@ -3,6 +3,7 @@
 export interface Vehicle {
   id: string;
   plate: string;
+  machinery: 0 | 1;
   type: string;
   brand: string;
   model: string;

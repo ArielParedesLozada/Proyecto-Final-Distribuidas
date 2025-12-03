@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RouteService.Data.Databases;
 using RouteService.Data.Repository;
-using RouteService.Infraestructure;
+using RouteService.Infraestructure.Coordinates;
 using RouteDomain = RouteService.Domain.Route;
 
 namespace RouteService.Config;

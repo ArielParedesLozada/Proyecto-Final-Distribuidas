@@ -9,7 +9,7 @@ services:
       - POSTGRESQL_REPLICATION_MODE=master
       - POSTGRESQL_USERNAME=user
       - POSTGRESQL_PASSWORD=clave_piola
-      - POSTGRESQL_DATABASE=prueba-distribuidas
+      - POSTGRESQL_DATABASE=proyecto-distribuidas
       - POSTGRESQL_REPLICATION_USER=user_r
       - POSTGRESQL_REPLICATION_PASSWORD=clave_piola
     volumes:
@@ -26,7 +26,7 @@ services:
       - POSTGRESQL_REPLICATION_MODE=slave
       - POSTGRESQL_USERNAME=user
       - POSTGRESQL_PASSWORD=clave_piola
-      - POSTGRESQL_DATABASE=prueba-distribuidas
+      - POSTGRESQL_DATABASE=proyecto-distribuidas
       - POSTGRESQL_MASTER_HOST=postgres_master
       - POSTGRESQL_MASTER_PORT_NUMBER=5432
       - POSTGRESQL_REPLICATION_USER=user_r

@@ -80,6 +80,10 @@ namespace VehicleService.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<int>("Machinery")
+                        .HasColumnType("integer")
+                        .HasColumnName("machinery");
+
                     b.Property<string>("Model")
                         .IsRequired()
                         .HasColumnType("text")
@@ -117,6 +121,9 @@ namespace VehicleService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Machinery")
+                        .HasDatabaseName("IX_vehicles_machinery");
+
                     b.HasIndex("Plate")
                         .IsUnique()
                         .HasDatabaseName("IX_vehicles_plate_unique");
@@ -131,6 +138,15 @@ namespace VehicleService.Migrations
                         {
                             t.HasCheckConstraint("CK_vehicles_year", "year BETWEEN 1980 AND 2026");
                         });
+                });
+
+            modelBuilder.Entity("VehiclesService.Models.DriverVehicle", b =>
+                {
+                    b.HasOne("VehiclesService.Models.Vehicle", null)
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

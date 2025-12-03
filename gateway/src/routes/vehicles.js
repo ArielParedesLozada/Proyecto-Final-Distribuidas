@@ -15,10 +15,11 @@ export class VehicleRoutes extends GrpcRoutesBase {
     this.router.post("/vehicles", auth, requireScopes("vehicles:create"), async (req, res) => {
       const grpc = await this.grpc(res);
       if (!grpc) return;
-      const { plate, type, brand, model, year, capacity_liters, odometer_km } = req.body;
+      const { plate, type, machinery, brand, model, year, capacity_liters, odometer_km } = req.body;
 
       const request = {
         plate,
+        machinery,
         type,
         brand,
         model,
@@ -26,6 +27,8 @@ export class VehicleRoutes extends GrpcRoutesBase {
         capacity_liters: this.toDouble(capacity_liters, 0),
         odometer_km: this.toInt(odometer_km, 0),
       };
+      console.log(request);
+      
       const caller = this.vehicleClient.client
       caller.CreateVehicle(request, this.mdFromHttp(req), (err, response) => {
         if (err) return mapGrpcError(err, res);
@@ -84,10 +87,11 @@ export class VehicleRoutes extends GrpcRoutesBase {
       const grpc = await this.grpc(res);
       if (!grpc) return;
       const { id } = req.params;
-      const { type, brand, model, year, capacity_liters, odometer_km } = req.body;
+      const { type, brand, machinery, model, year, capacity_liters, odometer_km } = req.body;
 
       const request = {
         id,
+        machinery,
         type,
         brand,
         model,

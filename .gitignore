@@ -7,3 +7,6 @@
 !/docker/postgres-replication/docker-compose.yml
 /docker/seq/*
 !/docker/seq/docker-compose.yml
+docker/postgres-citus/*
+!docker/postgres-citus/docker-compose.yml
+!docker/postgres-citus/init/
