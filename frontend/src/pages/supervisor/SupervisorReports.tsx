@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ClipboardList, TrendingUp, Fuel, Calendar, Filter, Download, Loader2, AlertCircle } from 'lucide-react';
+import { ClipboardList, TrendingUp, Filter, Loader2, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../api/api';
 import { useToast } from '../../shared/ToastNotification';
@@ -50,10 +49,11 @@ interface ConsumptionComparisonResponse {
   summary: ComparisonSummary;
 }
 
+type ReportTab = 'general' | 'comparison';
+
 const SupervisorReports: React.FC = () => {
-  const navigate = useNavigate();
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'machinery' | 'comparison'>('machinery');
+  const [activeTab, setActiveTab] = useState<ReportTab>('general');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +65,7 @@ const SupervisorReports: React.FC = () => {
   // Datos de reportes
   const [machineryReport, setMachineryReport] = useState<ReportByMachineryTypeResponse | null>(null);
   const [comparisonData, setComparisonData] = useState<ConsumptionComparisonResponse | null>(null);
+  const [periodReport, setPeriodReport] = useState<any>(null);
 
   // Cargar reporte por tipo de maquinaria
   const fetchMachineryReport = async () => {
@@ -77,10 +78,32 @@ const SupervisorReports: React.FC = () => {
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
 
-      const response = await api<ReportByMachineryTypeResponse>(
+      const response = await api<any>(
         `/fuel/reports/machinery-type?${params.toString()}`
       );
-      setMachineryReport(response);
+      
+      console.log('Machinery report received:', response);
+      
+      // Transformar snake_case a camelCase si es necesario
+      const transformedResponse: ReportByMachineryTypeResponse = {
+        reports: (response.reports || []).map((report: any) => ({
+          machineryType: report.machinery_type ?? report.machineryType ?? 0,
+          totalEstimatedConsumption: report.total_estimated_consumption ?? report.totalEstimatedConsumption ?? 0,
+          totalRealConsumption: report.total_real_consumption ?? report.totalRealConsumption ?? 0,
+          totalDistanceKm: report.total_distance_km ?? report.totalDistanceKm ?? 0,
+          registerCount: report.register_count ?? report.registerCount ?? 0,
+          averageConsumptionPerKm: report.average_consumption_per_km ?? report.averageConsumptionPerKm ?? 0,
+          differenceLiters: report.difference_liters ?? report.differenceLiters ?? 0,
+          differencePercentage: report.difference_percentage ?? report.differencePercentage ?? 0,
+        })),
+        totalEstimatedConsumption: response.total_estimated_consumption ?? response.totalEstimatedConsumption ?? 0,
+        totalRealConsumption: response.total_real_consumption ?? response.totalRealConsumption ?? 0,
+        totalDistanceKm: response.total_distance_km ?? response.totalDistanceKm ?? 0,
+        totalRegisters: response.total_registers ?? response.totalRegisters ?? 0,
+      };
+      
+      console.log('Transformed machinery report:', transformedResponse);
+      setMachineryReport(transformedResponse);
     } catch (err: any) {
       console.error('Error fetching machinery report:', err);
       setError(err.message || 'Error al cargar el reporte');
@@ -139,16 +162,23 @@ const SupervisorReports: React.FC = () => {
     }
   };
 
-  // Cargar datos cuando cambia el tab o se aplican filtros
+  // Cargar datos automáticamente al montar y cuando cambian los filtros
   useEffect(() => {
-    if (activeTab === 'machinery') {
-      fetchMachineryReport();
-    } else {
+    if (activeTab === 'general') {
+      // Solo validar si hay fechas, sino cargar todo
+      if ((startDate || endDate) && !validateDates()) return;
+      fetchAllReports();
+    } else if (activeTab === 'comparison') {
+      // Solo validar si hay fechas, sino cargar todo
+      if ((startDate || endDate) && !validateDates()) return;
       fetchComparisonReport();
     }
   }, [activeTab, startDate, endDate, machineryType]);
 
-  const formatNumber = (num: number, decimals: number = 2) => {
+  const formatNumber = (num: number | undefined | null, decimals: number = 2) => {
+    if (num === undefined || num === null || isNaN(num)) {
+      return '0';
+    }
     return new Intl.NumberFormat('es-ES', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
@@ -176,13 +206,66 @@ const SupervisorReports: React.FC = () => {
     return 'text-yellow-400';
   };
 
-  const handleApplyFilters = () => {
-    if (activeTab === 'machinery') {
-      fetchMachineryReport();
-    } else {
-      fetchComparisonReport();
+  // Validar fechas: si hay fecha inicio, debe haber fecha fin
+  const validateDates = (): boolean => {
+    if (startDate && !endDate) {
+      addToast('Si seleccionas fecha de inicio, debes seleccionar también fecha de fin', 'error');
+      return false;
+    }
+    if (!startDate && endDate) {
+      addToast('Si seleccionas fecha de fin, debes seleccionar también fecha de inicio', 'error');
+      return false;
+    }
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      addToast('La fecha de inicio no puede ser mayor que la fecha de fin', 'error');
+      return false;
+    }
+    return true;
+  };
+
+  // Cargar todos los reportes para la pestaña general
+  const fetchAllReports = async () => {
+    // Solo validar fechas si ambas están presentes
+    if ((startDate || endDate) && !validateDates()) return;
+    
+    // Cargar el reporte general (periodReport) que incluye todo
+    await fetchPeriodReport();
+    // También cargar el reporte por tipo de maquinaria para mostrar mejor desglose
+    await fetchMachineryReport();
+  };
+
+  // Borrar todos los filtros
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setMachineryType(null);
+  };
+
+  // Cargar reporte por período (reporte general)
+  const fetchPeriodReport = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams();
+      if (startDate && endDate) {
+        params.append('start_date', startDate);
+        params.append('end_date', endDate);
+      }
+
+      const response = await api<any>(`/fuel/reports/general?${params.toString()}`);
+      console.log('Period report received:', response);
+      
+      setPeriodReport(response);
+    } catch (err: any) {
+      console.error('Error fetching period report:', err);
+      setError(err.message || 'Error al cargar el reporte');
+      addToast('Error al cargar el reporte', 'error');
+    } finally {
+      setLoading(false);
     }
   };
+
 
   // Agrupar datos por mes para el gráfico
   const monthlyData = useMemo(() => {
@@ -245,23 +328,23 @@ const SupervisorReports: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700">
+      <div className="flex gap-2 border-b border-slate-700 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('machinery')}
-          className={`px-4 py-2 font-medium transition-colors ${
-            activeTab === 'machinery'
+          onClick={() => setActiveTab('general')}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
+            activeTab === 'general'
               ? 'text-amber-400 border-b-2 border-amber-400'
               : 'text-slate-400 hover:text-slate-300'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Fuel className="w-4 h-4" />
-            Por Tipo de Maquinaria
+            <ClipboardList className="w-4 h-4" />
+            Reportes Generales
           </div>
         </button>
         <button
           onClick={() => setActiveTab('comparison')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'comparison'
               ? 'text-amber-400 border-b-2 border-amber-400'
               : 'text-slate-400 hover:text-slate-300'
@@ -308,11 +391,11 @@ const SupervisorReports: React.FC = () => {
             </select>
           </div>
           <button
-            onClick={handleApplyFilters}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            onClick={handleClearFilters}
+            className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center gap-2"
           >
             <Filter className="w-4 h-4" />
-            Aplicar Filtros
+            Borrar Filtros
           </button>
         </div>
       </div>
@@ -328,88 +411,134 @@ const SupervisorReports: React.FC = () => {
           <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-4" />
           <p className="text-red-400">{error}</p>
         </div>
-      ) : activeTab === 'machinery' ? (
-        /* Reporte por Tipo de Maquinaria */
+      ) : activeTab === 'general' ? (
+        /* Reportes Generales - Combinando todos los reportes */
         <div className="space-y-4">
-          {machineryReport && (
+          {/* Resumen General usando periodReport si está disponible, sino machineryReport */}
+          {(periodReport?.summary || machineryReport) && (periodReport?.summary?.totalRegisters ?? periodReport?.summary?.total_registers ?? machineryReport?.totalRegisters ?? 0) > 0 ? (
             <>
               {/* Resumen General */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="fuel-card p-4">
                   <div className="text-sm text-slate-400 mb-1">Total Estimado</div>
                   <div className="text-2xl font-bold text-blue-400">
-                    {formatNumber(machineryReport.totalEstimatedConsumption)} L
+                    {formatNumber(periodReport?.summary?.totalEstimatedConsumption ?? periodReport?.summary?.total_estimated_consumption ?? machineryReport?.totalEstimatedConsumption ?? 0)} L
                   </div>
                 </div>
                 <div className="fuel-card p-4">
                   <div className="text-sm text-slate-400 mb-1">Total Real</div>
                   <div className="text-2xl font-bold text-green-400">
-                    {formatNumber(machineryReport.totalRealConsumption)} L
+                    {formatNumber(periodReport?.summary?.totalRealConsumption ?? periodReport?.summary?.total_real_consumption ?? machineryReport?.totalRealConsumption ?? 0)} L
                   </div>
                 </div>
                 <div className="fuel-card p-4">
                   <div className="text-sm text-slate-400 mb-1">Distancia Total</div>
                   <div className="text-2xl font-bold text-purple-400">
-                    {formatNumber(machineryReport.totalDistanceKm)} km
+                    {formatNumber(periodReport?.summary?.totalDistanceKm ?? periodReport?.summary?.total_distance_km ?? machineryReport?.totalDistanceKm ?? 0)} km
                   </div>
                 </div>
                 <div className="fuel-card p-4">
                   <div className="text-sm text-slate-400 mb-1">Total Registros</div>
                   <div className="text-2xl font-bold text-amber-400">
-                    {machineryReport.totalRegisters}
+                    {periodReport?.summary?.totalRegisters ?? periodReport?.summary?.total_registers ?? machineryReport?.totalRegisters ?? 0}
                   </div>
                 </div>
               </div>
 
-              {/* Reportes por Tipo */}
-              <div className="fuel-card p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Desglose por Tipo de Maquinaria</h2>
-                <div className="space-y-4">
-                  {machineryReport.reports.map((report, index) => (
-                    <div key={index} className="border border-slate-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-white">
-                          {getMachineryTypeName(report.machineryType)}
-                        </h3>
-                        <span className="text-sm text-slate-400">{report.registerCount} registros</span>
+              {/* Reportes por Tipo de Maquinaria */}
+              {machineryReport && machineryReport.reports && machineryReport.reports.length > 0 && (
+                <div className="fuel-card p-6">
+                  <h2 className="text-xl font-semibold text-white mb-4">Desglose por Tipo de Maquinaria</h2>
+                  <div className="space-y-4">
+                    {machineryReport.reports.map((report, index) => (
+                      <div key={index} className="border border-slate-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-white">
+                            {getMachineryTypeName(report.machineryType)}
+                          </h3>
+                          <span className="text-sm text-slate-400">{report.registerCount} registros</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <div className="text-sm text-slate-400">Estimado</div>
+                            <div className="text-lg font-semibold text-blue-400">
+                              {formatNumber(report.totalEstimatedConsumption)} L
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-slate-400">Real</div>
+                            <div className="text-lg font-semibold text-green-400">
+                              {formatNumber(report.totalRealConsumption)} L
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-slate-400">Diferencia</div>
+                            <div className={`text-lg font-semibold ${getDifferenceColor(report.differencePercentage)}`}>
+                              {formatNumber(report.differenceLiters)} L ({formatNumber(report.differencePercentage)}%)
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-slate-400">Promedio/km</div>
+                            <div className="text-lg font-semibold text-purple-400">
+                              {formatNumber(report.averageConsumptionPerKm, 3)} L/km
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <div className="text-sm text-slate-400">Estimado</div>
-                          <div className="text-lg font-semibold text-blue-400">
-                            {formatNumber(report.totalEstimatedConsumption)} L
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-slate-400">Real</div>
-                          <div className="text-lg font-semibold text-green-400">
-                            {formatNumber(report.totalRealConsumption)} L
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-slate-400">Diferencia</div>
-                          <div className={`text-lg font-semibold ${getDifferenceColor(report.differencePercentage)}`}>
-                            {formatNumber(report.differenceLiters)} L ({formatNumber(report.differencePercentage)}%)
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-slate-400">Promedio/km</div>
-                          <div className="text-lg font-semibold text-purple-400">
-                            {formatNumber(report.averageConsumptionPerKm, 3)} L/km
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Consumo Diario */}
+              {periodReport?.dailyConsumption && periodReport.dailyConsumption.length > 0 && (
+                <div className="fuel-card p-6">
+                  <h2 className="text-xl font-semibold text-white mb-4">Consumo Diario</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="py-3 px-4 text-left text-slate-300">Fecha</th>
+                          <th className="py-3 px-4 text-right text-slate-300">Estimado (L)</th>
+                          <th className="py-3 px-4 text-right text-slate-300">Real (L)</th>
+                          <th className="py-3 px-4 text-right text-slate-300">Distancia (km)</th>
+                          <th className="py-3 px-4 text-right text-slate-300">Registros</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {periodReport.dailyConsumption.map((daily: any, index: number) => (
+                          <tr key={index} className="border-b border-slate-800 hover:bg-slate-800/50">
+                            <td className="py-3 px-4 text-slate-300">{daily.date ?? daily.Date ?? ''}</td>
+                            <td className="py-3 px-4 text-right text-blue-400">{formatNumber(daily.estimatedConsumption ?? daily.estimated_consumption ?? 0)}</td>
+                            <td className="py-3 px-4 text-right text-green-400">{formatNumber(daily.realConsumption ?? daily.real_consumption ?? 0)}</td>
+                            <td className="py-3 px-4 text-right text-slate-300">{formatNumber(daily.distanceKm ?? daily.distance_km ?? 0)}</td>
+                            <td className="py-3 px-4 text-right text-slate-300">{daily.registerCount ?? daily.register_count ?? 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
+          ) : (periodReport?.summary || machineryReport) && (periodReport?.summary?.totalRegisters ?? periodReport?.summary?.total_registers ?? machineryReport?.totalRegisters ?? 0) === 0 ? (
+            <div className="fuel-card p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-400 text-lg mb-2">No hay datos disponibles</p>
+              <p className="text-slate-500 text-sm">No se encontraron registros de combustible con los filtros seleccionados</p>
+            </div>
+          ) : (
+            <div className="fuel-card p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-400 text-lg mb-2">Cargando datos...</p>
+              <p className="text-slate-500 text-sm">Los datos se están cargando automáticamente</p>
+            </div>
           )}
         </div>
       ) : (
         /* Comparación Estimado vs Real */
         <div className="space-y-4">
-          {comparisonData && (
+          {comparisonData && comparisonData.summary && comparisonData.summary.totalRoutes > 0 ? (
             <>
               {/* Resumen de Comparación */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -562,6 +691,18 @@ const SupervisorReports: React.FC = () => {
                 </div>
               </div>
             </>
+          ) : comparisonData && comparisonData.summary && comparisonData.summary.totalRoutes === 0 ? (
+            <div className="fuel-card p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-400 text-lg mb-2">No hay datos disponibles</p>
+              <p className="text-slate-500 text-sm">No se encontraron registros de combustible con los filtros seleccionados</p>
+            </div>
+          ) : (
+            <div className="fuel-card p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-400 text-lg mb-2">Cargando datos...</p>
+              <p className="text-slate-500 text-sm">Los datos se están cargando automáticamente</p>
+            </div>
           )}
         </div>
       )}

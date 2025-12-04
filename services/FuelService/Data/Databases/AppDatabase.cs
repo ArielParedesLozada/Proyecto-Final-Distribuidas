@@ -18,6 +18,8 @@ public class AppDatabase : DbContext
 
             entity.HasIndex(r => r.VehicleMachinery);
             entity.HasIndex(r => r.RouteId);
+            entity.HasIndex(r => r.VehicleId);
+            entity.HasIndex(r => r.DriverId);
             entity.HasIndex(r => r.CompletedAt);
             entity.HasIndex(r => r.Timestamp);
         });

@@ -1,7 +1,10 @@
 using FuelService.Config;
 using FuelService.Data.Databases;
+using FuelService.Data.Repository;
 using FuelService.Services;
 using FuelService.Queue.Consumer;
+using FuelService.Domain.UseCases;
+using FuelService.Domain.Events;
 using Steeltoe.Discovery.Eureka;
 using Serilog;
 using Serilog.Events;
@@ -43,6 +46,8 @@ var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")
 var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT") ?? "5126");
 var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT") ?? "5127");
 var JWT_TIME = double.Parse(Environment.GetEnvironmentVariable("JWT_TIME") ?? "2");
+var RABBITMQ_HOST = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+var RABBITMQ_PORT = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672");
 
 // ====== Configuración de Kestrel ======
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
@@ -56,6 +61,20 @@ builder.Services
 
 builder.Services.AddSingleton<HealthServiceImpl>();
 builder.Services.AddHttpContextAccessor();
+
+// ====== RabbitMQ Consumer para consumo de combustible ======
+builder.Services.AddScoped<RegisterFuelConsumptionAction>();
+builder.Services.AddHostedService(provider =>
+{
+    var action = provider.CreateScope().ServiceProvider.GetRequiredService<RegisterFuelConsumptionAction>();
+    return new EventConsumer<FuelConsumptionMessage>(
+        RABBITMQ_HOST,
+        RABBITMQ_PORT,
+        "fuel.consumption.queue", // Queue name
+        "fuel.events", // Exchange/Topic name
+        action
+    );
+});
 
 // ====== Health Check ======
 var app = builder.Build();

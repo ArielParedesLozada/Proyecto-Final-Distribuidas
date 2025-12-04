@@ -22,14 +22,16 @@ public class RoutesService : RoutesProtoService
     private readonly IRepository<Route, Guid> _repository;
     private readonly VehicleClient _vehicleClient;
     private readonly DriverClient _driverClient;
+    private readonly FuelClient _fuelClient;
     private readonly DistanceValidator _distanceValidator;
     private readonly AppDatabase _dbContext;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator, AppDatabase dbContext)
+    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, FuelClient fuelClient, DistanceValidator distanceValidator, AppDatabase dbContext)
     {
         _repository = repository;
         _vehicleClient = vehicleClient;
         _driverClient = driverClient;
+        _fuelClient = fuelClient;
         _distanceValidator = distanceValidator;
         _dbContext = dbContext;
     }
@@ -393,9 +395,26 @@ public class RoutesService : RoutesProtoService
         var vehicleId = route.VehicleId.HasValue ? route.VehicleId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "VEHICLE_NOT_FOUND_CORRUP_ROUTE"));
         var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_FOUND_CORRUP_ROUTE"));
         route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters > 0 ? request.RealFuelConsumptionLiters : throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_FUEL_CONSUMPTION_MUST_BE_PROVIDED"));
+        
+        // Obtener el vehículo para saber el tipo de maquinaria
+        var vehicle = await _vehicleClient.GetVehicle(vehicleId, bearer);
+        var machineryType = vehicle?.Machinery ?? 0; // 0 = LIVIANO por defecto
+        
         await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer);
         await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
+        
+        // Registrar consumo de combustible en FuelService
+        try
+        {
+            await _fuelClient.RegisterFuelConsumption(route, (int)machineryType, bearer);
+        }
+        catch (Exception ex)
+        {
+            // Log el error pero no fallar la finalización de la ruta
+            Console.WriteLine($"[RoutesService] Error al registrar consumo en FuelService: {ex.Message}");
+        }
+        
         return MapToProto(route);
     }
     [Authorize(Policy = "routes:delete")]

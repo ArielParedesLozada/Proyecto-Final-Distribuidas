@@ -100,6 +100,93 @@ export class FuelRoutes extends GrpcRoutesBase {
         res.json(response);
       });
     });
+
+    /** GET /fuel/reports/vehicle - Reporte por vehículo */
+    this.router.get("/fuel/reports/vehicle", auth, (req, res, next) => {
+      const roleClaim = req.auth?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] 
+        || req.auth?.role 
+        || req.auth?.roles 
+        || "";
+      const rolesStr = Array.isArray(roleClaim) ? roleClaim.join(",") : String(roleClaim);
+      const userRoles = rolesStr.split(/[,\s]+/).filter(Boolean).map(r => r.toUpperCase());
+      if (userRoles.includes("ADMIN") || userRoles.includes("SUPERVISOR")) {
+        return next();
+      }
+      return res.status(403).json({ error: "Forbidden (requires ADMIN or SUPERVISOR role)" });
+    }, async (req, res) => {
+      const { vehicle_id, start_date, end_date } = req.query;
+      
+      const request = {
+        vehicleId: vehicle_id || "",
+        startDate: start_date || "",
+        endDate: end_date || "",
+      };
+
+      const caller = await this.grpc(res);
+      if (!caller) return;
+      caller.GetReportByVehicle(request, this.mdFromHttp(req), (err, response) => {
+        if (err) return mapGrpcError(err, res);
+        res.json(response);
+      });
+    });
+
+    /** GET /fuel/reports/driver - Reporte por chofer */
+    this.router.get("/fuel/reports/driver", auth, (req, res, next) => {
+      const roleClaim = req.auth?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] 
+        || req.auth?.role 
+        || req.auth?.roles 
+        || "";
+      const rolesStr = Array.isArray(roleClaim) ? roleClaim.join(",") : String(roleClaim);
+      const userRoles = rolesStr.split(/[,\s]+/).filter(Boolean).map(r => r.toUpperCase());
+      if (userRoles.includes("ADMIN") || userRoles.includes("SUPERVISOR")) {
+        return next();
+      }
+      return res.status(403).json({ error: "Forbidden (requires ADMIN or SUPERVISOR role)" });
+    }, async (req, res) => {
+      const { driver_id, start_date, end_date } = req.query;
+      
+      const request = {
+        driverId: driver_id || "",
+        startDate: start_date || "",
+        endDate: end_date || "",
+      };
+
+      const caller = await this.grpc(res);
+      if (!caller) return;
+      caller.GetReportByDriver(request, this.mdFromHttp(req), (err, response) => {
+        if (err) return mapGrpcError(err, res);
+        res.json(response);
+      });
+    });
+
+    /** GET /fuel/reports/route - Reporte por ruta */
+    this.router.get("/fuel/reports/route", auth, (req, res, next) => {
+      const roleClaim = req.auth?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] 
+        || req.auth?.role 
+        || req.auth?.roles 
+        || "";
+      const rolesStr = Array.isArray(roleClaim) ? roleClaim.join(",") : String(roleClaim);
+      const userRoles = rolesStr.split(/[,\s]+/).filter(Boolean).map(r => r.toUpperCase());
+      if (userRoles.includes("ADMIN") || userRoles.includes("SUPERVISOR")) {
+        return next();
+      }
+      return res.status(403).json({ error: "Forbidden (requires ADMIN or SUPERVISOR role)" });
+    }, async (req, res) => {
+      const { route_id, start_date, end_date } = req.query;
+      
+      const request = {
+        routeId: route_id || "",
+        startDate: start_date || "",
+        endDate: end_date || "",
+      };
+
+      const caller = await this.grpc(res);
+      if (!caller) return;
+      caller.GetReportByRoute(request, this.mdFromHttp(req), (err, response) => {
+        if (err) return mapGrpcError(err, res);
+        res.json(response);
+      });
+    });
   }
 }
 
