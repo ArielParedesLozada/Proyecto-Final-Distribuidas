@@ -60,16 +60,26 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
     ...(init?.headers as Record<string, string> | undefined),
   };
 
+  // Agregar timeout de 30 segundos
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.error("⏱️ Timeout: La petición tardó más de 30 segundos");
+  }, 30000);
+
   const fetchOptions: RequestInit = {
     // No usamos cookies/sesión del navegador
     credentials: "omit",
     ...init,
     headers,
+    signal: controller.signal,
   };
 
-  const response = await fetch(fullUrl, fetchOptions);
+  try {
+    const response = await fetch(fullUrl, fetchOptions);
+    clearTimeout(timeoutId);
 
-  if (!response.ok) {
+    if (!response.ok) {
     // Si el server devolvió JSON o texto, intenta dar más contexto:
     let details = "";
     let errorCode: string | undefined;
@@ -150,19 +160,26 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       }
     }
 
-    // Para otros errores, log normal
-    console.error("❌ API Error:", msg);
-    throw new Error(msg);
-  }
+      // Para otros errores, log normal
+      console.error("❌ API Error:", msg);
+      throw new Error(msg);
+    }
 
-  // 204 No Content
-  if (response.status === 204) return undefined as unknown as T;
+    // 204 No Content
+    if (response.status === 204) return undefined as unknown as T;
 
-  const ct = response.headers.get("content-type")?.toLowerCase() || "";
-  if (ct.includes("application/json")) {
-    return (await response.json()) as T;
+    const ct = response.headers.get("content-type")?.toLowerCase() || "";
+    if (ct.includes("application/json")) {
+      return (await response.json()) as T;
+    }
+    return (await response.text()) as unknown as T;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('La petición tardó demasiado tiempo. Verifica que el servicio esté disponible.');
+    }
+    throw error;
   }
-  return (await response.text()) as unknown as T;
 }
 
 export { API_BASE_URL };

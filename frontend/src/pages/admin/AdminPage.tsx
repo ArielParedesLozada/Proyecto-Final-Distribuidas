@@ -4,7 +4,7 @@ import Sidebar from "../../shared/Sidebar";
 import ScrollableContainer from "../../shared/ScrollableContainer";
 import { useAuth } from "../../hooks/useAuth";
 import BackgroundEffects from "../../components/auth/BackgroundEffects";
-import { User, Loader2, Settings, Users, BarChart3, Shield, Truck, Car } from "lucide-react";
+import { User, Loader2, Settings, Users, BarChart3, Shield, Truck, Car, Route } from "lucide-react";
 
 // Items de navegación para admin
 const adminNavItems = [
@@ -32,6 +32,12 @@ const adminNavItems = [
     label: "Vehículos",
     to: "/admin/dashboard/vehicles",
     icon: <Car className="w-5 h-5" />
+  },
+  {
+    key: "routes",
+    label: "Rutas",
+    to: "/admin/dashboard/routes",
+    icon: <Route className="w-5 h-5" />
   },
   {
     key: "settings",

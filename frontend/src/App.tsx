@@ -10,10 +10,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersPage from "./pages/admin/UsersPage";
 import AdminDrivers from "./pages/admin/AdminDrivers";
 import AdminVehicles from "./pages/admin/AdminVehicles";
+import AdminRoutes from "./pages/admin/AdminRoutes";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import SupervisorVehicles from "./pages/supervisor/SupervisorVehicles";
 import SupervisorDrivers from "./pages/supervisor/SupervisorDrivers";
 import SupervisorReports from "./pages/supervisor/SupervisorReports";
+import SupervisorRoutes from "./pages/supervisor/SupervisorRoutes";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { ToastProvider } from "./shared/ToastNotification";
 import DriverDashboard from "./components/drivers/DriverDashboard";
@@ -42,6 +44,7 @@ const App: React.FC = () => {
                 <Route path="users" element={<UsersPage />} />
                 <Route path="drivers" element={<AdminDrivers />} />
                 <Route path="vehicles" element={<AdminVehicles />} />
+                <Route path="routes" element={<AdminRoutes />} />
               </Route>
             </Route>
 
@@ -51,6 +54,7 @@ const App: React.FC = () => {
               <Route index element={<SupervisorDashboard />} />
               <Route path="vehicles" element={<SupervisorVehicles />} />
               <Route path="drivers" element={<SupervisorDrivers />} />
+              <Route path="routes" element={<SupervisorRoutes />} />
               <Route path="reports" element={<SupervisorReports />} />
             </Route>
           </Route>
