@@ -4,7 +4,7 @@ import Sidebar from "../../shared/Sidebar";
 import ScrollableContainer from "../../shared/ScrollableContainer";
 import { useAuth } from "../../hooks/useAuth";
 import BackgroundEffects from "../../components/auth/BackgroundEffects";
-import { User, Loader2, Settings, Users, BarChart3, Shield, Truck, Car, Route } from "lucide-react";
+import { User, Loader2, Users, BarChart3, Shield, Truck, Car, Route, Settings } from "lucide-react";
 
 // Items de navegación para admin
 const adminNavItems = [
@@ -50,8 +50,7 @@ const adminNavItems = [
   label: "Configuración",
   to: "/admin/dashboard/settings",
   icon: <Settings className="w-5 h-5" />,
-},
-
+}
 ];
 
 const AdminPage: React.FC = () => {

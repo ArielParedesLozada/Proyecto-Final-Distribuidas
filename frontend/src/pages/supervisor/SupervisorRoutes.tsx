@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Route, Plus, List, Loader2, UserCheck, AlertCircle } from 'lucide-react';
+import { Route, Plus, List, Loader2, UserCheck, AlertCircle, Car, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { CreateRouteForm, type CreateRouteFormData } from '../../components/admin/routes';
 import { api } from '../../api/api';
 import { useToast } from '../../shared/ToastNotification';
 import { formatErrorMessage } from '../../utils/errorTranslations';
 import type { RouteProto, ListRoutesResponse } from '../../types/trip';
 import type { Driver, DriversListResponse, DriverResponse } from '../../types/driver';
+import type { Vehicle, VehicleResponse } from '../../types/vehicle';
 import Tabs from '../../shared/Tabs';
 import Pagination from '../../shared/Pagination';
 
@@ -43,6 +44,12 @@ const SupervisorRoutes: React.FC = () => {
   
   // Estado para almacenar información de conductores (driver_id -> Driver)
   const [driversMap, setDriversMap] = useState<Record<string, Driver>>({});
+  
+  // Estado para almacenar información de vehículos (vehicle_id -> Vehicle)
+  const [vehiclesMap, setVehiclesMap] = useState<Record<string, Vehicle>>({});
+  
+  // Estado para controlar qué rutas tienen las observaciones expandidas
+  const [expandedObservations, setExpandedObservations] = useState<Set<string>>(new Set());
   
   // Estado para el filtro por conductor
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('');
@@ -143,6 +150,9 @@ const SupervisorRoutes: React.FC = () => {
 
   // Función para mapear datos de la API (snake_case) al formato esperado (camelCase)
   const mapRouteFromApi = (route: any): RouteProto => {
+    // Mapear observaciones si vienen en la respuesta
+    const observations = route.observations || [];
+    
     return {
       id: route.id || route.route_id || '',
       driverVehicleId: route.driver_vehicle_id || route.driverVehicleId || '',
@@ -167,6 +177,13 @@ const SupervisorRoutes: React.FC = () => {
       realDistanceKm: route.real_distance_km || route.realDistanceKm || 0,
       estimatedFuelConsumptionLiters: route.estimated_fuel_consumption_liters || route.estimatedFuelConsumptionLiters || 0,
       realFuelConsumptionLiters: route.real_fuel_consumption_liters || route.realFuelConsumptionLiters || 0,
+      observations: observations.map((obs: any) => ({
+        id: obs.id || '',
+        routeId: obs.route_id || obs.routeId || '',
+        text: obs.text || '',
+        createdAt: obs.created_at || obs.createdAt || '',
+        createdBy: obs.created_by || obs.createdBy || '',
+      })),
     };
   };
 
@@ -177,6 +194,17 @@ const SupervisorRoutes: React.FC = () => {
       return response.driver || null;
     } catch (error) {
       console.error(`❌ Error al cargar conductor ${driverId}:`, error);
+      return null;
+    }
+  };
+  
+  const loadVehicleById = async (vehicleId: string): Promise<Vehicle | null> => {
+    try {
+      const response = await api<VehicleResponse>(`/vehicles/${vehicleId}`);
+      // La API puede devolver { vehicle: {...} } o directamente el vehículo
+      return response.vehicle || null;
+    } catch (error) {
+      console.error(`❌ Error al cargar vehículo ${vehicleId}:`, error);
       return null;
     }
   };
@@ -196,11 +224,15 @@ const SupervisorRoutes: React.FC = () => {
       setRoutes(mappedRoutes.slice(startIndex, endIndex));
       setTotalCount(mappedRoutes.length);
       
-      // Cargar información de conductores para rutas asignadas
+      // Cargar información de conductores y vehículos para rutas asignadas
       const uniqueDriverIds = new Set<string>();
+      const uniqueVehicleIds = new Set<string>();
       mappedRoutes.forEach(route => {
         if (route.driverId && route.status !== 'ROUTE_STATE_UNASSIGNED') {
           uniqueDriverIds.add(route.driverId);
+        }
+        if (route.vehicleId && route.status !== 'ROUTE_STATE_UNASSIGNED') {
+          uniqueVehicleIds.add(route.vehicleId);
         }
       });
       
@@ -218,6 +250,22 @@ const SupervisorRoutes: React.FC = () => {
           }
         });
         setDriversMap(newDriversMap);
+      }
+      
+      // Cargar información de vehículos que aún no tenemos
+      const vehiclesToLoad = Array.from(uniqueVehicleIds).filter(id => !vehiclesMap[id]);
+      if (vehiclesToLoad.length > 0) {
+        const vehiclesData = await Promise.all(
+          vehiclesToLoad.map(id => loadVehicleById(id))
+        );
+        
+        const newVehiclesMap: Record<string, Vehicle> = { ...vehiclesMap };
+        vehiclesData.forEach((vehicle, index) => {
+          if (vehicle) {
+            newVehiclesMap[vehiclesToLoad[index]] = vehicle;
+          }
+        });
+        setVehiclesMap(newVehiclesMap);
       }
     } catch (error: any) {
       console.error('❌ Error al cargar rutas:', error);
@@ -604,21 +652,39 @@ const SupervisorRoutes: React.FC = () => {
                               <h3 className="text-lg font-semibold text-white">
                                 {route.originName || 'Sin origen'} → {route.destinationName || 'Sin destino'}
                               </h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRouteStatusColor(route.status)}`}>
-                                {getRouteStatusLabel(route.status)}
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRouteStatusColor(typeof route.status === 'number' ? String(route.status) : route.status)}`}>
+                                {getRouteStatusLabel(typeof route.status === 'number' ? String(route.status) : route.status)}
                               </span>
                             </div>
-                            {/* Mostrar información del conductor si la ruta está asignada */}
+                            {/* Mostrar información del conductor y vehículo si la ruta está asignada */}
                             {route.driverId && route.status !== 'ROUTE_STATE_UNASSIGNED' && driversMap[route.driverId] && (
-                              <div className="flex items-center gap-2 mb-3 p-2 bg-slate-600/30 rounded-lg">
-                                <UserCheck className="w-4 h-4 text-amber-400" />
-                                <span className="text-slate-300 text-sm">
-                                  <span className="text-slate-400">Conductor asignado: </span>
-                                  <span className="font-medium text-white">{driversMap[route.driverId].full_name}</span>
-                                  {driversMap[route.driverId].license_number && (
-                                    <span className="text-slate-500 ml-2">({driversMap[route.driverId].license_number})</span>
-                                  )}
-                                </span>
+                              <div className="space-y-2 mb-3">
+                                <div className="flex items-center gap-2 p-2 bg-slate-600/30 rounded-lg">
+                                  <UserCheck className="w-4 h-4 text-amber-400" />
+                                  <span className="text-slate-300 text-sm">
+                                    <span className="text-slate-400">Conductor asignado: </span>
+                                    <span className="font-medium text-white">{driversMap[route.driverId].full_name}</span>
+                                    {driversMap[route.driverId].license_number && (
+                                      <span className="text-slate-500 ml-2">({driversMap[route.driverId].license_number})</span>
+                                    )}
+                                  </span>
+                                </div>
+                                {route.vehicleId && vehiclesMap[route.vehicleId] && (
+                                  <div className="flex items-center gap-2 p-2 bg-slate-600/30 rounded-lg">
+                                    <Car className="w-4 h-4 text-green-400" />
+                                    <span className="text-slate-300 text-sm">
+                                      <span className="text-slate-400">Vehículo asignado: </span>
+                                      <span className="font-medium text-white">
+                                        {vehiclesMap[route.vehicleId].plate}
+                                      </span>
+                                      {(vehiclesMap[route.vehicleId].brand || vehiclesMap[route.vehicleId].model) && (
+                                        <span className="text-slate-500 ml-2">
+                                          ({vehiclesMap[route.vehicleId].brand} {vehiclesMap[route.vehicleId].model})
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
@@ -651,6 +717,54 @@ const SupervisorRoutes: React.FC = () => {
                                 </p>
                               </div>
                             </div>
+                            {/* Observaciones */}
+                            {(route.observations && route.observations.length > 0) && (
+                              <div className="mt-3 pt-3 border-t border-slate-600/50">
+                                <button
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedObservations);
+                                    if (newExpanded.has(route.id || '')) {
+                                      newExpanded.delete(route.id || '');
+                                    } else {
+                                      newExpanded.add(route.id || '');
+                                    }
+                                    setExpandedObservations(newExpanded);
+                                  }}
+                                  className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors w-full"
+                                >
+                                  <Clock className="w-4 h-4 text-blue-400" />
+                                  <span className="text-sm font-medium">
+                                    Observaciones ({route.observations.length})
+                                  </span>
+                                  {expandedObservations.has(route.id || '') ? (
+                                    <ChevronUp className="w-4 h-4 ml-auto" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 ml-auto" />
+                                  )}
+                                </button>
+                                {expandedObservations.has(route.id || '') && (
+                                  <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+                                    {route.observations.map((obs) => {
+                                      const obsDate = obs.createdAt || obs.created_at;
+                                      const obsText = obs.text || '';
+                                      const obsId = obs.id || '';
+                                      
+                                      return (
+                                        <div
+                                          key={obsId}
+                                          className="p-3 bg-slate-600/20 rounded-lg border border-slate-600/30"
+                                        >
+                                          <p className="text-sm text-white mb-1">{obsText}</p>
+                                          <p className="text-xs text-slate-400">
+                                            {obsDate ? new Date(obsDate).toLocaleString('es-ES') : 'Fecha desconocida'}
+                                          </p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <div className="mt-3 pt-3 border-t border-slate-600/50">
                               <span className="text-slate-400 text-xs">ID: </span>
                               <span className="text-slate-500 font-mono text-xs">{route.id}</span>
