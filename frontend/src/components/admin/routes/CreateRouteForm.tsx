@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Route, X } from 'lucide-react';
+import { MapPin, Navigation, Route } from 'lucide-react';
 import MapSelector from './MapSelector';
 
 export interface CreateRouteFormData {
@@ -415,28 +415,14 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
         {errors.distanceKm && (
           <p className="mt-1 text-sm text-red-400">{errors.distanceKm}</p>
         )}
-        {formData.coordinateStart.latitude !== 0 && formData.coordinateStop.latitude !== 0 && (
-          <p className="mt-1 text-xs text-slate-400">
-            💡 La distancia se calcula automáticamente en línea recta (con 2 decimales).
-          </p>
-        )}
       </div>
 
-      {/* Botones */}
-      <div className="flex gap-4 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <X className="w-4 h-4" />
-          Cancelar
-        </button>
+      {/* Botón Crear Ruta */}
+      <div className="flex justify-center pt-4">
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>

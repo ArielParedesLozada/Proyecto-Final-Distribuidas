@@ -121,28 +121,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     }
   }, [origin, destination]);
 
-  // Calcular distancia en línea recta (Haversine)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Radio de la Tierra en km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const distance = origin && destination 
-    ? (() => {
-        const calculated = calculateDistance(origin.lat, origin.lng, destination.lat, destination.lng);
-        // Redondear hacia arriba a 2 decimales para asegurar que siempre sea >= distancia real
-        return Math.ceil(calculated * 100) / 100;
-      })()
-    : 0;
 
   return (
     <div className="space-y-4">
@@ -251,34 +229,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             />
           )}
         </MapContainer>
-      </div>
-
-      {/* Información de coordenadas y distancia */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {origin && origin.lat !== 0 && origin.lng !== 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-            <p className="text-xs text-slate-400 mb-1">Origen</p>
-            <p className="text-sm text-white font-mono">
-              {origin.lat.toFixed(6)}, {origin.lng.toFixed(6)}
-            </p>
-          </div>
-        )}
-        {destination && destination.lat !== 0 && destination.lng !== 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-            <p className="text-xs text-slate-400 mb-1">Destino</p>
-            <p className="text-sm text-white font-mono">
-              {destination.lat.toFixed(6)}, {destination.lng.toFixed(6)}
-            </p>
-          </div>
-        )}
-        {origin && destination && origin.lat !== 0 && origin.lng !== 0 && destination.lat !== 0 && destination.lng !== 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-            <p className="text-xs text-slate-400 mb-1">Distancia (línea recta)</p>
-            <p className="text-sm text-white font-semibold">
-              {distance.toFixed(2)} km
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

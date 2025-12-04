@@ -40,7 +40,7 @@ const AdminRoutes: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 10;
+  const pageSize = 5;
   
   // Estado para almacenar información de conductores (driver_id -> Driver)
   const [driversMap, setDriversMap] = useState<Record<string, Driver>>({});
@@ -48,6 +48,9 @@ const AdminRoutes: React.FC = () => {
   // Estado para el filtro por conductor
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('');
   const [allDriversForFilter, setAllDriversForFilter] = useState<Driver[]>([]);
+  
+  // Estado para el filtro de rutas sin asignar
+  const [showUnassignedOnly, setShowUnassignedOnly] = useState<boolean>(false);
 
   // Estado para asignar rutas
   const [unassignedRoutes, setUnassignedRoutes] = useState<RouteProto[]>([]);
@@ -81,15 +84,27 @@ const AdminRoutes: React.FC = () => {
     }
   }, [selectedDriverFilter]);
 
-  // Filtrar rutas cuando cambia el filtro de conductor o la página
+  // Resetear página cuando cambia cualquier filtro
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDriverFilter, showUnassignedOnly]);
+
+  // Filtrar rutas cuando cambia el filtro de conductor, rutas sin asignar o la página
   useEffect(() => {
     if (allRoutes.length === 0) return; // Esperar a que se carguen las rutas
     
     let filteredRoutes = allRoutes;
     
+    // Aplicar filtro de rutas sin asignar si está activo
+    if (showUnassignedOnly) {
+      filteredRoutes = filteredRoutes.filter(route => 
+        route.status === 'ROUTE_STATE_UNASSIGNED' || !route.driverId
+      );
+    }
+    
     // Aplicar filtro por conductor si está seleccionado
     if (selectedDriverFilter) {
-      filteredRoutes = allRoutes.filter(route => route.driverId === selectedDriverFilter);
+      filteredRoutes = filteredRoutes.filter(route => route.driverId === selectedDriverFilter);
     }
     
     // Aplicar paginación
@@ -98,7 +113,7 @@ const AdminRoutes: React.FC = () => {
     setRoutes(filteredRoutes.slice(startIndex, endIndex));
     setTotalCount(filteredRoutes.length);
     setTotalPages(Math.ceil(filteredRoutes.length / pageSize) || 1);
-  }, [selectedDriverFilter, allRoutes, currentPage]);
+  }, [selectedDriverFilter, showUnassignedOnly, allRoutes, currentPage, pageSize]);
   
   // Cargar todos los conductores para el filtro
   const loadAllDriversForFilter = async () => {
@@ -445,16 +460,16 @@ const AdminRoutes: React.FC = () => {
       icon: <Plus className="w-4 h-4" />,
     },
     {
-      id: 'list',
-      label: 'Ver Rutas',
-      icon: <List className="w-4 h-4" />,
-      count: totalCount,
-    },
-    {
       id: 'assign',
       label: 'Asignar Ruta',
       icon: <UserCheck className="w-4 h-4" />,
       count: unassignedRoutes.length,
+    },
+    {
+      id: 'list',
+      label: 'Ver Rutas',
+      icon: <List className="w-4 h-4" />,
+      count: totalCount,
     },
   ];
 
@@ -490,40 +505,50 @@ const AdminRoutes: React.FC = () => {
                 isLoading={isLoading}
               />
             </div>
-
-            {/* Info Card */}
-            <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Plus className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-slate-300">
-                  <p className="font-medium text-blue-400 mb-1">Información importante:</p>
-                  <ul className="list-disc list-inside space-y-1 text-slate-400">
-                    <li>Las coordenadas deben estar en formato decimal (ej: -12.0464, -77.0428)</li>
-                    <li>La distancia debe ser en kilómetros y debe ser mayor o igual a la distancia real calculada entre las coordenadas</li>
-                    <li>La ruta se creará con estado "Sin Asignar" y podrá ser asignada posteriormente</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
         {activeTab === 'list' && (
           <div className="space-y-6">
-            {/* Filtro por conductor */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 backdrop-blur-sm">
+            {/* Filtros */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 backdrop-blur-sm space-y-4">
+              {/* Filtro de rutas sin asignar */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="unassigned-filter"
+                  checked={showUnassignedOnly}
+                  onChange={(e) => {
+                    setShowUnassignedOnly(e.target.checked);
+                    setCurrentPage(1);
+                  }}
+                  disabled={!!selectedDriverFilter} // Bloquear si hay un conductor seleccionado
+                  className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <label 
+                  htmlFor="unassigned-filter" 
+                  className={`text-sm font-medium cursor-pointer ${
+                    selectedDriverFilter ? 'text-slate-500 cursor-not-allowed' : 'text-white'
+                  }`}
+                >
+                  Mostrar solo rutas sin asignar
+                </label>
+              </div>
+
+              {/* Filtro por conductor */}
               <div className="flex items-center gap-4">
                 <label htmlFor="driver-filter" className="text-sm font-medium text-white whitespace-nowrap">
                   Filtrar por conductor:
                 </label>
                 <select
                   id="driver-filter"
-                  className="fuel-input flex-1 max-w-md"
+                  className="fuel-input flex-1 max-w-md disabled:opacity-50 disabled:cursor-not-allowed"
                   value={selectedDriverFilter}
                   onChange={(e) => {
                     setSelectedDriverFilter(e.target.value);
                     setCurrentPage(1); // Resetear a la primera página al cambiar el filtro
                   }}
+                  disabled={showUnassignedOnly} // Bloquear si está marcado "sin asignar"
                 >
                   <option value="">Todos los conductores</option>
                   {allDriversForFilter.map((driver) => (
@@ -532,22 +557,31 @@ const AdminRoutes: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {selectedDriverFilter && (
+                {(selectedDriverFilter || showUnassignedOnly) && (
                   <button
                     onClick={() => {
                       setSelectedDriverFilter('');
+                      setShowUnassignedOnly(false);
                       setCurrentPage(1);
                     }}
-                    className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                    className="px-4 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors border border-slate-600 hover:border-slate-500"
                   >
-                    Limpiar filtro
+                    Limpiar filtros
                   </button>
                 )}
               </div>
-              {selectedDriverFilter && driversMap[selectedDriverFilter] && (
-                <div className="mt-3 pt-3 border-t border-slate-700">
+              
+              {/* Información de filtros activos */}
+              {(selectedDriverFilter || showUnassignedOnly) && (
+                <div className="pt-3 border-t border-slate-700">
                   <p className="text-sm text-slate-400">
-                    Mostrando rutas asignadas a: <span className="text-white font-medium">{driversMap[selectedDriverFilter].full_name}</span>
+                    {showUnassignedOnly && (
+                      <span className="text-white font-medium">Rutas sin asignar</span>
+                    )}
+                    {showUnassignedOnly && selectedDriverFilter && ' • '}
+                    {selectedDriverFilter && driversMap[selectedDriverFilter] && (
+                      <span className="text-white font-medium">Asignadas a: {driversMap[selectedDriverFilter].full_name}</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -632,7 +666,7 @@ const AdminRoutes: React.FC = () => {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {totalCount > pageSize && (
                   <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
                     <Pagination
                       page={currentPage}

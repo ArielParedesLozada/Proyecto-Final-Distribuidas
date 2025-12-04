@@ -13,7 +13,6 @@ import AdminVehicles from "./pages/admin/AdminVehicles";
 import AdminRoutes from "./pages/admin/AdminRoutes";
 import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import SupervisorVehicles from "./pages/supervisor/SupervisorVehicles";
-import SupervisorDrivers from "./pages/supervisor/SupervisorDrivers";
 import SupervisorReports from "./pages/supervisor/SupervisorReports";
 import SupervisorRoutes from "./pages/supervisor/SupervisorRoutes";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -53,7 +52,6 @@ const App: React.FC = () => {
             <Route path="dashboard" element={<SupervisorPage />}>
               <Route index element={<SupervisorDashboard />} />
               <Route path="vehicles" element={<SupervisorVehicles />} />
-              <Route path="drivers" element={<SupervisorDrivers />} />
               <Route path="routes" element={<SupervisorRoutes />} />
               <Route path="reports" element={<SupervisorReports />} />
             </Route>
