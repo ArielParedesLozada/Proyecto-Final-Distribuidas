@@ -102,6 +102,11 @@ message ListRoutesByDriverVehicleRequest {
   int32 page = 3;
   int32 page_size = 4;
 }
+message ListRoutesByVehicleRequest {
+  string vehicle_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
 message GetMyRoutesRequest {
   int32 page = 2;
   int32 page_size = 3;
@@ -168,6 +173,12 @@ service RoutesService {
   rpc GetRoutesByDriverVehicle(ListRoutesByDriverVehicleRequest) returns (ListRoutesResponse) {
     option (google.api.http) = {
       get: "/drivervehicles/{driver_vehicle_id}"
+    };
+  }
+
+  rpc GetRoutesByVehicle(ListRoutesByVehicleRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/vehicles/{vehicle_id}"
     };
   }
 

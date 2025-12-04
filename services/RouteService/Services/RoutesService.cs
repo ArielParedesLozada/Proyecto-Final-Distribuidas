@@ -225,6 +225,18 @@ public class RoutesService : RoutesProtoService
         response.Routes.AddRange(routes.Select(MapToProto));
         return response;
     }
+    [Authorize(Policy = "routes:read:all")]
+    public override async Task<ListRoutesResponse> GetRoutesByVehicle(ListRoutesByVehicleRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.VehicleId, out var vehicleId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
+        }
+        var routes = await _repository.FindAsync(r => r.VehicleId.HasValue && r.VehicleId.Value == vehicleId);
+        var response = new ListRoutesResponse();
+        response.Routes.AddRange(routes.Select(MapToProto));
+        return response;
+    }
     [Authorize(Policy = "routes:read:own")]
     public override async Task<ListRoutesResponse> GetMyRoutes(GetMyRoutesRequest request, ServerCallContext context)
     {

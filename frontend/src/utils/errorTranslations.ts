@@ -36,6 +36,7 @@ export const formatErrorMessage = (message: string): string => {
     'ROUTE_NOT_FOUND': 'Ruta no encontrada',
     'DRIVER_NOT_AVAILABLE': 'El conductor no está disponible',
     'ASSIGNMENT_NOT_FOUND': 'Asignación no encontrada',
+    'VEHICLE_IN_ACTIVE_ROUTE': 'El vehículo está siendo utilizado en una ruta activa. No se puede cambiar a disponible mientras tenga rutas asignadas o en curso.',
   };
 
   // Buscar traducción exacta
@@ -48,6 +49,15 @@ export const formatErrorMessage = (message: string): string => {
     if (message.toLowerCase().includes(english.toLowerCase())) {
       return spanish;
     }
+  }
+  
+  // Verificar si el mensaje contiene VEHICLE_IN_ACTIVE_ROUTE
+  if (message.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
+    const match = message.match(/VEHICLE_IN_ACTIVE_ROUTE:\s*(.+)/);
+    if (match) {
+      return match[1].trim();
+    }
+    return 'El vehículo está siendo utilizado en una ruta activa. No se puede cambiar a disponible mientras tenga rutas asignadas o en curso.';
   }
 
   // Limpiar mensajes de error HTTP
