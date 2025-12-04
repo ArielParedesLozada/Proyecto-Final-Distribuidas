@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Eye, CheckCircle, Play, Fuel, Filter, Route } from "lucide-react";
+import { Eye, CheckCircle, Play, Filter, Route } from "lucide-react";
 import TripModal from "./TripModal";
-import FuelRequestModal from "./FuelRequestModal";
 import EmptyState from "../../shared/EmptyState";
 import Pagination from "../../shared/Pagination";
 import TripFilters, {
@@ -29,7 +28,6 @@ type Props = {
     onStart?: (id: string) => void;
     onFinish?: (id: string) => void;
     onAddObs?: (tripId: string, text: string) => void;
-    onAskFuel?: (tripId: string) => void;
 };
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -119,7 +117,6 @@ const DriverTrips: React.FC<Props> = ({
     onStart,
     onFinish,
     onAddObs,
-    onAskFuel,
 }) => {
     // --- Estado para rutas reales ---
     const [apiRoutes, setApiRoutes] = useState<Trip[]>([]);
@@ -240,15 +237,9 @@ const DriverTrips: React.FC<Props> = ({
 
     // --- Modales ---
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
-    const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
     const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
-
-    const handleFuelSubmit = (_litros: number, tripId?: string) => {
-        if (tripId) onAskFuel?.(tripId);
-        setFuelTrip(null);
-    };
 
     // Función para iniciar un viaje
     const handleStart = async (tripId: string) => {
@@ -502,13 +493,6 @@ const DriverTrips: React.FC<Props> = ({
                                             {isFinishing === trip.id ? "Finalizando..." : "Finalizar"}
                                         </button>
                                     )}
-
-                                    <button
-                                        className="fuel-button-secondary flex items-center gap-2 px-3 py-1 text-xs"
-                                        onClick={() => setFuelTrip(trip)}
-                                    >
-                                        <Fuel className="w-4 h-4" /> Gasolina
-                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -543,16 +527,6 @@ const DriverTrips: React.FC<Props> = ({
                     trip={selectedTrip}
                     onClose={() => setSelectedTrip(null)}
                     onAddObs={handleAddObs}
-                />
-            )}
-
-            {fuelTrip && (
-                <FuelRequestModal
-                    currentLevel={30}
-                    tripId={fuelTrip.id}
-                    tripEstado={fuelTrip.estado}
-                    onClose={() => setFuelTrip(null)}
-                    onSubmit={handleFuelSubmit}
                 />
             )}
         </div>
