@@ -89,7 +89,29 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
         inicioAt: parseDate(startedAt),
         finAt: parseDate(completedAt),
         programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
-        observations: [], // no hay observaciones en la API aún
+        observations: (r.observations || []).map((obs: any) => {
+            const obsId = obs.id || '';
+            const obsText = obs.text || '';
+            const obsDate = obs.createdAt || obs.created_at;
+            let obsTs = Date.now();
+            
+            // Parsear la fecha si viene como Timestamp de protobuf
+            if (obsDate) {
+                if (typeof obsDate === 'object' && obsDate !== null && 'seconds' in obsDate) {
+                    const ts = obsDate as any;
+                    obsTs = ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
+                } else if (typeof obsDate === 'string') {
+                    const parsed = Date.parse(obsDate);
+                    if (!isNaN(parsed)) obsTs = parsed;
+                }
+            }
+            
+            return {
+                id: obsId,
+                text: obsText,
+                ts: obsTs,
+            };
+        }),
     };
 };
 
@@ -221,6 +243,7 @@ const DriverTrips: React.FC<Props> = ({
     const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
+    const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
 
     const handleFuelSubmit = (_litros: number, tripId?: string) => {
         if (tripId) onAskFuel?.(tripId);
@@ -331,6 +354,55 @@ const DriverTrips: React.FC<Props> = ({
             setTimeout(() => setError(""), 5000);
         } finally {
             setIsFinishing(null);
+        }
+    };
+
+    // Función para agregar una observación
+    const handleAddObs = async (tripId: string, text: string) => {
+        if (isAddingObs) return; // Evitar múltiples clics
+        if (!text.trim()) return; // No enviar observaciones vacías
+
+        try {
+            setIsAddingObs(tripId);
+            console.log("📝 Agregando observación al viaje:", tripId, "Texto:", text);
+
+            // Llamar al endpoint para agregar la observación
+            await api(`/routes/${tripId}/observations`, {
+                method: "POST",
+                body: JSON.stringify({
+                    route_id: tripId,
+                    text: text.trim(),
+                }),
+            });
+
+            console.log("✅ Observación agregada correctamente");
+
+            // Recargar la lista de rutas para obtener las observaciones actualizadas
+            const response = await api<ListRoutesResponse>("/routes/my");
+            if (response && response.routes && Array.isArray(response.routes)) {
+                const mapped = response.routes.map(mapRoutesToDisplay);
+                setApiRoutes(mapped);
+                setApiRoutesData(response.routes);
+                
+                // Actualizar el viaje seleccionado si es el mismo
+                if (selectedTrip && selectedTrip.id === tripId) {
+                    const updatedTrip = mapped.find(t => t.id === tripId);
+                    if (updatedTrip) {
+                        setSelectedTrip(updatedTrip);
+                    }
+                }
+            }
+
+            // Llamar al callback si existe
+            onAddObs?.(tripId, text);
+        } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("❌ Error al agregar observación:", msg);
+            setError(msg || "Error al agregar la observación");
+            // Mostrar error temporalmente
+            setTimeout(() => setError(""), 5000);
+        } finally {
+            setIsAddingObs(null);
         }
     };
 
@@ -470,7 +542,7 @@ const DriverTrips: React.FC<Props> = ({
                 <TripModal
                     trip={selectedTrip}
                     onClose={() => setSelectedTrip(null)}
-                    onAddObs={onAddObs}
+                    onAddObs={handleAddObs}
                 />
             )}
 
