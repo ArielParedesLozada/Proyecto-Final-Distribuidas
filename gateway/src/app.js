@@ -33,6 +33,19 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Parsear JSON body, pero excluir rutas que van al proxy
+// El proxy necesita el stream original, así que no parseamos el body para esas rutas
+app.use((req, res, next) => {
+  // Excluir rutas que van a servicios externos vía proxy
+  if (req.path.startsWith('/routes/') || req.path.startsWith('/admin/') || req.path.startsWith('/auth/')) {
+    // Para estas rutas, NO parsear el body - el proxy lo manejará
+    next();
+  } else {
+    // Para otras rutas, parsear JSON normalmente
+    express.json()(req, res, next);
+  }
+});
+
 //Usa Eureka
 const eurekaClient = new EurekaClient({
   name: process.env.APP_NAME || 'api-gateway',
@@ -74,7 +87,6 @@ await fuelRoutes.start()
 app.use(adminRoutes.router)
 app.use(authRoutes.router)
 app.use(routeRoutes.router)
-app.use(express.json());
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);
 app.use('/', fuelRoutes.router);
