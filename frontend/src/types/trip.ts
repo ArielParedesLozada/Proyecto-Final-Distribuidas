@@ -1,14 +1,3 @@
-export type ObservationProto = {
-    id?: string;
-    routeId?: string;
-    text?: string;
-    createdAt?: string;
-    createdBy?: string;
-    route_id?: string;
-    created_at?: string;
-    created_by?: string;
-};
-
 export type RouteProto = {
     id?: string;
     driverVehicleId?: string;
@@ -27,7 +16,6 @@ export type RouteProto = {
     realDistanceKm?: number;
     estimatedFuelConsumptionLiters?: number;
     realFuelConsumptionLiters?: number;
-    observations?: ObservationProto[];
     // Campos en snake_case (respuesta de la API)
     driver_vehicle_id?: string;
     driver_id?: string;

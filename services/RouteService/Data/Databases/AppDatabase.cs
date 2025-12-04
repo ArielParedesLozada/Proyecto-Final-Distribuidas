@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using RouteService.Infraestructure.Coordinates;
 using RouteDomain = RouteService.Domain.Route;
-using RouteObservationDomain = RouteService.Domain.RouteObservation;
 namespace RouteService.Data.Databases;
 
 public class AppDatabase : DbContext
@@ -10,7 +9,6 @@ public class AppDatabase : DbContext
     public AppDatabase(DbContextOptions<AppDatabase> options) : base(options) { }
 
     public DbSet<RouteDomain> Routes { get; set; }
-    public DbSet<RouteObservationDomain> RouteObservations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,17 +26,6 @@ public class AppDatabase : DbContext
                 .HasConversion(converter);
             entity.HasIndex(r => r.CoordinatesStart).HasMethod("GIST");
             entity.HasIndex(r => r.CoordinatesStop).HasMethod("GIST");
-        });
-
-        modelBuilder.Entity<RouteObservationDomain>(entity =>
-        {
-            entity.ToTable("RouteObservations");
-            entity.HasKey(o => o.Id);
-            entity.HasIndex(o => o.RouteId);
-            entity.HasOne<RouteDomain>()
-                .WithMany()
-                .HasForeignKey(o => o.RouteId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 

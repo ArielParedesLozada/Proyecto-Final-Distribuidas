@@ -35,15 +35,6 @@ message Route {
   double real_distance_km = 15;
   double estimated_fuel_consumption_liters = 16;
   double real_fuel_consumption_liters = 17;
-  repeated Observation observations = 18; // Observaciones de la ruta
-}
-
-message Observation {
-  string id = 1;
-  string route_id = 2;
-  string text = 3;
-  google.protobuf.Timestamp created_at = 4;
-  string created_by = 5; // DriverId que creó la observación
 }
 
 //Request
@@ -119,19 +110,6 @@ message ListRoutesByVehicleRequest {
 message GetMyRoutesRequest {
   int32 page = 2;
   int32 page_size = 3;
-}
-//Request para agregar observación
-message AddObservationRequest {
-  string route_id = 1;
-  string text = 2;
-}
-//Request para obtener observaciones
-message GetObservationsRequest {
-  string route_id = 1;
-}
-//Response de observaciones
-message GetObservationsResponse {
-  repeated Observation observations = 1;
 }
 //Responses
 message ListRoutesResponse {
@@ -241,18 +219,4 @@ service RoutesService {
   rpc DeleteRoutesByDriverCascade (DeleteRoutesByDriverCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByVehicleCascade (DeleteRouteByVehicleCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByDriverVehicleCascade (DeleteRouteByDriverVehicleCascadeRequest) returns (google.protobuf.Empty);
-
-  // Observaciones
-  rpc AddObservation (AddObservationRequest) returns (Observation) {
-    option (google.api.http) = {
-      post: "/{route_id}/observations"
-      body: "*"
-    };
-  }
-
-  rpc GetObservations (GetObservationsRequest) returns (GetObservationsResponse) {
-    option (google.api.http) = {
-      get: "/{route_id}/observations"
-    };
-  }
 }
