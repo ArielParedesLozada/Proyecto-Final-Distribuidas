@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Eye, CheckCircle, Play, Fuel, Filter } from "lucide-react";
+import { Eye, CheckCircle, Play, Fuel, Filter, Route } from "lucide-react";
 import TripModal from "./TripModal";
 import FuelRequestModal from "./FuelRequestModal";
 import EmptyState from "../../shared/EmptyState";
@@ -39,22 +39,56 @@ const PER_PAGE = 6;
 // MAP ROUTEPROTO → TRIP
 // ----------------------
 const mapRoutesToDisplay = (r: RouteProto): Trip => {
-    const statusMap: Record<RouteProto["status"], Trip["estado"]> = {
-        ROUTE_STATE_UNASSIGNED: "Planificado",
-        ROUTE_STATE_ASSIGNED: "Planificado",
-        ROUTE_STATE_STARTED: "EnCurso",
-        ROUTE_STATE_COMPLETED: "Finalizado",
+    // Mapear campos desde snake_case o camelCase
+    const id = r.id || "";
+    const originName = r.originName || r.origin_name || "Origen desconocido";
+    const destinationName = r.destinationName || r.destination_name || "Destino desconocido";
+    const status = r.status || 0;
+    const distanceKm = r.distanceKm || r.distance_km || 0;
+    const startedAt = r.startedAt || r.started_at;
+    const completedAt = r.completedAt || r.completed_at;
+    const assignedAt = r.assignedAt || r.assigned_at;
+    const createdAt = r.createdAt || r.created_at;
+
+    // Mapear status (puede venir como número o string)
+    const statusMap: Record<string | number, Trip["estado"]> = {
+        "ROUTE_STATE_UNASSIGNED": "Planificado",
+        "ROUTE_STATE_ASSIGNED": "Planificado",
+        "ROUTE_STATE_STARTED": "EnCurso",
+        "ROUTE_STATE_COMPLETED": "Finalizado",
+        0: "Planificado", // UNASSIGNED
+        1: "Planificado", // ASSIGNED
+        2: "EnCurso",     // STARTED
+        3: "Finalizado",  // COMPLETED
     };
 
+    // Manejar campos opcionales y fechas
+    const parseDate = (dateStr: string | null | undefined): number | null => {
+        if (!dateStr) return null;
+        try {
+            // Si viene como objeto Timestamp de protobuf
+            if (typeof dateStr === 'object' && dateStr !== null && 'seconds' in dateStr) {
+                const ts = dateStr as any;
+                return ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
+            }
+            // Si viene como string ISO
+            return Date.parse(dateStr);
+        } catch {
+            return null;
+        }
+    };
+
+    const estado = statusMap[status] || "Planificado";
+
     return {
-        id: r.id,
-        origen: r.originName,
-        destino: r.destinationName,
-        estado: statusMap[r.status],
-        estimado: r.distanceKm,
-        inicioAt: r.startedAt ? Date.parse(r.startedAt) : null,
-        finAt: r.completedAt ? Date.parse(r.completedAt) : null,
-        programadoAt: Date.parse(r.assignedAt), // para próximos 24h
+        id,
+        origen: originName,
+        destino: destinationName,
+        estado,
+        estimado: distanceKm,
+        inicioAt: parseDate(startedAt),
+        finAt: parseDate(completedAt),
+        programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
         observations: [], // no hay observaciones en la API aún
     };
 };
@@ -67,6 +101,7 @@ const DriverTrips: React.FC<Props> = ({
 }) => {
     // --- Estado para rutas reales ---
     const [apiRoutes, setApiRoutes] = useState<Trip[]>([]);
+    const [apiRoutesData, setApiRoutesData] = useState<RouteProto[]>([]); // Guardar datos completos de la API
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string>("");
 
@@ -86,17 +121,31 @@ const DriverTrips: React.FC<Props> = ({
                 setIsLoading(true);
                 setError("");
 
+                console.log("🔄 Cargando rutas del conductor desde /routes/my");
                 const response = await api<ListRoutesResponse>("/routes/my");
                 if (cancelled) return;
 
+                console.log("📦 Respuesta recibida:", response);
+                console.log("📋 Rutas recibidas:", response.routes?.length || 0);
+
+                // Verificar que response.routes existe y es un array
+                if (!response || !response.routes || !Array.isArray(response.routes)) {
+                    console.warn("⚠️ Respuesta inválida o sin rutas:", response);
+                    setApiRoutes([]);
+                    return;
+                }
+
                 const mapped = response.routes.map(mapRoutesToDisplay);
+                console.log("✅ Rutas mapeadas:", mapped.length);
                 setApiRoutes(mapped);
+                setApiRoutesData(response.routes); // Guardar datos completos para acceder a estimatedFuelConsumptionLiters
 
             } catch (err: any) {
                 if (cancelled) return;
                 const msg = err instanceof Error ? err.message : String(err);
                 console.error("❌ Error al cargar rutas:", msg);
                 setError(msg || "Error al cargar rutas");
+                setApiRoutes([]); // Asegurar que no haya datos residuales
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -170,10 +219,119 @@ const DriverTrips: React.FC<Props> = ({
     // --- Modales ---
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
     const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
+    const [isStarting, setIsStarting] = useState<string | null>(null);
+    const [isFinishing, setIsFinishing] = useState<string | null>(null);
 
     const handleFuelSubmit = (_litros: number, tripId?: string) => {
         if (tripId) onAskFuel?.(tripId);
         setFuelTrip(null);
+    };
+
+    // Función para iniciar un viaje
+    const handleStart = async (tripId: string) => {
+        if (isStarting) return; // Evitar múltiples clics
+
+        try {
+            setIsStarting(tripId);
+            console.log("🚀 Iniciando viaje:", tripId);
+
+            // Llamar al endpoint para iniciar la ruta
+            // El backend espera el id tanto en la URL como en el body (body: "*" en el proto)
+            await api(`/routes/start/${tripId}`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    id: tripId,
+                }),
+            });
+
+            console.log("✅ Viaje iniciado correctamente");
+
+            // Recargar la lista de rutas
+            const response = await api<ListRoutesResponse>("/routes/my");
+            if (response && response.routes && Array.isArray(response.routes)) {
+                const mapped = response.routes.map(mapRoutesToDisplay);
+                setApiRoutes(mapped);
+            }
+
+            // Llamar al callback si existe
+            onStart?.(tripId);
+        } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("❌ Error al iniciar viaje:", msg);
+            setError(msg || "Error al iniciar el viaje");
+            // Mostrar error temporalmente
+            setTimeout(() => setError(""), 5000);
+        } finally {
+            setIsStarting(null);
+        }
+    };
+
+    // Función para finalizar un viaje
+    const handleFinish = async (tripId: string) => {
+        if (isFinishing) return; // Evitar múltiples clics
+
+        // Buscar el viaje para obtener la distancia estimada
+        const trip = allTrips.find(t => t.id === tripId);
+        if (!trip) {
+            setError("No se encontró el viaje");
+            return;
+        }
+
+        // Buscar los datos completos de la ruta para obtener el consumo estimado
+        const routeData = apiRoutesData.find(r => (r.id || "") === tripId);
+        
+        // Usar la distancia estimada como distancia real (el usuario puede ajustarla después si es necesario)
+        const realDistanceKm = trip.estimado || 0;
+        if (realDistanceKm <= 0) {
+            setError("La distancia del viaje no es válida");
+            return;
+        }
+
+        // Obtener el consumo estimado de combustible, o calcular uno basado en la distancia
+        // Si no hay consumo estimado, usar un promedio de 10 litros por cada 100 km
+        const estimatedFuel = routeData?.estimatedFuelConsumptionLiters || 
+                              routeData?.estimated_fuel_consumption_liters || 
+                              (realDistanceKm * 10 / 100); // 10 L/100km como estimado
+        
+        // Usar el consumo estimado como consumo real (debe ser > 0 según el backend)
+        const realFuelConsumptionLiters = estimatedFuel > 0 ? estimatedFuel : (realDistanceKm * 10 / 100);
+
+        try {
+            setIsFinishing(tripId);
+            console.log("🏁 Finalizando viaje:", tripId, "Distancia:", realDistanceKm, "Combustible:", realFuelConsumptionLiters);
+
+            // Llamar al endpoint para finalizar la ruta
+            // El backend espera el id tanto en la URL como en el body (body: "*" en el proto)
+            await api(`/routes/end/${tripId}`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    id: tripId,
+                    real_distance_km: realDistanceKm,
+                    real_fuel_consumption_liters: realFuelConsumptionLiters,
+                }),
+            });
+
+            console.log("✅ Viaje finalizado correctamente");
+
+            // Recargar la lista de rutas
+            const response = await api<ListRoutesResponse>("/routes/my");
+            if (response && response.routes && Array.isArray(response.routes)) {
+                const mapped = response.routes.map(mapRoutesToDisplay);
+                setApiRoutes(mapped);
+                setApiRoutesData(response.routes);
+            }
+
+            // Llamar al callback si existe
+            onFinish?.(tripId);
+        } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("❌ Error al finalizar viaje:", msg);
+            setError(msg || "Error al finalizar el viaje");
+            // Mostrar error temporalmente
+            setTimeout(() => setError(""), 5000);
+        } finally {
+            setIsFinishing(null);
+        }
     };
 
     // -----------------------------
@@ -196,7 +354,18 @@ const DriverTrips: React.FC<Props> = ({
                 <div className="text-center text-red-400">{error}</div>
             )}
 
-            {!isLoading && !error && (
+            {!isLoading && !error && allTrips.length === 0 && (
+                <div className="col-span-full">
+                    <EmptyState
+                        asCard
+                        icon={Route}
+                        title="Aún no tienes viajes asignados"
+                        description="Cuando te asignen una ruta, aparecerá aquí. Contacta con tu supervisor si necesitas más información."
+                    />
+                </div>
+            )}
+
+            {!isLoading && !error && allTrips.length > 0 && (
                 <>
                     <TripFilters
                         value={filters}
@@ -242,19 +411,23 @@ const DriverTrips: React.FC<Props> = ({
 
                                     {trip.estado === "Planificado" && (
                                         <button
-                                            className="fuel-button-secondary flex items-center gap-2 px-3 py-1 text-xs"
-                                            onClick={() => onStart?.(trip.id)}
+                                            className="fuel-button-secondary flex items-center gap-2 px-3 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={() => handleStart(trip.id)}
+                                            disabled={isStarting === trip.id}
                                         >
-                                            <Play className="w-4 h-4" /> Iniciar
+                                            <Play className="w-4 h-4" /> 
+                                            {isStarting === trip.id ? "Iniciando..." : "Iniciar"}
                                         </button>
                                     )}
 
                                     {trip.estado === "EnCurso" && (
                                         <button
-                                            className="fuel-button flex items-center gap-2 px-3 py-1 text-xs"
-                                            onClick={() => onFinish?.(trip.id)}
+                                            className="fuel-button flex items-center gap-2 px-3 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={() => handleFinish(trip.id)}
+                                            disabled={isFinishing === trip.id}
                                         >
-                                            <CheckCircle className="w-4 h-4" /> Finalizar
+                                            <CheckCircle className="w-4 h-4" /> 
+                                            {isFinishing === trip.id ? "Finalizando..." : "Finalizar"}
                                         </button>
                                     )}
 
@@ -268,7 +441,7 @@ const DriverTrips: React.FC<Props> = ({
                             </div>
                         ))}
 
-                        {total === 0 && (
+                        {total === 0 && allTrips.length > 0 && (
                             <div className="col-span-full">
                                 <EmptyState
                                     asCard
