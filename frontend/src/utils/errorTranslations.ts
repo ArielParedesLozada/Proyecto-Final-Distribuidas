@@ -44,26 +44,25 @@ export const formatErrorMessage = (message: string): string => {
     return errorTranslations[message];
   }
 
+  // Limpiar mensajes de error HTTP primero (para extraer el mensaje real)
+  const httpErrorMatch = message.match(/HTTP \d+ [^–]+ – (.+)/);
+  if (httpErrorMatch) {
+    return formatErrorMessage(httpErrorMatch[1]);
+  }
+
+  // Verificar si el mensaje contiene VEHICLE_IN_ACTIVE_ROUTE (después de limpiar HTTP)
+  // Esto debe ir antes de la búsqueda parcial para asegurar el mensaje correcto
+  if (message.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
+    // Siempre devolver el mismo mensaje estándar para VEHICLE_IN_ACTIVE_ROUTE
+    // Esto asegura consistencia entre admin y supervisor
+    return 'El vehículo está siendo utilizado en una ruta activa. No se puede cambiar a disponible mientras tenga rutas asignadas o en curso.';
+  }
+
   // Buscar traducciones parciales (para mensajes más largos)
   for (const [english, spanish] of Object.entries(errorTranslations)) {
     if (message.toLowerCase().includes(english.toLowerCase())) {
       return spanish;
     }
-  }
-  
-  // Verificar si el mensaje contiene VEHICLE_IN_ACTIVE_ROUTE
-  if (message.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
-    const match = message.match(/VEHICLE_IN_ACTIVE_ROUTE:\s*(.+)/);
-    if (match) {
-      return match[1].trim();
-    }
-    return 'El vehículo está siendo utilizado en una ruta activa. No se puede cambiar a disponible mientras tenga rutas asignadas o en curso.';
-  }
-
-  // Limpiar mensajes de error HTTP
-  const httpErrorMatch = message.match(/HTTP \d+ [^–]+ – (.+)/);
-  if (httpErrorMatch) {
-    return formatErrorMessage(httpErrorMatch[1]);
   }
 
   // Si no se encuentra traducción, devolver el mensaje original limpiado
