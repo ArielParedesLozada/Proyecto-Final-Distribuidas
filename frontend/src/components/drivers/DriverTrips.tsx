@@ -10,7 +10,7 @@ import TripFilters, {
     DEFAULT_TRIP_FILTERS,
 } from "../../shared/TripFilters";
 import api from "../../api/api";
-import type { ListRoutesResponse, RouteProto, ObservationProto } from "../../types/trip";
+import type { ListRoutesResponse, RouteProto } from "../../types/trip";
 
 export type Trip = {
     id: string;
@@ -80,20 +80,6 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
 
     const estado = statusMap[status] || "Planificado";
 
-    // Mapear observaciones
-    const observations = (r.observations || []).map((obs: ObservationProto) => {
-        const obsId = obs.id || "";
-        const obsText = obs.text || "";
-        const obsCreatedAt = obs.createdAt || obs.created_at;
-        const obsTimestamp = parseDate(obsCreatedAt);
-        
-        return {
-            id: obsId,
-            text: obsText,
-            ts: obsTimestamp || Date.now(),
-        };
-    });
-
     return {
         id,
         origen: originName,
@@ -103,7 +89,7 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
         inicioAt: parseDate(startedAt),
         finAt: parseDate(completedAt),
         programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
-        observations,
+        observations: [], // no hay observaciones en la API aún
     };
 };
 
@@ -235,58 +221,10 @@ const DriverTrips: React.FC<Props> = ({
     const [fuelTrip, setFuelTrip] = useState<Trip | null>(null);
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
-    const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
 
     const handleFuelSubmit = (_litros: number, tripId?: string) => {
         if (tripId) onAskFuel?.(tripId);
         setFuelTrip(null);
-    };
-
-    // Función para agregar una observación
-    const handleAddObs = async (tripId: string, text: string) => {
-        if (isAddingObs || !text.trim()) return;
-
-        try {
-            setIsAddingObs(tripId);
-            console.log("📝 Agregando observación al viaje:", tripId);
-
-            // Llamar al endpoint para agregar la observación
-            const observation = await api<ObservationProto>(`/routes/${tripId}/observations`, {
-                method: "POST",
-                body: JSON.stringify({
-                    route_id: tripId,
-                    text: text.trim(),
-                }),
-            });
-
-            console.log("✅ Observación agregada correctamente");
-
-            // Recargar la lista de rutas para obtener las observaciones actualizadas
-            const response = await api<ListRoutesResponse>("/routes/my");
-            if (response && response.routes && Array.isArray(response.routes)) {
-                const mapped = response.routes.map(mapRoutesToDisplay);
-                setApiRoutes(mapped);
-                setApiRoutesData(response.routes);
-            }
-
-            // Actualizar el viaje seleccionado si está abierto
-            if (selectedTrip && selectedTrip.id === tripId) {
-                const updatedTrip = apiRoutes.find(t => t.id === tripId);
-                if (updatedTrip) {
-                    setSelectedTrip(updatedTrip);
-                }
-            }
-
-            // Llamar al callback si existe
-            onAddObs?.(tripId, text);
-        } catch (err: any) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.error("❌ Error al agregar observación:", msg);
-            setError(msg || "Error al agregar la observación");
-            setTimeout(() => setError(""), 5000);
-        } finally {
-            setIsAddingObs(null);
-        }
     };
 
     // Función para iniciar un viaje
@@ -532,7 +470,7 @@ const DriverTrips: React.FC<Props> = ({
                 <TripModal
                     trip={selectedTrip}
                     onClose={() => setSelectedTrip(null)}
-                    onAddObs={handleAddObs}
+                    onAddObs={onAddObs}
                 />
             )}
 
