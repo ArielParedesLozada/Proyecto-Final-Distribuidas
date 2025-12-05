@@ -35,15 +35,6 @@ message Route {
   double real_distance_km = 15;
   double estimated_fuel_consumption_liters = 16;
   double real_fuel_consumption_liters = 17;
-  repeated Observation observations = 18;
-}
-
-message Observation {
-  string id = 1;
-  string route_id = 2;
-  string text = 3;
-  google.protobuf.Timestamp created_at = 4;
-  string created_by = 5; // User ID of the creator
 }
 
 //Request
@@ -94,10 +85,11 @@ message StartRouteRequest {
   string id = 1;
 }
 //Request cuando finaliza una ruta
+// Los datos reales son requeridos y deben ser proporcionados por el conductor
 message EndRouteRequest {
   string id = 1;
-  double real_fuel_consumption_liters = 2;
-  double real_distance_km = 3;
+  double real_fuel_consumption_liters = 2; // Litros reales de gasolina consumidos (requerido, debe ser > 0)
+  double real_distance_km = 3; // Kilómetros reales recorridos (requerido, debe ser > 0)
 }
 //Request para ver las rutas de un conductor
 message ListRoutesByDriverRequest {
@@ -136,20 +128,7 @@ message DeleteRouteByVehicleCascadeRequest {
   string vehicle_id = 1;
 }
 message DeleteRouteByDriverVehicleCascadeRequest {
-  string driver_vehicle = 1;
-}
-
-message AddObservationRequest {
-  string route_id = 1;
-  string text = 2;
-}
-
-message ListObservationsRequest {
-  string route_id = 1;
-}
-
-message ListObservationsResponse {
-  repeated Observation observations = 1;
+    string driver_vehicle = 1;
 }
 
 service RoutesService {
@@ -241,17 +220,4 @@ service RoutesService {
   rpc DeleteRoutesByDriverCascade (DeleteRoutesByDriverCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByVehicleCascade (DeleteRouteByVehicleCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByDriverVehicleCascade (DeleteRouteByDriverVehicleCascadeRequest) returns (google.protobuf.Empty);
-
-  rpc AddObservation (AddObservationRequest) returns (Observation) {
-    option (google.api.http) = {
-      post: "/{route_id}/observations"
-      body: "*"
-    };
-  }
-
-  rpc GetObservations (ListObservationsRequest) returns (ListObservationsResponse) {
-    option (google.api.http) = {
-      get: "/{route_id}/observations"
-    };
-  }
 }

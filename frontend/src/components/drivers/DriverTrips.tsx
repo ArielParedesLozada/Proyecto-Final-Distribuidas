@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Eye, CheckCircle, Play, Filter, Route } from "lucide-react";
 import TripModal from "./TripModal";
+import FinishTripModal from "./FinishTripModal";
 import EmptyState from "../../shared/EmptyState";
 import Pagination from "../../shared/Pagination";
 import TripFilters, {
@@ -20,14 +21,12 @@ export type Trip = {
     inicioAt?: number | null;
     finAt?: number | null;
     programadoAt?: number | null;
-    observations: Array<{ id: string; text: string; ts: number }>;
 };
 
 type Props = {
     trips?: Trip[];
     onStart?: (id: string) => void;
     onFinish?: (id: string) => void;
-    onAddObs?: (tripId: string, text: string) => void;
 };
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -87,36 +86,12 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
         inicioAt: parseDate(startedAt),
         finAt: parseDate(completedAt),
         programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
-        observations: (r.observations || []).map((obs: any) => {
-            const obsId = obs.id || '';
-            const obsText = obs.text || '';
-            const obsDate = obs.createdAt || obs.created_at;
-            let obsTs = Date.now();
-            
-            // Parsear la fecha si viene como Timestamp de protobuf
-            if (obsDate) {
-                if (typeof obsDate === 'object' && obsDate !== null && 'seconds' in obsDate) {
-                    const ts = obsDate as any;
-                    obsTs = ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
-                } else if (typeof obsDate === 'string') {
-                    const parsed = Date.parse(obsDate);
-                    if (!isNaN(parsed)) obsTs = parsed;
-                }
-            }
-            
-            return {
-                id: obsId,
-                text: obsText,
-                ts: obsTs,
-            };
-        }),
     };
 };
 
 const DriverTrips: React.FC<Props> = ({
     onStart,
     onFinish,
-    onAddObs,
 }) => {
     // --- Estado para rutas reales ---
     const [apiRoutes, setApiRoutes] = useState<Trip[]>([]);
@@ -237,9 +212,9 @@ const DriverTrips: React.FC<Props> = ({
 
     // --- Modales ---
     const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+    const [tripToFinish, setTripToFinish] = useState<Trip | null>(null);
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
-    const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
 
     // Función para iniciar un viaje
     const handleStart = async (tripId: string) => {
@@ -280,42 +255,25 @@ const DriverTrips: React.FC<Props> = ({
         }
     };
 
-    // Función para finalizar un viaje
-    const handleFinish = async (tripId: string) => {
-        if (isFinishing) return; // Evitar múltiples clics
-
-        // Buscar el viaje para obtener la distancia estimada
+    // Función para abrir el modal de finalización
+    const handleFinishClick = (tripId: string) => {
         const trip = allTrips.find(t => t.id === tripId);
-        if (!trip) {
-            setError("No se encontró el viaje");
-            return;
+        if (trip) {
+            setTripToFinish(trip);
         }
+    };
 
-        // Buscar los datos completos de la ruta para obtener el consumo estimado
-        const routeData = apiRoutesData.find(r => (r.id || "") === tripId);
-        
-        // Usar la distancia estimada como distancia real (el usuario puede ajustarla después si es necesario)
-        const realDistanceKm = trip.estimado || 0;
-        if (realDistanceKm <= 0) {
-            setError("La distancia del viaje no es válida");
-            return;
-        }
+    // Función para finalizar un viaje (llamada desde el modal)
+    const handleFinish = async (realDistanceKm: number, realFuelConsumptionLiters: number) => {
+        if (!tripToFinish || isFinishing) return;
 
-        // Obtener el consumo estimado de combustible, o calcular uno basado en la distancia
-        // Si no hay consumo estimado, usar un promedio de 10 litros por cada 100 km
-        const estimatedFuel = routeData?.estimatedFuelConsumptionLiters || 
-                              routeData?.estimated_fuel_consumption_liters || 
-                              (realDistanceKm * 10 / 100); // 10 L/100km como estimado
-        
-        // Usar el consumo estimado como consumo real (debe ser > 0 según el backend)
-        const realFuelConsumptionLiters = estimatedFuel > 0 ? estimatedFuel : (realDistanceKm * 10 / 100);
+        const tripId = tripToFinish.id;
+
+        setIsFinishing(tripId);
+        console.log("🏁 Finalizando viaje:", tripId, "Distancia:", realDistanceKm, "Combustible:", realFuelConsumptionLiters);
 
         try {
-            setIsFinishing(tripId);
-            console.log("🏁 Finalizando viaje:", tripId, "Distancia:", realDistanceKm, "Combustible:", realFuelConsumptionLiters);
-
             // Llamar al endpoint para finalizar la ruta
-            // El backend espera el id tanto en la URL como en el body (body: "*" en el proto)
             await api(`/routes/end/${tripId}`, {
                 method: "PATCH",
                 body: JSON.stringify({
@@ -335,67 +293,21 @@ const DriverTrips: React.FC<Props> = ({
                 setApiRoutesData(response.routes);
             }
 
+            // Cerrar el modal
+            setTripToFinish(null);
+
             // Llamar al callback si existe
             onFinish?.(tripId);
         } catch (err: any) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error("❌ Error al finalizar viaje:", msg);
-            setError(msg || "Error al finalizar el viaje");
-            // Mostrar error temporalmente
-            setTimeout(() => setError(""), 5000);
+            // Re-lanzar el error para que el modal lo capture y muestre
+            throw err;
         } finally {
             setIsFinishing(null);
         }
     };
 
-    // Función para agregar una observación
-    const handleAddObs = async (tripId: string, text: string) => {
-        if (isAddingObs) return; // Evitar múltiples clics
-        if (!text.trim()) return; // No enviar observaciones vacías
-
-        try {
-            setIsAddingObs(tripId);
-            console.log("📝 Agregando observación al viaje:", tripId, "Texto:", text);
-
-            // Llamar al endpoint para agregar la observación
-            await api(`/routes/${tripId}/observations`, {
-                method: "POST",
-                body: JSON.stringify({
-                    route_id: tripId,
-                    text: text.trim(),
-                }),
-            });
-
-            console.log("✅ Observación agregada correctamente");
-
-            // Recargar la lista de rutas para obtener las observaciones actualizadas
-            const response = await api<ListRoutesResponse>("/routes/my");
-            if (response && response.routes && Array.isArray(response.routes)) {
-                const mapped = response.routes.map(mapRoutesToDisplay);
-                setApiRoutes(mapped);
-                setApiRoutesData(response.routes);
-                
-                // Actualizar el viaje seleccionado si es el mismo
-                if (selectedTrip && selectedTrip.id === tripId) {
-                    const updatedTrip = mapped.find(t => t.id === tripId);
-                    if (updatedTrip) {
-                        setSelectedTrip(updatedTrip);
-                    }
-                }
-            }
-
-            // Llamar al callback si existe
-            onAddObs?.(tripId, text);
-        } catch (err: any) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.error("❌ Error al agregar observación:", msg);
-            setError(msg || "Error al agregar la observación");
-            // Mostrar error temporalmente
-            setTimeout(() => setError(""), 5000);
-        } finally {
-            setIsAddingObs(null);
-        }
-    };
 
     // -----------------------------
     // 🟦 RENDER
@@ -485,9 +397,14 @@ const DriverTrips: React.FC<Props> = ({
 
                                     {trip.estado === "EnCurso" && (
                                         <button
+                                            type="button"
                                             className="fuel-button flex items-center gap-2 px-3 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                            onClick={() => handleFinish(trip.id)}
-                                            disabled={isFinishing === trip.id}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleFinishClick(trip.id);
+                                            }}
+                                            disabled={isFinishing === trip.id || tripToFinish !== null}
                                         >
                                             <CheckCircle className="w-4 h-4" /> 
                                             {isFinishing === trip.id ? "Finalizando..." : "Finalizar"}
@@ -526,9 +443,33 @@ const DriverTrips: React.FC<Props> = ({
                 <TripModal
                     trip={selectedTrip}
                     onClose={() => setSelectedTrip(null)}
-                    onAddObs={handleAddObs}
                 />
             )}
+
+            {tripToFinish && (() => {
+                const routeData = apiRoutesData.find(r => (r.id || "") === tripToFinish.id);
+                const distanciaEstimada = tripToFinish.estimado || 0;
+                const consumoEstimado = routeData?.estimatedFuelConsumptionLiters || 
+                                       routeData?.estimated_fuel_consumption_liters || 0;
+                
+                return (
+                    <FinishTripModal
+                        key={tripToFinish.id} // Usar key para evitar problemas de re-renderizado
+                        tripId={tripToFinish.id}
+                        origen={tripToFinish.origen}
+                        destino={tripToFinish.destino}
+                        distanciaEstimada={distanciaEstimada}
+                        consumoEstimado={consumoEstimado}
+                        onClose={() => {
+                            // Solo cerrar si no está guardando
+                            if (!isFinishing) {
+                                setTripToFinish(null);
+                            }
+                        }}
+                        onSubmit={handleFinish}
+                    />
+                );
+            })()}
         </div>
     );
 };

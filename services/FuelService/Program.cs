@@ -59,6 +59,12 @@ builder.Services
     .AddJwtAuth(JWT_SECRET, JWT_TIME, JWT_ISSUER)
     .AddGrpc();
 
+// Configurar BackgroundServiceExceptionBehavior para que no detenga el servicio si falla RabbitMQ
+builder.Services.Configure<Microsoft.Extensions.Hosting.HostOptions>(options =>
+{
+    options.BackgroundServiceExceptionBehavior = Microsoft.Extensions.Hosting.BackgroundServiceExceptionBehavior.Ignore;
+});
+
 builder.Services.AddSingleton<HealthServiceImpl>();
 builder.Services.AddHttpContextAccessor();
 

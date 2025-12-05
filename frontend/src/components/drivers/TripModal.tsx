@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Clock, Route, Car, Calendar } from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { Route, Car, Calendar } from "lucide-react";
 import ScrollableContainer from "../../shared/ScrollableContainer";
 import type { Trip } from "./DriverTrips";
 
@@ -12,7 +12,6 @@ type VehicleInfo = {
 type Props = {
     trip: Trip;
     onClose: () => void;
-    onAddObs?: (tripId: string, text: string) => void;
     vehicle?: VehicleInfo;
 };
 
@@ -30,8 +29,7 @@ function formatRelative(targetTs: number, now: number): { text: string; future: 
     return { text: future ? `en ${body}` : `hace ${body}`, future };
 }
 
-const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
-    const [obs, setObs] = useState("");
+const TripModal: React.FC<Props> = ({ trip, onClose, vehicle }) => {
 
     const [nowTick, setNowTick] = useState(() => Date.now());
     useEffect(() => {
@@ -148,50 +146,6 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
                     </div>
                 </div>
 
-                {/* Observaciones */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
-                            <Clock className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <h4 className="text-base md:text-lg font-semibold text-white">Observaciones</h4>
-                    </div>
-
-                    <div className="space-y-2 max-h-[42vh] md:max-h-[32vh] overflow-y-auto pr-1">
-                        {trip.observations.length === 0 && (
-                            <p className="text-slate-400 text-center text-sm">Sin observaciones aún</p>
-                        )}
-                        {trip.observations.map((o) => (
-                            <div key={o.id} className="fuel-card p-2 md:p-3">
-                                <div className="text-sm text-white mb-1">{o.text}</div>
-                                <div className="text-xs text-slate-500">{fmt(o.ts)}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Agregar observación solo en EnCurso (apilado en móvil) */}
-                    {trip.estado === "EnCurso" && (
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                            <input
-                                className="fuel-input w-full sm:flex-1"
-                                placeholder="Escribe una observación..."
-                                value={obs}
-                                onChange={(e) => setObs(e.target.value)}
-                            />
-                            <button
-                                className="fuel-button w-full sm:w-auto px-5 md:px-6"
-                                onClick={() => {
-                                    if (obs.trim()) {
-                                        onAddObs?.(trip.id, obs.trim());
-                                        setObs("");
-                                    }
-                                }}
-                            >
-                                Agregar
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );
