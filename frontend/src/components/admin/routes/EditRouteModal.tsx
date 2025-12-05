@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, MapPin, Navigation, Route, AlertCircle } from 'lucide-react';
 import MapSelector from './MapSelector';
 import type { RouteProto } from '../../../types/trip';
+import { reverseGeocode } from '../../../api/api';
 
 export interface EditRouteFormData {
   originName: string;
@@ -70,47 +71,6 @@ const EditRouteModal: React.FC<EditRouteModalProps> = ({
     }
   }, [isOpen, route]);
 
-  // Función para geocodificación inversa (obtener nombre del lugar desde coordenadas)
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            'User-Agent': 'RouteManagementApp/1.0',
-          },
-        }
-      );
-      
-      if (!response.ok) {
-        // Si la respuesta no es OK (403, CORS, etc.), retornar coordenadas sin error
-        return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-      }
-      
-      const data = await response.json();
-      
-      if (data.display_name) {
-        // Extraer una descripción más corta y útil
-        const parts = data.display_name.split(',');
-        if (parts.length > 0) {
-          // Tomar los primeros 2-3 elementos para un nombre más corto
-          return parts.slice(0, Math.min(3, parts.length)).join(', ').trim();
-        }
-        return data.display_name;
-      }
-      return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-    } catch (error) {
-      // Silenciar errores de CORS/403 de Nominatim - no afectan la funcionalidad
-      // Solo mostrar error si es algo inesperado
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        // Error de CORS o red - ignorar silenciosamente
-        return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-      }
-      // Otros errores inesperados - loggear pero no bloquear
-      console.warn('Error inesperado en geocodificación inversa:', error);
-      return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-    }
-  };
 
   // Calcular distancia en línea recta (Haversine)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {

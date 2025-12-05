@@ -40,23 +40,53 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:read:all")]
     public override async Task<ListRoutesResponse> ListRoutes(ListRoutesRequest request, ServerCallContext context)
     {
-        int page = request.Page <= 0 ? 1 : request.Page;
-        int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
-        var (routes, totalCount) = await _repository.GetAllPagedAsync(page, pageSize);
-        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        var response = new ListRoutesResponse
+        try
         {
-            Page = page,
-            PageSize = pageSize,
-            TotalPages = totalPages
-        };
+            int page = request.Page <= 0 ? 1 : request.Page;
+            int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            var (routes, totalCount) = await _repository.GetAllPagedAsync(page, pageSize);
+            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            var response = new ListRoutesResponse
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages
+            };
 
-        foreach (var route in routes)
-        {
-            response.Routes.Add(await MapToProtoWithObservationsAsync(route));
+            // Optimización: cargar todas las observaciones de una vez en lugar de hacer una consulta por cada ruta
+            Dictionary<Guid, List<RouteObservation>> observationsByRouteId = new();
+            
+            if (routes.Any())
+            {
+                var routeIds = routes.Select(r => r.Id).ToList();
+                var allObservations = await _dbContext.RouteObservations
+                    .Where(o => routeIds.Contains(o.RouteId))
+                    .OrderByDescending(o => o.CreatedAt)
+                    .ToListAsync();
+
+                // Crear un diccionario de observaciones por RouteId para acceso rápido
+                observationsByRouteId = allObservations
+                    .GroupBy(o => o.RouteId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+            }
+
+            // Mapear las rutas usando el diccionario de observaciones
+            foreach (var route in routes)
+            {
+                var observations = observationsByRouteId.GetValueOrDefault(route.Id);
+                response.Routes.Add(MapToProtoWithObservations(route, observations));
+            }
+
+            return response;
         }
-
-        return response;
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, $"INTERNAL_ERROR: {ex.Message}"));
+        }
     }
     [Authorize(Policy = "routes:create")]
     public override async Task<RouteProto> CreateRoute(CreateRouteRequest request, ServerCallContext context)
