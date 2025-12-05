@@ -244,10 +244,34 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
         }
         var route = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "NOT FOUND"));
-        if (route.Status == RouteStatesDomain.Assigned || route.Status == RouteStatesDomain.Started)
+        
+        // No se puede eliminar una ruta que está en curso (Started)
+        if (route.Status == RouteStatesDomain.Started)
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE: No se puede eliminar una ruta en curso"));
         }
+        
+        // Si la ruta está asignada, primero desasignarla para liberar al conductor
+        if (route.Status == RouteStatesDomain.Assigned && route.DriverId.HasValue)
+        {
+            var bearer = GetAuthorization(context);
+            var driverId = route.DriverId.Value.ToString();
+            
+            // Desasignar la ruta (liberar al conductor)
+            route.AssignedAt = null;
+            route.DriverVehicleId = null;
+            route.DriverId = null;
+            route.VehicleId = null;
+            route.Status = RouteStatesDomain.Unassigned;
+            
+            // Liberar al conductor (marcarlo como disponible)
+            await _driverClient.SetDriverAvailability(driverId, 1, bearer);
+            
+            // Actualizar la ruta antes de eliminarla
+            await _repository.UpdateAsync(route);
+        }
+        
+        // Ahora se puede eliminar la ruta
         await _repository.DeleteAsync(route);
         return new Empty();
     }
@@ -352,13 +376,34 @@ public class RoutesService : RoutesProtoService
         var assignment = await _vehicleClient.GetDriverVehicleExists(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         var driverId = assignment.DriverId;
         var vehicleId = assignment.VehicleId;
-        if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
+        var driverGuid = Guid.Parse(driverId);
+        
+        // Verificar si el conductor realmente tiene rutas activas (Assigned o Started)
+        // Esto corrige el problema cuando se borra la BD de rutas pero los conductores quedan marcados como ocupados
+        var activeRoutes = await _repository.FindAsync(r => 
+            r.DriverId.HasValue && 
+            r.DriverId.Value == driverGuid && 
+            (r.Status == RouteStatesDomain.Assigned || r.Status == RouteStatesDomain.Started));
+        
+        // Si el conductor tiene rutas activas, no está disponible
+        if (activeRoutes.Any())
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_AVAILABLE"));
         }
+        
+        // Si el conductor no tiene rutas activas pero está marcado como ocupado (availability = 2),
+        // sincronizar su estado a disponible (availability = 1) antes de asignar
+        var driverIsAvailable = await _driverClient.DriverIsAvailable(driverId, bearer);
+        if (!driverIsAvailable)
+        {
+            // El conductor está marcado como ocupado pero no tiene rutas activas
+            // Sincronizar su estado a disponible
+            await _driverClient.SetDriverAvailability(driverId, 1, bearer);
+        }
+        
         route.AssignedAt = DateTimeOffset.UtcNow;
         route.DriverVehicleId = Guid.Parse(driverVehicleId);
-        route.DriverId = Guid.Parse(driverId);
+        route.DriverId = driverGuid;
         route.VehicleId = Guid.Parse(vehicleId);
         route.Status = RouteStatesDomain.Assigned;
         await _driverClient.SetDriverAvailability(driverId, 2, bearer);
