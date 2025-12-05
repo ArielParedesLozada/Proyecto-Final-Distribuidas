@@ -105,8 +105,8 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
                     if (!isNaN(parsed)) obsTs = parsed;
                 }
             }
-            
-            return {
+
+    return {
                 id: obsId,
                 text: obsText,
                 ts: obsTs,

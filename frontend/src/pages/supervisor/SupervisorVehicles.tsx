@@ -15,6 +15,7 @@ interface Driver {
   full_name: string;
   license_number: string;
   availability: number;
+  capabilities?: number; // 1=Liviana, 2=Pesada, 3=Ambas
 }
 
 const SupervisorVehicles: React.FC = () => {
@@ -553,8 +554,14 @@ const SupervisorVehicles: React.FC = () => {
         onClose={handleAssignModalClose}
         onSubmit={handleAssignDriverSubmit}
         vehiclePlate={selectedVehicle?.plate || ''}
+        vehicleMachinery={selectedVehicle?.machinery}
         isLoading={isSubmitting}
-        drivers={drivers}
+        drivers={drivers.map(d => ({
+          id: d.id,
+          full_name: d.full_name,
+          license_number: d.license_number,
+          capabilities: d.capabilities
+        }))}
       />
 
       {/* Modal de Cambiar Estado */}

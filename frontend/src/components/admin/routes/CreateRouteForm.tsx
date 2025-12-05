@@ -56,6 +56,12 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
           },
         }
       );
+      
+      if (!response.ok) {
+        // Si la respuesta no es OK (403, CORS, etc.), retornar coordenadas sin error
+        return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+      }
+      
       const data = await response.json();
       
       if (data.display_name) {
@@ -69,7 +75,14 @@ const CreateRouteForm: React.FC<CreateRouteFormProps> = ({
       }
       return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
     } catch (error) {
-      console.error('Error en geocodificación inversa:', error);
+      // Silenciar errores de CORS/403 de Nominatim - no afectan la funcionalidad
+      // Solo mostrar error si es algo inesperado
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        // Error de CORS o red - ignorar silenciosamente
+        return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+      }
+      // Otros errores inesperados - loggear pero no bloquear
+      console.warn('Error inesperado en geocodificación inversa:', error);
       return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
     }
   };

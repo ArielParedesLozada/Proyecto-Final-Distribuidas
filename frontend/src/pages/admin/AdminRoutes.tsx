@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Route, Plus, List, Loader2, UserCheck, AlertCircle, Car, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { CreateRouteForm, type CreateRouteFormData } from '../../components/admin/routes';
+import { Route, Plus, List, Loader2, UserCheck, AlertCircle, Car, Clock, ChevronDown, ChevronUp, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { CreateRouteForm, type CreateRouteFormData, EditRouteModal, type EditRouteFormData } from '../../components/admin/routes';
 import { api } from '../../api/api';
 import { useToast } from '../../shared/ToastNotification';
 import { formatErrorMessage } from '../../utils/errorTranslations';
@@ -58,6 +58,14 @@ const AdminRoutes: React.FC = () => {
   
   // Estado para el filtro de rutas sin asignar
   const [showUnassignedOnly, setShowUnassignedOnly] = useState<boolean>(false);
+
+  // Estado para edición y eliminación
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedRouteForEdit, setSelectedRouteForEdit] = useState<RouteProto | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState<RouteProto | null>(null);
 
   // Estado para asignar rutas
   const [unassignedRoutes, setUnassignedRoutes] = useState<RouteProto[]>([]);
@@ -501,6 +509,110 @@ const AdminRoutes: React.FC = () => {
     return status ? colorMap[status] || 'text-slate-400 bg-slate-400/20 border-slate-400/30' : 'text-slate-400 bg-slate-400/20 border-slate-400/30';
   };
 
+  // Función para verificar si una ruta puede ser eliminada (solo si NO está activa/iniciada)
+  const canDeleteRoute = (status: string | number | undefined): boolean => {
+    if (status === undefined) return false;
+    const statusStr = typeof status === 'string' ? status : 
+      status === 0 ? 'ROUTE_STATE_UNASSIGNED' :
+      status === 1 ? 'ROUTE_STATE_ASSIGNED' :
+      status === 2 ? 'ROUTE_STATE_STARTED' :
+      status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
+    return statusStr !== 'ROUTE_STATE_STARTED';
+  };
+
+  // Función para verificar si una ruta puede ser editada (solo si NO está activa/iniciada)
+  // Se pueden editar: Unassigned, Assigned, Completed
+  // NO se puede editar: Started (activa)
+  const canEditRoute = (status: string | number | undefined): boolean => {
+    if (status === undefined) return false;
+    const statusStr = typeof status === 'string' ? status : 
+      status === 0 ? 'ROUTE_STATE_UNASSIGNED' :
+      status === 1 ? 'ROUTE_STATE_ASSIGNED' :
+      status === 2 ? 'ROUTE_STATE_STARTED' :
+      status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
+    return statusStr !== 'ROUTE_STATE_STARTED';
+  };
+
+  // Función para abrir el modal de edición
+  const handleEditRoute = (route: RouteProto) => {
+    setSelectedRouteForEdit(route);
+    setIsEditModalOpen(true);
+  };
+
+  // Función para editar una ruta
+  const handleUpdateRoute = async (formData: EditRouteFormData) => {
+    if (!selectedRouteForEdit?.id) return;
+
+    setIsEditing(true);
+    try {
+      // Validar que distance_km sea válido antes de enviar
+      if (formData.distanceKm <= 0) {
+        addToast('La distancia debe ser mayor a 0', 'error');
+        setIsEditing(false);
+        return;
+      }
+
+      const response = await api(`/routes/${selectedRouteForEdit.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          id: selectedRouteForEdit.id,
+          origin_name: formData.originName,
+          destination_name: formData.destinationName,
+          coordinate_start: {
+            latitude: formData.coordinateStart.latitude,
+            longitude: formData.coordinateStart.longitude,
+          },
+          coordinate_stop: {
+            latitude: formData.coordinateStop.latitude,
+            longitude: formData.coordinateStop.longitude,
+          },
+          distance_km: formData.distanceKm,
+        }),
+      });
+
+      addToast('Ruta actualizada exitosamente', 'success');
+      setIsEditModalOpen(false);
+      setSelectedRouteForEdit(null);
+      loadRoutes(); // Recargar la lista
+    } catch (error: any) {
+      const errorMessage = formatErrorMessage(error?.response?.data?.error || error?.message || 'Error al actualizar la ruta');
+      addToast(errorMessage, 'error');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  // Función para abrir el modal de confirmación de eliminación
+  const handleDeleteRoute = (route: RouteProto) => {
+    if (!canDeleteRoute(route.status)) {
+      addToast('No se puede eliminar una ruta que está en curso (activa)', 'error');
+      return;
+    }
+    setRouteToDelete(route);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Función para confirmar y ejecutar la eliminación
+  const confirmDeleteRoute = async () => {
+    if (!routeToDelete?.id) return;
+
+    setIsDeleting(routeToDelete.id);
+    try {
+      await api(`/routes/${routeToDelete.id}`, {
+        method: 'DELETE',
+      });
+      addToast('Ruta eliminada exitosamente', 'success');
+      setIsDeleteModalOpen(false);
+      setRouteToDelete(null);
+      loadRoutes(); // Recargar la lista
+    } catch (error: any) {
+      const errorMessage = formatErrorMessage(error?.response?.data?.error || error?.message || 'Error al eliminar la ruta');
+      addToast(errorMessage, 'error');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   const tabs = [
     {
       id: 'create',
@@ -651,6 +763,35 @@ const AdminRoutes: React.FC = () => {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
+                            {/* Botones de acción */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <button
+                                onClick={() => handleEditRoute(route)}
+                                disabled={!canEditRoute(route.status)}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${
+                                  canEditRoute(route.status)
+                                    ? 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 hover:border-blue-600/50'
+                                    : 'bg-slate-600/20 text-slate-500 border-slate-600/30 cursor-not-allowed'
+                                }`}
+                                title={canEditRoute(route.status) ? 'Editar ruta' : 'No se puede editar una ruta en curso'}
+                              >
+                                <Edit className="w-4 h-4" />
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleDeleteRoute(route)}
+                                disabled={!canDeleteRoute(route.status) || isDeleting === route.id}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${
+                                  canDeleteRoute(route.status)
+                                    ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border-red-600/30 hover:border-red-600/50'
+                                    : 'bg-slate-600/20 text-slate-500 border-slate-600/30 cursor-not-allowed'
+                                }`}
+                                title={canDeleteRoute(route.status) ? 'Eliminar ruta' : 'No se puede eliminar una ruta en curso'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Eliminar
+                              </button>
+                            </div>
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold text-white">
                                 {route.originName || 'Sin origen'} → {route.destinationName || 'Sin destino'}
@@ -1065,6 +1206,117 @@ const AdminRoutes: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de edición */}
+      <EditRouteModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedRouteForEdit(null);
+        }}
+        onSubmit={handleUpdateRoute}
+        route={selectedRouteForEdit}
+        isLoading={isEditing}
+      />
+
+      {/* Modal Confirmación de Eliminación */}
+      {isDeleteModalOpen && routeToDelete && (
+        <>
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-sm z-40" style={{ left: '250px' }}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ left: '250px' }}>
+            <div className="w-full max-w-md p-6 relative rounded-2xl shadow-xl bg-[#0b1a2f] border border-slate-800 text-white">
+              {/* Cerrar */}
+              <button
+                className="absolute right-4 top-4 text-slate-400 hover:text-white"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setRouteToDelete(null);
+                }}
+                aria-label="Cerrar"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-red-600/20 border border-red-600/30">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">Confirmar Eliminación</h2>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-slate-300">
+                  ¿Estás seguro de que deseas eliminar la ruta de <span className="font-semibold text-white">{routeToDelete.originName || 'Sin origen'}</span> a <span className="font-semibold text-white">{routeToDelete.destinationName || 'Sin destino'}</span>?
+                </p>
+                
+                <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-yellow-200">
+                      <p className="font-medium mb-1">Esta acción no se puede deshacer</p>
+                      <p className="text-yellow-300/80">
+                        La ruta será eliminada permanentemente del sistema junto con todas sus observaciones asociadas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Origen:</span>
+                      <span className="text-slate-200">{routeToDelete.originName || 'Sin origen'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Destino:</span>
+                      <span className="text-slate-200">{routeToDelete.destinationName || 'Sin destino'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Estado:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRouteStatusColor(routeToDelete.status)}`}>
+                        {getRouteStatusLabel(routeToDelete.status)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Distancia:</span>
+                      <span className="text-slate-200">{routeToDelete.distanceKm?.toFixed(2) || '0.00'} km</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setRouteToDelete(null);
+                  }}
+                  className="fuel-button-secondary flex-1"
+                  disabled={isDeleting === routeToDelete.id}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteRoute}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 hover:border-red-500 transition-all duration-200 font-medium hover:shadow-lg hover:shadow-red-500/20"
+                  disabled={isDeleting === routeToDelete.id}
+                >
+                  {isDeleting === routeToDelete.id ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Eliminando...
+                    </span>
+                  ) : (
+                    'Eliminar Ruta'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

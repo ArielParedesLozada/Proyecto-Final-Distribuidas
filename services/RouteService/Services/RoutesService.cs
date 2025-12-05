@@ -90,92 +90,120 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:update:any")]
     public override async Task<RouteProto> EditRoute(EditRouteRequest request, ServerCallContext context)
     {
-        var id = Guid.Parse(request.Id);
-        var routeToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, $"ROUTE_NOT_FOUND"));
-
-        EditRouteCheckings.CheckEditIsValid(routeToUpdate, request);
-
-        if (!string.IsNullOrWhiteSpace(request.DriverVehicleId))
+        try
         {
-            if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleGuid))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_VEHICLE_ID_INVALID"));
+            var id = Guid.Parse(request.Id);
+            var routeToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, $"ROUTE_NOT_FOUND"));
 
-            var assignmentRow = await _vehicleClient.GetDriverVehicleExists(
-                request.DriverVehicleId,
-                GetAuthorization(context)
-            ) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+            EditRouteCheckings.CheckEditIsValid(routeToUpdate, request);
 
-            routeToUpdate.DriverVehicleId = driverVehicleGuid;
-            routeToUpdate.DriverId = Guid.Parse(assignmentRow.DriverId);
-            routeToUpdate.VehicleId = Guid.Parse(assignmentRow.VehicleId);
-        }
-        DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
-        DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
-        DateTimeOffset? newStarted = request.StartedAt?.ToDateTimeOffset();
-        DateTimeOffset? newCompleted = request.CompletedAt?.ToDateTimeOffset();
-        bool shouldRecalculateDistance = false;
-
-        if (request.CoordinateStart != null)
-        {
-            var newStart = new Domain.Coordinate(
-                request.CoordinateStart.Latitude,
-                request.CoordinateStart.Longitude
-            );
-            if (!newStart.Equals(routeToUpdate.CoordinatesStart))
+            if (!string.IsNullOrWhiteSpace(request.DriverVehicleId))
             {
-                routeToUpdate.CoordinatesStart = newStart;
-                shouldRecalculateDistance = true;
-            }
-        }
-        if (request.CoordinateStop != null)
-        {
-            var newStop = new Domain.Coordinate(
-                request.CoordinateStop.Latitude,
-                request.CoordinateStop.Longitude
-            );
+                if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleGuid))
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_VEHICLE_ID_INVALID"));
 
-            if (!newStop.Equals(routeToUpdate.CoordinatesStop))
+                var assignmentRow = await _vehicleClient.GetDriverVehicleExists(
+                    request.DriverVehicleId,
+                    GetAuthorization(context)
+                ) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
+
+                routeToUpdate.DriverVehicleId = driverVehicleGuid;
+                routeToUpdate.DriverId = Guid.Parse(assignmentRow.DriverId);
+                routeToUpdate.VehicleId = Guid.Parse(assignmentRow.VehicleId);
+            }
+            DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
+            DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
+            DateTimeOffset? newStarted = request.StartedAt?.ToDateTimeOffset();
+            DateTimeOffset? newCompleted = request.CompletedAt?.ToDateTimeOffset();
+            bool shouldRecalculateDistance = false;
+
+            if (request.CoordinateStart != null)
             {
-                routeToUpdate.CoordinatesStop = newStop;
-                shouldRecalculateDistance = true;
+                var newStart = new Domain.Coordinate(
+                    request.CoordinateStart.Latitude,
+                    request.CoordinateStart.Longitude
+                );
+                if (routeToUpdate.CoordinatesStart == null || !newStart.Equals(routeToUpdate.CoordinatesStart))
+                {
+                    routeToUpdate.CoordinatesStart = newStart;
+                    shouldRecalculateDistance = true;
+                }
             }
-        }
+            if (request.CoordinateStop != null)
+            {
+                var newStop = new Domain.Coordinate(
+                    request.CoordinateStop.Latitude,
+                    request.CoordinateStop.Longitude
+                );
 
-        if (shouldRecalculateDistance)
+                if (routeToUpdate.CoordinatesStop == null || !newStop.Equals(routeToUpdate.CoordinatesStop))
+                {
+                    routeToUpdate.CoordinatesStop = newStop;
+                    shouldRecalculateDistance = true;
+                }
+            }
+
+            if (shouldRecalculateDistance)
+            {
+                // Validar que distance_km sea válido antes de recalcular
+                if (request.DistanceKm <= 0)
+                {
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_DISTANCE: distance_km debe ser mayor a 0 cuando se cambian las coordenadas"));
+                }
+                // Asegurar que las coordenadas no sean null antes de validar
+                if (routeToUpdate.CoordinatesStart == null || routeToUpdate.CoordinatesStop == null)
+                {
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_COORDINATES: las coordenadas de inicio y fin son requeridas"));
+                }
+                routeToUpdate.EstimatedDistanceKm = await _distanceValidator.ValidateDistanceAsync(
+                    request.DistanceKm,
+                    routeToUpdate.CoordinatesStart,
+                    routeToUpdate.CoordinatesStop
+                );
+            }
+
+            if (request.RealDistanceKm > 0)
+            {
+                if (routeToUpdate.CoordinatesStart == null || routeToUpdate.CoordinatesStop == null)
+                {
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_COORDINATES: las coordenadas de inicio y fin son requeridas para validar la distancia real"));
+                }
+                routeToUpdate.RealDistanceKm = await _distanceValidator.ValidateDistanceAsync(
+                    request.RealDistanceKm,
+                    routeToUpdate.CoordinatesStart,
+                    routeToUpdate.CoordinatesStop
+                );
+            }
+            routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
+            routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
+
+            routeToUpdate.CreatedAt = newCreated ?? routeToUpdate.CreatedAt;
+            routeToUpdate.AssignedAt = newAssigned ?? routeToUpdate.AssignedAt;
+            routeToUpdate.StartedAt = newStarted ?? routeToUpdate.StartedAt;
+            routeToUpdate.CompletedAt = newCompleted ?? routeToUpdate.CompletedAt;
+            // Convertir el enum de protobuf al enum del dominio usando el valor numérico
+            // Ambos enums tienen los mismos valores (0=Unassigned, 1=Assigned, 2=Started, 3=Completed)
+            var statusValue = (int)request.Status;
+            if (statusValue >= 0 && statusValue <= 3)
+            {
+                routeToUpdate.Status = (RouteStatesDomain)statusValue;
+            }
+            if (request.EstimatedFuelConsumptionLiters > 0)
+                routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
+
+            if (request.RealFuelConsumptionLiters > 0)
+                routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
+            var updated = await _repository.UpdateAsync(routeToUpdate);
+            return MapToProto(updated);
+        }
+        catch (RpcException)
         {
-            routeToUpdate.EstimatedDistanceKm = await _distanceValidator.ValidateDistanceAsync(
-                request.DistanceKm,
-                routeToUpdate.CoordinatesStart,
-                routeToUpdate.CoordinatesStop
-            );
+            throw;
         }
-
-        if (request.RealDistanceKm > 0)
+        catch (Exception ex)
         {
-            routeToUpdate.RealDistanceKm = await _distanceValidator.ValidateDistanceAsync(
-                request.RealDistanceKm,
-                routeToUpdate.CoordinatesStart,
-                routeToUpdate.CoordinatesStop
-            );
+            throw new RpcException(new Status(StatusCode.Internal, $"INTERNAL_ERROR: {ex.Message}"));
         }
-        routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
-        routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
-
-        routeToUpdate.CreatedAt = newCreated ?? routeToUpdate.CreatedAt;
-        routeToUpdate.AssignedAt = newAssigned ?? routeToUpdate.AssignedAt;
-        routeToUpdate.StartedAt = newStarted ?? routeToUpdate.StartedAt;
-        routeToUpdate.CompletedAt = newCompleted ?? routeToUpdate.CompletedAt;
-        if (DomainEnum.IsDefined(typeof(RouteStatesDomain), request.Status))
-        {
-            routeToUpdate.Status = (RouteStatesDomain)request.Status;
-        }
-        if (request.EstimatedFuelConsumptionLiters > 0)
-            routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
-
-        if (request.RealFuelConsumptionLiters > 0)
-            routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
-        var updated = await _repository.UpdateAsync(routeToUpdate);
-        return MapToProto(updated);
     }
 
     [Authorize(Policy = "routes:delete")]

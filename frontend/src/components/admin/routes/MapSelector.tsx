@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
@@ -44,6 +44,7 @@ interface MapSelectorProps {
   onDestinationSelect: (lat: number, lng: number) => void;
   selectionMode: 'origin' | 'destination' | null;
   onSelectionModeChange: (mode: 'origin' | 'destination' | null) => void;
+  mapHeight?: number; // Altura personalizada del mapa
 }
 
 // Componente para manejar clicks en el mapa
@@ -68,6 +69,38 @@ function MapClickHandler({
   return null;
 }
 
+// Componente para actualizar la posición de los marcadores cuando cambian las props
+function UpdatableMarker({ 
+  position, 
+  icon, 
+  children,
+  markerKey 
+}: { 
+  position: [number, number]; 
+  icon: L.Icon; 
+  children: React.ReactNode;
+  markerKey: string;
+}) {
+  const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng(position);
+    }
+  }, [position]);
+
+  return (
+    <Marker
+      key={markerKey}
+      position={position}
+      icon={icon}
+      ref={markerRef}
+    >
+      {children}
+    </Marker>
+  );
+}
+
 // Componente para ajustar los bounds del mapa cuando hay origen y destino
 function MapBounds({ origin, destination }: { origin: { lat: number; lng: number } | null; destination: { lat: number; lng: number } | null }) {
   const map = useMapEvents({});
@@ -76,6 +109,10 @@ function MapBounds({ origin, destination }: { origin: { lat: number; lng: number
     if (origin && destination && origin.lat !== 0 && origin.lng !== 0 && destination.lat !== 0 && destination.lng !== 0) {
       const bounds = L.latLngBounds([origin, destination]);
       map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (origin && origin.lat !== 0 && origin.lng !== 0) {
+      map.setView([origin.lat, origin.lng], map.getZoom());
+    } else if (destination && destination.lat !== 0 && destination.lng !== 0) {
+      map.setView([destination.lat, destination.lng], map.getZoom());
     }
   }, [origin, destination, map]);
   
@@ -89,9 +126,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onDestinationSelect,
   selectionMode,
   onSelectionModeChange,
+  mapHeight = 500,
 }) => {
   const [center, setCenter] = useState<[number, number]>([4.6097, -74.0817]); // Bogotá por defecto
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+  // Debug: Log cuando cambian las props
+  useEffect(() => {
+    console.log('🗺️ MapSelector recibió nuevas props:', { origin, destination });
+  }, [origin, destination]);
 
   // Obtener ubicación del usuario al cargar
   useEffect(() => {
@@ -125,7 +168,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   return (
     <div className="space-y-4">
       {/* Controles de selección */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-3 items-center">
         <button
           type="button"
           onClick={() => onSelectionModeChange(selectionMode === 'origin' ? null : 'origin')}
@@ -150,19 +193,22 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           <MapPin className="w-4 h-4" />
           {destination ? 'Cambiar Destino' : 'Seleccionar Destino'}
         </button>
-        {(origin || destination) && (
-          <button
-            type="button"
-            onClick={() => {
-              onOriginSelect(0, 0);
-              onDestinationSelect(0, 0);
-              onSelectionModeChange(null);
-            }}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-          >
-            Limpiar Todo
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            onOriginSelect(0, 0);
+            onDestinationSelect(0, 0);
+            onSelectionModeChange(null);
+          }}
+          disabled={!origin && !destination}
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+            (origin || destination)
+              ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+              : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+          }`}
+        >
+          Limpiar Todo
+        </button>
       </div>
 
       {/* Instrucciones */}
@@ -179,7 +225,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
       )}
 
       {/* Mapa */}
-      <div className="border border-slate-700 rounded-lg overflow-hidden" style={{ height: '500px', zIndex: 0 }}>
+      <div className="border border-slate-700 rounded-lg overflow-hidden" style={{ height: `${mapHeight}px`, zIndex: 0 }}>
         <MapContainer
           center={center}
           zoom={13}
@@ -197,7 +243,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           />
           <MapBounds origin={origin} destination={destination} />
           {origin && origin.lat !== 0 && origin.lng !== 0 && (
-            <Marker position={[origin.lat, origin.lng]} icon={originIcon}>
+            <UpdatableMarker
+              markerKey={`origin-${origin.lat}-${origin.lng}`}
+              position={[origin.lat, origin.lng]}
+              icon={originIcon}
+            >
               <Popup>
                 <div className="text-center">
                   <p className="font-semibold text-green-600">Origen</p>
@@ -206,10 +256,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                   </p>
                 </div>
               </Popup>
-            </Marker>
+            </UpdatableMarker>
           )}
           {destination && destination.lat !== 0 && destination.lng !== 0 && (
-            <Marker position={[destination.lat, destination.lng]} icon={destinationIcon}>
+            <UpdatableMarker
+              markerKey={`destination-${destination.lat}-${destination.lng}`}
+              position={[destination.lat, destination.lng]}
+              icon={destinationIcon}
+            >
               <Popup>
                 <div className="text-center">
                   <p className="font-semibold text-red-600">Destino</p>
@@ -218,10 +272,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                   </p>
                 </div>
               </Popup>
-            </Marker>
+            </UpdatableMarker>
           )}
           {origin && destination && origin.lat !== 0 && origin.lng !== 0 && destination.lat !== 0 && destination.lng !== 0 && (
             <Polyline
+              key={`polyline-${origin.lat}-${origin.lng}-${destination.lat}-${destination.lng}`}
               positions={[[origin.lat, origin.lng], [destination.lat, destination.lng]]}
               color="#3b82f6"
               weight={3}
