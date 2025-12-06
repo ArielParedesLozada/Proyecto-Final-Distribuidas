@@ -6,6 +6,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import { DriverRoutes } from './routes/drivers.js';
 import { VehicleRoutes } from './routes/vehicles.js';
+import { GeocodingRoutes } from './routes/geocoding.js';
 import { EurekaClient } from "./eureka/EurekaClient.js";
 import { ServiceDiscovery } from './eureka/ServiceDiscovery.js';
 import { VehicleClient } from './grpc/vehiclesClient.js';
@@ -73,15 +74,13 @@ const vehicleRoutes = new VehicleRoutes(vehicleClient)
 const driverClient = new DriverClient(serviceDiscovery, process.env.DRIVER_PROTO_PATH || "../services/Protos/drivers.proto")
 await driverClient.start()
 const driverRoutes = new DriverRoutes(driverClient)
-const fuelClient = new FuelClient(serviceDiscovery, process.env.FUEL_PROTO_PATH || "../services/Protos/fuel.proto")
-await fuelClient.start()
-const fuelRoutes = new FuelRoutes(fuelClient)
+const geocodingRoutes = new GeocodingRoutes()
 await adminRoutes.start()
 await authRoutes.start()
 await vehicleRoutes.start()
 await driverRoutes.start()
 await routeRoutes.start()
-await fuelRoutes.start()
+await geocodingRoutes.start()
 
 
 app.use(adminRoutes.router)
@@ -89,7 +88,7 @@ app.use(authRoutes.router)
 app.use(routeRoutes.router)
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);
-app.use('/', fuelRoutes.router);
+app.use('/', geocodingRoutes.router);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {

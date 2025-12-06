@@ -182,5 +182,46 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   }
 }
 
+/**
+ * Función helper para reverse geocoding (obtener nombre del lugar desde coordenadas)
+ * @param lat - Latitud
+ * @param lng - Longitud
+ * @returns Nombre del lugar o coordenadas como fallback
+ */
+export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    // Intentar obtener el nombre del lugar desde el proxy
+    const response = await api<{
+      display_name?: string;
+      error?: string;
+      message?: string;
+      retryAfter?: number;
+    }>(`/api/reverse-geocode?lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+
+    if (response.display_name) {
+      // Extraer una descripción más corta y útil
+      const parts = response.display_name.split(',');
+      if (parts.length > 0) {
+        // Tomar los primeros 2-3 elementos para un nombre más corto
+        return parts.slice(0, Math.min(3, parts.length)).join(', ').trim();
+      }
+      return response.display_name;
+    }
+    
+    // Si no hay display_name pero hay un mensaje de error, loguearlo
+    if (response.error || response.message) {
+      console.warn('Geocoding retornó error:', response.error || response.message);
+    }
+    
+    // Retornar coordenadas como fallback
+    return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+  } catch (error: any) {
+    // Si hay un error (403, 503, etc.), retornar coordenadas como fallback
+    // No mostrar error al usuario, solo usar coordenadas
+    console.warn('Error en reverse geocoding (usando coordenadas como fallback):', error.message || error);
+    return `Ubicación (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+  }
+}
+
 export { API_BASE_URL };
 export default api;

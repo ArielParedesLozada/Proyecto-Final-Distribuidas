@@ -86,6 +86,29 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
         inicioAt: parseDate(startedAt),
         finAt: parseDate(completedAt),
         programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
+        observations: (r.observations || []).map((obs: any) => {
+            const obsId = obs.id || '';
+            const obsText = obs.text || '';
+            const obsDate = obs.createdAt || obs.created_at;
+            let obsTs = Date.now();
+            
+            // Parsear la fecha si viene como Timestamp de protobuf
+            if (obsDate) {
+                if (typeof obsDate === 'object' && obsDate !== null && 'seconds' in obsDate) {
+                    const ts = obsDate as any;
+                    obsTs = ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
+                } else if (typeof obsDate === 'string') {
+                    const parsed = Date.parse(obsDate);
+                    if (!isNaN(parsed)) obsTs = parsed;
+                }
+            }
+
+    return {
+                id: obsId,
+                text: obsText,
+                ts: obsTs,
+            };
+        }),
     };
 };
 
