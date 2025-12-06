@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, TrendingUp, Filter, Loader2, AlertCircle } from 'lucide-react';
+import { ClipboardList, TrendingUp, Filter, Loader2, AlertCircle, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../api/api';
 import { useToast } from '../../shared/ToastNotification';
+import { generateRouteReportPdf } from '../../services/pdf/routeReportPdf';
+import { generateComparisonReportPdf } from '../../services/pdf/comparisonReportPdf';
 
 interface MachineryTypeReport {
   machineryType: number; // 0 = LIVIANO, 1 = PESADO
@@ -540,6 +542,33 @@ const SupervisorReports: React.FC = () => {
         <div className="space-y-4">
           {comparisonData && comparisonData.summary && comparisonData.summary.totalRoutes > 0 ? (
             <>
+              {/* Botón de descarga global */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    try {
+                      if (comparisonData && comparisonData.items && comparisonData.items.length > 0) {
+                        generateComparisonReportPdf(comparisonData, {
+                          startDate,
+                          endDate,
+                          machineryType
+                        });
+                        addToast('PDF generado exitosamente', 'success');
+                      } else {
+                        addToast('No hay datos para generar el PDF', 'error');
+                      }
+                    } catch (error) {
+                      console.error('Error al generar PDF:', error);
+                      addToast('Error al generar el PDF', 'error');
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar Reporte Completo (PDF)
+                </button>
+              </div>
+
               {/* Resumen de Comparación */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="fuel-card p-4">
@@ -670,6 +699,7 @@ const SupervisorReports: React.FC = () => {
                         <th className="text-right py-3 px-4 text-slate-400">Distancia (km)</th>
                         <th className="text-right py-3 px-4 text-slate-400">Diferencia</th>
                         <th className="text-right py-3 px-4 text-slate-400">Fecha</th>
+                        <th className="text-center py-3 px-4 text-slate-400">Acción</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -684,6 +714,18 @@ const SupervisorReports: React.FC = () => {
                             {formatNumber(item.differenceLiters)} ({formatNumber(item.differencePercentage)}%)
                           </td>
                           <td className="py-3 px-4 text-right text-slate-400 text-sm">{formatDate(item.completedAt)}</td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              onClick={() => {
+                                generateRouteReportPdf(item);
+                                addToast('PDF de ruta generado exitosamente', 'success');
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Descargar reporte de esta ruta"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
