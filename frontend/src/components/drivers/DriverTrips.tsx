@@ -332,7 +332,6 @@ const DriverTrips: React.FC<Props> = ({
             {!isLoading && !error && allTrips.length === 0 && (
                 <div className="col-span-full">
                     <EmptyState
-                        asCard
                         icon={Route}
                         title="Aún no tienes viajes asignados"
                         description="Cuando te asignen una ruta, aparecerá aquí. Contacta con tu supervisor si necesitas más información."
@@ -417,7 +416,6 @@ const DriverTrips: React.FC<Props> = ({
                         {total === 0 && allTrips.length > 0 && (
                             <div className="col-span-full">
                                 <EmptyState
-                                    asCard
                                     icon={Filter}
                                     title="No hay viajes que coincidan con tus filtros"
                                     description="Ajusta la ciudad, el estado o la ventana de 24 h."

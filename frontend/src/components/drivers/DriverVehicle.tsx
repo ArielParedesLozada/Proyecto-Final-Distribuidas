@@ -27,11 +27,10 @@ type Props = {
 };
 
 /* ---------------- Demo fallback ---------------- */
-const now = Date.now();
 const demoTrips = (from: string): Trip[] => [
-    { id: `${from}-VIA-01`, origen: "Ambato", destino: "Quito", estado: "Planificado", inicioAt: null, finAt: null, estimado: 30, observations: [] },
-    { id: `${from}-VIA-02`, origen: "Latacunga", destino: "Ambato", estado: "EnCurso", inicioAt: now - 1000 * 60 * 25, finAt: null, estimado: 18, observations: [] },
-    { id: `${from}-VIA-03`, origen: "Riobamba", destino: "Baños", estado: "Finalizado", inicioAt: now - 1000 * 60 * 120, finAt: now - 1000 * 60 * 70, estimado: 15, observations: [] },
+    { id: `${from}-VIA-01`, origen: "Ambato", destino: "Quito", estado: "Planificado", estimado: 30 },
+    { id: `${from}-VIA-02`, origen: "Latacunga", destino: "Ambato", estado: "EnCurso", estimado: 18 },
+    { id: `${from}-VIA-03`, origen: "Riobamba", destino: "Baños", estado: "Finalizado", estimado: 15 },
 ];
 /* ------------------------------------------------ */
 

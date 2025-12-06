@@ -152,8 +152,8 @@ public class EventConsumer<TDataConsumption> : BackgroundService
     {
         try
         {
-            _channel?.CloseAsync().AsTask().Wait();
-            _connection?.CloseAsync().AsTask().Wait();
+            _channel?.CloseAsync().Wait();
+            _connection?.CloseAsync().Wait();
             _channel?.Dispose();
             _connection?.Dispose();
         }
