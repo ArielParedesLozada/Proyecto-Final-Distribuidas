@@ -11,6 +11,7 @@ import TripFilters, {
 } from "../../shared/TripFilters";
 import api from "../../api/api";
 import type { ListRoutesResponse, RouteProto, RouteObservationProto } from "../../types/trip";
+import type { VehicleResponse } from "../../types/vehicle";
 
 export type TripObservation = {
     id: string;
@@ -254,6 +255,7 @@ const DriverTrips: React.FC<Props> = ({
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
     const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
+    const [selectedTripVehicle, setSelectedTripVehicle] = useState<{ placa: string; tipo?: string; alias?: string } | null>(null);
 
     // Función para iniciar un viaje
     const handleStart = async (tripId: string) => {
@@ -450,7 +452,90 @@ const DriverTrips: React.FC<Props> = ({
                                     <button
                                         className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all"
                                         title="Ver Detalle"
-                                        onClick={() => setSelectedTrip(trip)}
+                                        onClick={async () => {
+                                            setSelectedTrip(trip);
+                                            setSelectedTripVehicle(null); // Resetear primero
+                                            
+                                            // Obtener información del vehículo de la ruta
+                                            const routeData = apiRoutesData.find(r => (r.id || "") === trip.id);
+                                            if (!routeData) {
+                                                console.log("⚠️ No se encontró routeData para el viaje:", trip.id);
+                                                return;
+                                            }
+                                            
+                                            console.log("🔍 RouteData encontrado:", routeData);
+                                            
+                                            let vehicleId: string | undefined = undefined;
+                                            
+                                            // Intentar obtener vehicle_id directamente
+                                            vehicleId = routeData?.vehicleId || routeData?.vehicle_id;
+                                            console.log("🚗 vehicleId directo:", vehicleId);
+                                            
+                                            // Si no hay vehicle_id, intentar obtener desde driver_vehicle_id (assignment)
+                                            if (!vehicleId) {
+                                                const driverVehicleId = routeData?.driverVehicleId || routeData?.driver_vehicle_id;
+                                                console.log("🔑 driverVehicleId:", driverVehicleId);
+                                                
+                                                if (driverVehicleId) {
+                                                    try {
+                                                        // Obtener el assignment para obtener el vehicle_id
+                                                        // Primero intentar obtener el driverId del usuario actual
+                                                        const driverId = routeData?.driverId || routeData?.driver_id;
+                                                        console.log("👤 driverId:", driverId);
+                                                        
+                                                        if (driverId) {
+                                                            const assignmentsResponse = await api<any>(`/drivers/${driverId}/assignments`);
+                                                            console.log("📦 Assignments recibidos:", assignmentsResponse);
+                                                            
+                                                            // Buscar el assignment que coincida con driver_vehicle_id
+                                                            const assignment = (assignmentsResponse.items || []).find(
+                                                                (a: any) => {
+                                                                    const assignmentId = a.assignment_id || a.id || a.driver_vehicle_id;
+                                                                    console.log("🔍 Comparando assignment:", assignmentId, "con driverVehicleId:", driverVehicleId);
+                                                                    return assignmentId === driverVehicleId && !a.unassigned_at;
+                                                                }
+                                                            );
+                                                            
+                                                            if (assignment) {
+                                                                vehicleId = assignment.vehicle_id;
+                                                                console.log("✅ Assignment encontrado, vehicleId:", vehicleId);
+                                                            } else {
+                                                                // Si no se encuentra por ID, tomar el primer assignment activo
+                                                                const activeAssignment = (assignmentsResponse.items || []).find(
+                                                                    (a: any) => !a.unassigned_at
+                                                                );
+                                                                if (activeAssignment) {
+                                                                    vehicleId = activeAssignment.vehicle_id;
+                                                                    console.log("✅ Usando primer assignment activo, vehicleId:", vehicleId);
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch (err) {
+                                                        console.error("❌ Error al cargar assignment:", err);
+                                                    }
+                                                }
+                                            }
+                                            
+                                            if (vehicleId) {
+                                                try {
+                                                    console.log("🔄 Cargando vehículo:", vehicleId);
+                                                    const vehicleResponse = await api<VehicleResponse>(`/vehicles/${vehicleId}`);
+                                                    const vehicle = vehicleResponse.vehicle || vehicleResponse;
+                                                    console.log("✅ Vehículo cargado:", vehicle);
+                                                    
+                                                    setSelectedTripVehicle({
+                                                        placa: vehicle.plate || "",
+                                                        tipo: vehicle.type || "",
+                                                        alias: vehicle.brand && vehicle.model ? `${vehicle.brand} ${vehicle.model}` : vehicle.type || ""
+                                                    });
+                                                } catch (err) {
+                                                    console.error("❌ Error al cargar vehículo:", err);
+                                                    setSelectedTripVehicle(null);
+                                                }
+                                            } else {
+                                                console.log("⚠️ No se pudo obtener vehicleId para el viaje");
+                                            }
+                                        }}
                                     >
                                         <Eye className="w-5 h-5 text-slate-200" />
                                     </button>
@@ -512,8 +597,12 @@ const DriverTrips: React.FC<Props> = ({
             {selectedTrip && (
                 <TripModal
                     trip={selectedTrip}
-                    onClose={() => setSelectedTrip(null)}
+                    onClose={() => {
+                        setSelectedTrip(null);
+                        setSelectedTripVehicle(null);
+                    }}
                     onAddObs={handleAddObs}
+                    vehicle={selectedTripVehicle || undefined}
                 />
             )}
 
