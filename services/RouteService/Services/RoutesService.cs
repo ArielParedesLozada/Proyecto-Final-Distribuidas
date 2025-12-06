@@ -55,7 +55,7 @@ public class RoutesService : RoutesProtoService
             };
 
             // Optimización: cargar todas las observaciones de una vez en lugar de hacer una consulta por cada ruta
-            Dictionary<Guid, List<RouteObservation>> observationsByRouteId = new();
+            Dictionary<Guid, List<Domain.RouteObservation>> observationsByRouteId = new();
             
             if (routes.Any())
             {
@@ -557,9 +557,70 @@ public class RoutesService : RoutesProtoService
         return new Empty();
     }
 
+    [Authorize(Policy = "routes:read:own")]
+    public override async Task<CreateObservationResponse> AddObservation(CreateObservationRequest request, ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "OBSERVATION_TEXT_REQUIRED"));
+        }
+
+        if (!Guid.TryParse(request.RouteId, out var routeId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ROUTE_ID"));
+        }
+
+        // Verificar que la ruta existe
+        var route = await _repository.GetByIdAsync(routeId) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+
+        // Verificar que el usuario es el dueño de la ruta (si es conductor)
+        var userId = context.GetHttpContext().User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrWhiteSpace(userId) && route.DriverId.HasValue)
+        {
+            var bearer = GetAuthorization(context);
+            var driverId = await _driverClient.FindDriverByUserIdAsync(userId, bearer);
+            if (driverId != null && Guid.Parse(driverId) != route.DriverId.Value)
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "NOT_OWNER_OF_ROUTE"));
+            }
+        }
+
+        // Crear la observación
+        var observation = new Domain.RouteObservation
+        {
+            Id = Guid.NewGuid(),
+            RouteId = routeId,
+            Text = request.Text.Trim(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = userId != null && Guid.TryParse(userId, out var userIdGuid) ? userIdGuid : null
+        };
+
+        _dbContext.RouteObservations.Add(observation);
+        await _dbContext.SaveChangesAsync();
+
+        var response = new CreateObservationResponse
+        {
+            Observation = new RoutesProto.RouteObservation
+            {
+                Id = observation.Id.ToString(),
+                RouteId = observation.RouteId.ToString(),
+                Text = observation.Text,
+                CreatedAt = Timestamp.FromDateTimeOffset(observation.CreatedAt),
+                CreatedBy = observation.CreatedBy?.ToString() ?? string.Empty
+            }
+        };
+
+        return response;
+    }
+
     private RouteProto MapToProto(Route route)
     {
-        return new RouteProto
+        return MapToProtoWithObservations(route, null);
+    }
+
+    private RouteProto MapToProtoWithObservations(Route route, List<Domain.RouteObservation>? observations)
+    {
+        var proto = new RouteProto
         {
             Id = route.Id.ToString(),
             DriverVehicleId = route.DriverVehicleId?.ToString() ?? string.Empty,
@@ -597,5 +658,23 @@ public class RoutesService : RoutesProtoService
             EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? 0,
             RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? 0
         };
+
+        // Agregar observaciones si están disponibles
+        if (observations != null && observations.Any())
+        {
+            foreach (var obs in observations)
+            {
+                proto.Observations.Add(new RoutesProto.RouteObservation
+                {
+                    Id = obs.Id.ToString(),
+                    RouteId = obs.RouteId.ToString(),
+                    Text = obs.Text,
+                    CreatedAt = Timestamp.FromDateTimeOffset(obs.CreatedAt),
+                    CreatedBy = obs.CreatedBy?.ToString() ?? string.Empty
+                });
+            }
+        }
+
+        return proto;
     }
 }

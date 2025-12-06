@@ -74,6 +74,9 @@ const vehicleRoutes = new VehicleRoutes(vehicleClient)
 const driverClient = new DriverClient(serviceDiscovery, process.env.DRIVER_PROTO_PATH || "../services/Protos/drivers.proto")
 await driverClient.start()
 const driverRoutes = new DriverRoutes(driverClient)
+const fuelClient = new FuelClient(serviceDiscovery, process.env.FUEL_PROTO_PATH || "../services/Protos/fuel.proto")
+await fuelClient.start()
+const fuelRoutes = new FuelRoutes(fuelClient)
 const geocodingRoutes = new GeocodingRoutes()
 await adminRoutes.start()
 await authRoutes.start()
@@ -81,6 +84,7 @@ await vehicleRoutes.start()
 await driverRoutes.start()
 await routeRoutes.start()
 await geocodingRoutes.start()
+await fuelRoutes.start()
 
 
 app.use(adminRoutes.router)
@@ -89,6 +93,7 @@ app.use(routeRoutes.router)
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);
 app.use('/', geocodingRoutes.router);
+app.use('/', fuelRoutes.router);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {

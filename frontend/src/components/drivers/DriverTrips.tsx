@@ -10,7 +10,13 @@ import TripFilters, {
     DEFAULT_TRIP_FILTERS,
 } from "../../shared/TripFilters";
 import api from "../../api/api";
-import type { ListRoutesResponse, RouteProto } from "../../types/trip";
+import type { ListRoutesResponse, RouteProto, RouteObservationProto } from "../../types/trip";
+
+export type TripObservation = {
+    id: string;
+    text: string;
+    ts: number;
+};
 
 export type Trip = {
     id: string;
@@ -21,12 +27,14 @@ export type Trip = {
     inicioAt?: number | null;
     finAt?: number | null;
     programadoAt?: number | null;
+    observations?: TripObservation[];
 };
 
 type Props = {
     trips?: Trip[];
     onStart?: (id: string) => void;
     onFinish?: (id: string) => void;
+    onAddObs?: (tripId: string, text: string) => void;
 };
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -60,22 +68,50 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
     };
 
     // Manejar campos opcionales y fechas
-    const parseDate = (dateStr: string | null | undefined): number | null => {
-        if (!dateStr) return null;
+    const parseDate = (date: any): number | null => {
+        if (!date) return null;
         try {
             // Si viene como objeto Timestamp de protobuf
-            if (typeof dateStr === 'object' && dateStr !== null && 'seconds' in dateStr) {
-                const ts = dateStr as any;
-                return ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
+            if (typeof date === "object" && date !== null && "seconds" in date) {
+                const ts = date as any;
+                return ts.seconds * 1000 + (ts.nanos || 0) / 1_000_000;
             }
             // Si viene como string ISO
-            return Date.parse(dateStr);
+            if (typeof date === "string") {
+                const parsed = Date.parse(date);
+                return isNaN(parsed) ? null : parsed;
+            }
+            return null;
         } catch {
             return null;
         }
     };
 
     const estado = statusMap[status] || "Planificado";
+
+    // ---- Observaciones ----
+    const observations: TripObservation[] = (r.observations || []).map((obs: RouteObservationProto) => {
+        const obsId = obs.id || "";
+        const obsText = obs.text || "";
+        const obsDate = obs.createdAt || obs.created_at;
+        let obsTs = Date.now();
+
+        if (obsDate) {
+            if (typeof obsDate === "object" && obsDate !== null && "seconds" in obsDate) {
+                const ts = obsDate as any;
+                obsTs = ts.seconds * 1000 + (ts.nanos || 0) / 1_000_000;
+            } else if (typeof obsDate === "string") {
+                const parsed = Date.parse(obsDate);
+                if (!isNaN(parsed)) obsTs = parsed;
+            }
+        }
+
+        return {
+            id: obsId,
+            text: obsText,
+            ts: obsTs,
+        };
+    });
 
     return {
         id,
@@ -86,35 +122,14 @@ const mapRoutesToDisplay = (r: RouteProto): Trip => {
         inicioAt: parseDate(startedAt),
         finAt: parseDate(completedAt),
         programadoAt: parseDate(assignedAt) || parseDate(createdAt) || null,
-        observations: (r.observations || []).map((obs: any) => {
-            const obsId = obs.id || '';
-            const obsText = obs.text || '';
-            const obsDate = obs.createdAt || obs.created_at;
-            let obsTs = Date.now();
-            
-            // Parsear la fecha si viene como Timestamp de protobuf
-            if (obsDate) {
-                if (typeof obsDate === 'object' && obsDate !== null && 'seconds' in obsDate) {
-                    const ts = obsDate as any;
-                    obsTs = ts.seconds * 1000 + (ts.nanos || 0) / 1000000;
-                } else if (typeof obsDate === 'string') {
-                    const parsed = Date.parse(obsDate);
-                    if (!isNaN(parsed)) obsTs = parsed;
-                }
-            }
-
-    return {
-                id: obsId,
-                text: obsText,
-                ts: obsTs,
-            };
-        }),
+        observations,
     };
 };
 
 const DriverTrips: React.FC<Props> = ({
     onStart,
     onFinish,
+    onAddObs,
 }) => {
     // --- Estado para rutas reales ---
     const [apiRoutes, setApiRoutes] = useState<Trip[]>([]);
@@ -238,6 +253,7 @@ const DriverTrips: React.FC<Props> = ({
     const [tripToFinish, setTripToFinish] = useState<Trip | null>(null);
     const [isStarting, setIsStarting] = useState<string | null>(null);
     const [isFinishing, setIsFinishing] = useState<string | null>(null);
+    const [isAddingObs, setIsAddingObs] = useState<string | null>(null);
 
     // Función para iniciar un viaje
     const handleStart = async (tripId: string) => {
@@ -247,8 +263,6 @@ const DriverTrips: React.FC<Props> = ({
             setIsStarting(tripId);
             console.log("🚀 Iniciando viaje:", tripId);
 
-            // Llamar al endpoint para iniciar la ruta
-            // El backend espera el id tanto en la URL como en el body (body: "*" en el proto)
             await api(`/routes/start/${tripId}`, {
                 method: "PATCH",
                 body: JSON.stringify({
@@ -258,20 +272,17 @@ const DriverTrips: React.FC<Props> = ({
 
             console.log("✅ Viaje iniciado correctamente");
 
-            // Recargar la lista de rutas
             const response = await api<ListRoutesResponse>("/routes/my");
             if (response && response.routes && Array.isArray(response.routes)) {
                 const mapped = response.routes.map(mapRoutesToDisplay);
                 setApiRoutes(mapped);
             }
 
-            // Llamar al callback si existe
             onStart?.(tripId);
         } catch (err: any) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error("❌ Error al iniciar viaje:", msg);
             setError(msg || "Error al iniciar el viaje");
-            // Mostrar error temporalmente
             setTimeout(() => setError(""), 5000);
         } finally {
             setIsStarting(null);
@@ -296,7 +307,6 @@ const DriverTrips: React.FC<Props> = ({
         console.log("🏁 Finalizando viaje:", tripId, "Distancia:", realDistanceKm, "Combustible:", realFuelConsumptionLiters);
 
         try {
-            // Llamar al endpoint para finalizar la ruta
             await api(`/routes/end/${tripId}`, {
                 method: "PATCH",
                 body: JSON.stringify({
@@ -308,7 +318,6 @@ const DriverTrips: React.FC<Props> = ({
 
             console.log("✅ Viaje finalizado correctamente");
 
-            // Recargar la lista de rutas
             const response = await api<ListRoutesResponse>("/routes/my");
             if (response && response.routes && Array.isArray(response.routes)) {
                 const mapped = response.routes.map(mapRoutesToDisplay);
@@ -316,10 +325,7 @@ const DriverTrips: React.FC<Props> = ({
                 setApiRoutesData(response.routes);
             }
 
-            // Cerrar el modal
             setTripToFinish(null);
-
-            // Llamar al callback si existe
             onFinish?.(tripId);
         } catch (err: any) {
             const msg = err instanceof Error ? err.message : String(err);
@@ -331,6 +337,49 @@ const DriverTrips: React.FC<Props> = ({
         }
     };
 
+    // Función para agregar una observación
+    const handleAddObs = async (tripId: string, text: string) => {
+        if (isAddingObs) return;
+        if (!text.trim()) return;
+
+        try {
+            setIsAddingObs(tripId);
+            console.log("📝 Agregando observación al viaje:", tripId, "Texto:", text);
+
+            await api(`/routes/${tripId}/observations`, {
+                method: "POST",
+                body: JSON.stringify({
+                    route_id: tripId,
+                    text: text.trim(),
+                }),
+            });
+
+            console.log("✅ Observación agregada correctamente");
+
+            const response = await api<ListRoutesResponse>("/routes/my");
+            if (response && response.routes && Array.isArray(response.routes)) {
+                const mapped = response.routes.map(mapRoutesToDisplay);
+                setApiRoutes(mapped);
+                setApiRoutesData(response.routes);
+
+                if (selectedTrip && selectedTrip.id === tripId) {
+                    const updatedTrip = mapped.find(t => t.id === tripId);
+                    if (updatedTrip) {
+                        setSelectedTrip(updatedTrip);
+                    }
+                }
+            }
+
+            onAddObs?.(tripId, text);
+        } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("❌ Error al agregar observación:", msg);
+            setError(msg || "Error al agregar la observación");
+            setTimeout(() => setError(""), 5000);
+        } finally {
+            setIsAddingObs(null);
+        }
+    };
 
     // -----------------------------
     // 🟦 RENDER
@@ -464,6 +513,7 @@ const DriverTrips: React.FC<Props> = ({
                 <TripModal
                     trip={selectedTrip}
                     onClose={() => setSelectedTrip(null)}
+                    onAddObs={handleAddObs}
                 />
             )}
 
@@ -475,14 +525,13 @@ const DriverTrips: React.FC<Props> = ({
                 
                 return (
                     <FinishTripModal
-                        key={tripToFinish.id} // Usar key para evitar problemas de re-renderizado
+                        key={tripToFinish.id}
                         tripId={tripToFinish.id}
                         origen={tripToFinish.origen}
                         destino={tripToFinish.destino}
                         distanciaEstimada={distanciaEstimada}
                         consumoEstimado={consumoEstimado}
                         onClose={() => {
-                            // Solo cerrar si no está guardando
                             if (!isFinishing) {
                                 setTripToFinish(null);
                             }

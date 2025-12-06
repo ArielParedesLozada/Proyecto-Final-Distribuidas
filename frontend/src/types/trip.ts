@@ -32,11 +32,19 @@ export type RouteProto = {
     real_distance_km?: number;
     estimated_fuel_consumption_liters?: number;
     real_fuel_consumption_liters?: number;
+    observations?: RouteObservationProto[];
 };
 
 export interface CoordinateProto {
     latitude: number
     longitude: number
+}
+
+export interface RouteObservationProto {
+    id?: string;
+    text?: string;
+    createdAt?: string | { seconds?: number; nanos?: number } | null;
+    created_at?: string | { seconds?: number; nanos?: number } | null;
 }
 
 export interface ListRoutesResponse {
