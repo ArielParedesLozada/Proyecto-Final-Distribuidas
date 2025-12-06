@@ -8,6 +8,8 @@ using Steeltoe.Discovery.Eureka;
 using Serilog;
 using Serilog.Events;
 using RouteService.Infraestructure.Distance;
+using RabbitMQ.Client;
+using RouteService.Queue.Publishers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +50,21 @@ builder.Services.AddLazyGrpcClient<DriverService, DriverClient>("driver-service"
 
 builder.Services.AddScoped<IDistanceService, PostgisDistanceService>();
 builder.Services.AddScoped<DistanceValidator>();
+//
+builder.Services.AddSingleton<ConnectionFactory>(sp =>
+    new ConnectionFactory
+    {
+        HostName = "localhost",
+        Port = 5672,
+        UserName = "guest",
+        Password = "guest",
+    });
+
+builder.Services.AddSingleton<IRouteEventPublisher>(sp =>
+{
+    var factory = sp.GetRequiredService<ConnectionFactory>();
+    return new RabbitRouteEventPublisher(factory, exchangeName: "fuel_events");
+});
 
 var app = builder.Build();
 

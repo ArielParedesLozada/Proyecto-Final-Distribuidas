@@ -8,12 +8,12 @@ namespace FuelService.Queue.Consumer;
 
 public class EventConsumer<TDataConsumption> : BackgroundService
 {
-    private readonly IConsumptionAction<TDataConsumption> _action;
-    private IChannel _channel = null!;
-    private readonly string _host;
-    private readonly int _port;
-    private readonly string _queueName;
-    private readonly string _topic;
+    protected readonly IConsumptionAction<TDataConsumption> _action;
+    protected IChannel _channel = null!;
+    protected readonly string _host;
+    protected readonly int _port;
+    protected readonly string _queueName;
+    protected readonly string _topic;
 
     public EventConsumer(string host, int port, string queue, string topic, IConsumptionAction<TDataConsumption> action)
     {

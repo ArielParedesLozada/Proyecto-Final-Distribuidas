@@ -13,7 +13,7 @@ public class AppDatabase : DbContext
     {
         modelBuilder.Entity<FuelRegister>(entity =>
         {
-            entity.ToTable("FuelConsumption");
+            entity.ToTable("fuel_registers");
             entity.HasKey(r => new { r.Id, r.VehicleMachinery });
 
             entity.HasIndex(r => r.VehicleMachinery);

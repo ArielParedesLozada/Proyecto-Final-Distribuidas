@@ -12,6 +12,8 @@ using FuelConsumptionService = RouteService.Domain.FuelConsumptionService;
 using RouteService.Infraestructure.Distance;
 using DomainEnum = System.Enum;
 using RouteService.Infraestructure.UseCases;
+using RouteService.Queue.Publishers;
+using RouteService.Queue.Events;
 namespace RouteService.Services;
 
 public class RoutesService : RoutesProtoService
@@ -20,13 +22,15 @@ public class RoutesService : RoutesProtoService
     private readonly VehicleClient _vehicleClient;
     private readonly DriverClient _driverClient;
     private readonly DistanceValidator _distanceValidator;
+    private readonly IRouteEventPublisher _publisher;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator)
+    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator, IRouteEventPublisher publisher)
     {
         _repository = repository;
         _vehicleClient = vehicleClient;
         _driverClient = driverClient;
         _distanceValidator = distanceValidator;
+        _publisher = publisher;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {
@@ -361,7 +365,16 @@ public class RoutesService : RoutesProtoService
         var vehicleId = route.VehicleId.HasValue ? route.VehicleId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "VEHICLE_NOT_FOUND_CORRUP_ROUTE"));
         var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_FOUND_CORRUP_ROUTE"));
         route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters > 0 ? request.RealFuelConsumptionLiters : throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_FUEL_CONSUMPTION_MUST_BE_PROVIDED"));
-        await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer);
+        var vehicleMachinery = (await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer)).Machinery;
+        var message = CreateMessage(route, (VehicleMachineryTypes)vehicleMachinery);
+        if (vehicleMachinery == VehiclesService.Proto.VehicleMachineryTypes.Liviano)
+        {
+            await _publisher.PublishRouteEndedAsync(topic: "liviano", message);
+        }
+        else if (vehicleMachinery == VehiclesService.Proto.VehicleMachineryTypes.Pesado)
+        {
+            await _publisher.PublishRouteEndedAsync(topic: "pesado", message);
+        }
         await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
         return MapToProto(route);
@@ -437,6 +450,24 @@ public class RoutesService : RoutesProtoService
             RealDistanceKm = route.RealDistanceKm ?? 0,
             EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? 0,
             RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? 0
+        };
+    }
+
+    private FuelRegisterEvent CreateMessage(Route route, VehicleMachineryTypes machinery)
+    {
+        return new FuelRegisterEvent
+        {
+            Id = Guid.NewGuid(),
+            RouteId = route.Id,
+            DriverId = route.DriverId ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            VehicleId = route.VehicleId ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            RealDistanceKm = route.RealDistanceKm ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            StartedAt = route.StartedAt ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            CompletedAt = route.CompletedAt ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            VehicleMachinery = machinery,
+            Timestamp = DateTimeOffset.UtcNow,
         };
     }
 }
