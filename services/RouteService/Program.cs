@@ -21,6 +21,11 @@ var JWT_SECRET = Environment.GetEnvironmentVariable("JWT_SECRET")!;
 var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
 var HTTP1 = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2 = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
+var RABBITMQ_HOST = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+var RABBITMQ_PORT = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672");
+var RABBITMQ_USER = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "guest";
+var RABBITMQ_PASSWORD = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
+
 var SEQ_URL = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5341";
 // Serilog
 Log.Logger = new LoggerConfiguration()
@@ -54,10 +59,10 @@ builder.Services.AddScoped<DistanceValidator>();
 builder.Services.AddSingleton<ConnectionFactory>(sp =>
     new ConnectionFactory
     {
-        HostName = "localhost",
-        Port = 5672,
-        UserName = "guest",
-        Password = "guest",
+        HostName = RABBITMQ_HOST,
+        Port = RABBITMQ_PORT,
+        UserName = RABBITMQ_USER,
+        Password = RABBITMQ_PASSWORD,
     });
 
 builder.Services.AddSingleton<IRouteEventPublisher>(sp =>

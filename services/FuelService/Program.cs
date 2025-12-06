@@ -14,6 +14,9 @@ DotNetEnv.Env.Load();
 var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!;
 var JWT_SECRET = Environment.GetEnvironmentVariable("JWT_SECRET")!;
 var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
+var RABBITMQ_HOST = Environment.GetEnvironmentVariable("RABBIT_HOST") ?? "localhost";
+var RABBITMQ_PORT = int.Parse(Environment.GetEnvironmentVariable("RABBIT_PORT") ?? "5672");
+var QUEUE_NAME = Environment.GetEnvironmentVariable("ROUTES_ENDED_QUEUE") ?? "routes_ended_queue";
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,18 +27,14 @@ builder.Services.AddScoped<IConsumptionAction<FuelRegisterEvent>, RouteEndedCons
 
 builder.Services.AddHostedService(sp =>
 {
-    var host = Environment.GetEnvironmentVariable("RABBIT_HOST") ?? "localhost";
-    var port = int.Parse(Environment.GetEnvironmentVariable("RABBIT_PORT") ?? "5672");
-    var queue = Environment.GetEnvironmentVariable("ROUTES_ENDED_QUEUE") ?? "routes_ended_queue";
-    var topic = Environment.GetEnvironmentVariable("FUEL_EVENTS_TOPIC") ?? "fuel_events";
 
     var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
 
     return new EventConsumer<FuelRegisterEvent>(
-        host: host,
-        port: port,
-        queue: queue,
-        topic: topic,
+        host: RABBITMQ_HOST,
+        port: RABBITMQ_PORT,
+        queue: QUEUE_NAME,
+        topic: "fuel_events",
         scopeFactory: scopeFactory
     );
 });
