@@ -6,6 +6,7 @@ import Pagination from "../../shared/Pagination";
 import EmptyState from "../../shared/EmptyState";
 import { api } from "../../api/api";
 import type { Vehicle as ApiVehicle, ListVehiclesByDriverResponse } from "../../types/vehicle";
+import type { ListRoutesResponse } from "../../types/trip";
 
 type VehicleDisplay = {
     id: string;
@@ -26,14 +27,6 @@ type Props = {
     tripsByVehicle?: Record<string, Trip[]>;
 };
 
-/* ---------------- Demo fallback ---------------- */
-const now = Date.now();
-const demoTrips = (from: string): Trip[] => [
-    { id: `${from}-VIA-01`, origen: "Ambato", destino: "Quito", estado: "Planificado", inicioAt: null, finAt: null, estimado: 30, observations: [] },
-    { id: `${from}-VIA-02`, origen: "Latacunga", destino: "Ambato", estado: "EnCurso", inicioAt: now - 1000 * 60 * 25, finAt: null, estimado: 18, observations: [] },
-    { id: `${from}-VIA-03`, origen: "Riobamba", destino: "Baños", estado: "Finalizado", inicioAt: now - 1000 * 60 * 120, finAt: now - 1000 * 60 * 70, estimado: 15, observations: [] },
-];
-/* ------------------------------------------------ */
 
 const PER_PAGE = 5;
 
@@ -46,13 +39,17 @@ const vehicleStatusLabels: Record<number, string> = {
 // Convertir vehículo del API al formato de display
 const mapVehicleToDisplay = (v: ApiVehicle): VehicleDisplay => {
     // Simular nivel de combustible (en el futuro vendrá del backend)
+    // Por ahora usar un valor fijo o aleatorio, pero consistente por vehículo
     const nivel = Math.floor(Math.random() * 100); // Temporal
+    
+    // Construir el nombre del modelo correctamente
+    const modelo = v.brand && v.model ? `${v.brand} ${v.model}` : v.model || v.brand || v.type || "Vehículo";
     
     return {
         id: v.id,
         placa: v.plate,
         tipo: v.type,
-        modelo: `${v.brand} ${v.model}`,
+        modelo: modelo,
         estado: vehicleStatusLabels[v.status] || "Desconocido",
         nivel,
         brand: v.brand,
@@ -125,11 +122,61 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
     }, [source, page]);
 
     const [openVeh, setOpenVeh] = useState<VehicleDisplay | null>(null);
+    const [vehicleTrips, setVehicleTrips] = useState<Record<string, Trip[]>>({});
+    const [isLoadingTrips, setIsLoadingTrips] = useState<Record<string, boolean>>({});
 
-    const getTrips = (placa: string): Trip[] => {
-        if (tripsByVehicle && tripsByVehicle[placa]) return tripsByVehicle[placa];
-        return demoTrips(placa);
+    // Función para cargar viajes de un vehículo
+    const loadVehicleTrips = async (vehicleId: string) => {
+        if (vehicleTrips[vehicleId] || isLoadingTrips[vehicleId]) {
+            return vehicleTrips[vehicleId] || [];
+        }
+
+        setIsLoadingTrips(prev => ({ ...prev, [vehicleId]: true }));
+
+        try {
+            console.log(`🔄 Cargando viajes para vehículo ${vehicleId}...`);
+            const response = await api<ListRoutesResponse>("/routes/my");
+            
+            // Filtrar rutas que pertenecen a este vehículo
+            const vehicleRoutes = (response.routes || []).filter(r => {
+                const routeVehicleId = r.vehicleId || r.vehicle_id;
+                return routeVehicleId === vehicleId;
+            });
+
+            // Mapear rutas a viajes
+            const trips: Trip[] = vehicleRoutes.map(r => {
+                const statusMap: Record<string | number, string> = {
+                    "ROUTE_STATE_UNASSIGNED": "Planificado",
+                    "ROUTE_STATE_ASSIGNED": "Planificado",
+                    "ROUTE_STATE_STARTED": "EnCurso",
+                    "ROUTE_STATE_COMPLETED": "Finalizado",
+                    0: "Planificado",
+                    1: "Planificado",
+                    2: "EnCurso",
+                    3: "Finalizado",
+                };
+
+                return {
+                    id: r.id || "",
+                    origen: r.originName || r.origin_name || "Origen desconocido",
+                    destino: r.destinationName || r.destination_name || "Destino desconocido",
+                    estado: statusMap[r.status || 0] || "Planificado",
+                    estimado: r.distanceKm || r.distance_km || undefined
+                };
+            });
+
+            setVehicleTrips(prev => ({ ...prev, [vehicleId]: trips }));
+            console.log(`✅ Viajes cargados para vehículo ${vehicleId}:`, trips.length);
+            return trips;
+        } catch (err: any) {
+            console.error(`❌ Error al cargar viajes del vehículo ${vehicleId}:`, err);
+            setVehicleTrips(prev => ({ ...prev, [vehicleId]: [] }));
+            return [];
+        } finally {
+            setIsLoadingTrips(prev => ({ ...prev, [vehicleId]: false }));
+        }
     };
+
 
     React.useEffect(() => {
         const totalPages = Math.max(1, Math.ceil(source.length / PER_PAGE));
@@ -182,8 +229,8 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
                 {data.map((v) => {
                     const level = Math.max(0, Math.min(100, Math.round(v.nivel)));
                     const barColor = level > 70 ? "bg-emerald-500" : level > 30 ? "bg-amber-500" : "bg-red-500";
-                    const modeloToShow = v.modelo ?? v.estado ?? "—";
-                    const displayName = v.brand ? `${v.brand} ${v.tipo}` : v.tipo;
+                    const modeloToShow = v.modelo || `${v.brand || ""} ${v.tipo || ""}`.trim() || "—";
+                    const displayName = v.modelo || (v.brand ? `${v.brand} ${v.tipo}` : v.tipo) || "Vehículo";
 
                     return (
                         <div key={v.id} className="fuel-card p-5 flex items-center justify-between hover:shadow-lg transition-all">
@@ -216,7 +263,13 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
                                 <button
                                     className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all"
                                     title="Ver detalles del vehículo"
-                                    onClick={() => setOpenVeh(v)}
+                                    onClick={async () => {
+                                        setOpenVeh(v);
+                                        // Cargar viajes del vehículo si no están cargados
+                                        if (!vehicleTrips[v.id] && !isLoadingTrips[v.id]) {
+                                            await loadVehicleTrips(v.id);
+                                        }
+                                    }}
                                 >
                                     <Eye className="w-5 h-5 text-slate-200" />
                                 </button>
@@ -239,7 +292,11 @@ const DriverVehicle: React.FC<Props> = ({ vehicle, vehicles, tripsByVehicle }) =
             </div>
 
             {openVeh && (
-                <VehicleTripsModal vehicle={openVeh} trips={getTrips(openVeh.placa)} onClose={() => setOpenVeh(null)} />
+                <VehicleTripsModal 
+                    vehicle={openVeh} 
+                    trips={vehicleTrips[openVeh.id] || tripsByVehicle?.[openVeh.placa] || []} 
+                    onClose={() => setOpenVeh(null)} 
+                />
             )}
         </div>
     );

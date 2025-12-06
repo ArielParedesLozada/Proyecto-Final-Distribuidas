@@ -10,12 +10,14 @@ import EmptyState from '../../shared/EmptyState';
 import Tabs from '../../shared/Tabs';
 import Pagination from '../../shared/Pagination';
 import { VEHICLE_STATUS } from '../../utils/constants';
+import { formatErrorMessage } from '../../utils/errorTranslations';
 
 interface Driver {
   id: string;
   full_name: string;
   license_number: string;
   availability: number;
+  capabilities?: number; // 1=Liviana, 2=Pesada, 3=Ambas
 }
 
 const AdminVehicles: React.FC = () => {
@@ -83,7 +85,29 @@ const AdminVehicles: React.FC = () => {
       console.log('🔄 Cargando conductores...');
       const response = await api<{ drivers: Driver[] }>('/drivers');
       console.log('👥 Conductores recibidos:', response.drivers);
-      setDrivers(response.drivers);
+      console.log('📋 Detalle de capabilities:', response.drivers.map(d => ({
+        id: d.id,
+        name: d.full_name,
+        capabilities: d.capabilities,
+        capabilitiesType: typeof d.capabilities,
+        rawDriver: d // Mostrar el objeto completo para debug
+      })));
+      
+      // Asegurar que capabilities esté presente y sea un número
+      const driversWithCapabilities = response.drivers.map(d => ({
+        ...d,
+        capabilities: d.capabilities !== undefined && d.capabilities !== null 
+          ? Number(d.capabilities) 
+          : undefined
+      }));
+      
+      console.log('✅ Conductores procesados con capabilities:', driversWithCapabilities.map(d => ({
+        id: d.id,
+        name: d.full_name,
+        capabilities: d.capabilities
+      })));
+      
+      setDrivers(driversWithCapabilities);
     } catch (error: any) {
       console.error('❌ Error fetching drivers:', error);
       addToast('Error al cargar conductores', 'error');
@@ -114,7 +138,7 @@ const AdminVehicles: React.FC = () => {
       
       // Filter vehicles with status DISPONIBLE (1)
       const unassignedVehiclesList = response.vehicles.filter(vehicle => {
-        console.log(`🔍 Vehículo ${vehicle.plate}: status = ${vehicle.status}`);
+        console.log(`🔍 Vehículo ${vehicle.plate}: status = ${vehicle.status}, machinery = ${vehicle.machinery}, machineryType = ${typeof vehicle.machinery}`);
         
         // Return true if DISPONIBLE (status = 1)
         return vehicle.status === VEHICLE_STATUS.AVAILABLE;
@@ -158,7 +182,7 @@ const AdminVehicles: React.FC = () => {
       // Filter vehicles with status OCUPADO (2) and enrich with driver data
       const assignedVehiclesList = response.vehicles
         .filter(vehicle => {
-          console.log(`🔍 Vehículo asignado ${vehicle.plate}: status = ${vehicle.status}`);
+          console.log(`🔍 Vehículo asignado ${vehicle.plate}: status = ${vehicle.status}, machinery = ${vehicle.machinery}, machineryType = ${typeof vehicle.machinery}`);
           
           // Return true if OCUPADO (status = 2)
           return vehicle.status === VEHICLE_STATUS.OCCUPIED;
@@ -382,7 +406,44 @@ const AdminVehicles: React.FC = () => {
   };
 
   // Handle assign driver
+  // Función para convertir machinery de string a número
+  const convertMachineryToNumber = (machinery: any): number | undefined => {
+    if (machinery === undefined || machinery === null) {
+      return undefined;
+    }
+    
+    // Si ya es un número, retornarlo
+    if (typeof machinery === 'number') {
+      return machinery;
+    }
+    
+    // Si es string, convertir según el valor
+    if (typeof machinery === 'string') {
+      if (machinery === 'VEHICLE_MACHINERY_TYPES_PESADO' || machinery === 'PESADO' || machinery === '1') {
+        return 1;
+      }
+      if (machinery === 'VEHICLE_MACHINERY_TYPES_LIVIANO' || machinery === 'LIVIANO' || machinery === '0') {
+        return 0;
+      }
+      // Intentar parsear como número
+      const parsed = parseInt(machinery, 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    
+    return undefined;
+  };
+
   const handleAssignDriver = (vehicle: VehicleWithDriver) => {
+    const machineryNumber = convertMachineryToNumber(vehicle.machinery);
+    console.log('🚗 Asignando conductor a vehículo:', {
+      plate: vehicle.plate,
+      machinery: vehicle.machinery,
+      machineryType: typeof vehicle.machinery,
+      machineryNumber,
+      vehicleComplete: vehicle
+    });
     setSelectedVehicle(vehicle);
     setIsAssignModalOpen(true);
   };
@@ -430,23 +491,25 @@ const AdminVehicles: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      // El estado se calcula automáticamente en el backend basado en asignaciones
-      // Si queremos cambiar a DISPONIBLE, desasignamos el conductor
-      // Si queremos cambiar a OCUPADO, no hacemos nada (ya debe tener conductor asignado)
-      
-      if (newStatus === VEHICLE_STATUS.AVAILABLE && selectedVehicle.driver) {
-        // Cambiar a DISPONIBLE = Desasignar conductor
-        await api(`/vehicles/${selectedVehicle.id}/assign`, {
-          method: 'DELETE'
+      // Si queremos cambiar a DISPONIBLE, usar el endpoint SetStatus que valida rutas activas
+      if (newStatus === VEHICLE_STATUS.AVAILABLE) {
+        // Usar el endpoint SetStatus que tiene la validación de rutas activas
+        await api(`/vehicles/${selectedVehicle.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: VEHICLE_STATUS.AVAILABLE })
         });
-        addToast('Conductor desasignado exitosamente', 'success');
-      } else if (newStatus === VEHICLE_STATUS.OCCUPIED && !selectedVehicle.driver) {
-        // Si intenta cambiar a OCUPADO sin conductor, mostrar error
-        addToast('No se puede cambiar a OCUPADO sin asignar un conductor', 'error');
-        return;
+        addToast('Estado del vehículo actualizado exitosamente', 'success');
+      } else if (newStatus === VEHICLE_STATUS.OCCUPIED) {
+        // Para cambiar a OCUPADO, usar SetStatus también
+        await api(`/vehicles/${selectedVehicle.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: VEHICLE_STATUS.OCCUPIED })
+        });
+        addToast('Estado del vehículo actualizado exitosamente', 'success');
       } else {
         // Si ya está en el estado deseado, no hacer nada
         addToast('El vehículo ya está en el estado seleccionado', 'info');
+        return;
       }
 
       await Promise.all([
@@ -458,10 +521,14 @@ const AdminVehicles: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating status:', error);
       
-      if (error.message?.includes('VEHICLE_NOT_FOUND')) {
+      const errorMessage = formatErrorMessage(error.message || 'Error al actualizar estado');
+      
+      if (error.message?.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
+        addToast(errorMessage, 'error');
+      } else if (error.message?.includes('VEHICLE_NOT_FOUND')) {
         addToast('Vehículo no encontrado', 'error');
       } else {
-        addToast('Error al actualizar estado', 'error');
+        addToast(errorMessage, 'error');
       }
       
       throw error;
@@ -733,18 +800,46 @@ const AdminVehicles: React.FC = () => {
         drivers={drivers.map(d => ({
           id: d.id,
           full_name: d.full_name,
-          license_number: d.license_number
+          license_number: d.license_number,
+          capabilities: d.capabilities
         }))}
       />
 
       {/* Modal de Asignar Conductor */}
+      {isAssignModalOpen && selectedVehicle && (
+        console.log('🔧 Pasando vehicleMachinery al modal:', {
+          selectedVehicleMachinery: selectedVehicle.machinery,
+          machineryType: typeof selectedVehicle.machinery,
+          machineryValue: selectedVehicle.machinery,
+          machineryIsUndefined: selectedVehicle.machinery === undefined,
+          machineryIsNull: selectedVehicle.machinery === null,
+          vehicleComplete: selectedVehicle
+        }) || null
+      )}
       <AssignDriverModal
         isOpen={isAssignModalOpen}
         onClose={handleAssignModalClose}
         onSubmit={handleAssignDriverSubmit}
         vehiclePlate={selectedVehicle?.plate || ''}
+        vehicleMachinery={(() => {
+          const machinery = selectedVehicle?.machinery;
+          const machineryNumber = convertMachineryToNumber(machinery);
+          console.log('🔧 Calculando vehicleMachinery para el modal:', {
+            selectedVehicle: selectedVehicle ? { plate: selectedVehicle.plate, machinery: selectedVehicle.machinery } : null,
+            machinery,
+            machineryType: typeof machinery,
+            machineryNumber,
+            result: machineryNumber
+          });
+          return machineryNumber;
+        })()}
         isLoading={isSubmitting}
-        drivers={drivers}
+        drivers={drivers.map(d => ({
+          id: d.id,
+          full_name: d.full_name,
+          license_number: d.license_number,
+          capabilities: d.capabilities !== undefined ? Number(d.capabilities) : undefined
+        }))}
       />
 
       {/* Modal de Cambiar Estado */}

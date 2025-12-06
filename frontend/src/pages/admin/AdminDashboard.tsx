@@ -130,14 +130,6 @@ const AdminDashboard: React.FC = () => {
                 <div className="text-sm text-slate-400">Generar reportes del sistema</div>
               </div>
             </button>
-            
-            <button className="fuel-button-secondary p-4 text-left flex items-center gap-3">
-              <Shield className="w-5 h-5" />
-              <div>
-                <div className="font-medium">Configuración</div>
-                <div className="text-sm text-slate-400">Ajustes del sistema</div>
-              </div>
-            </button>
           </div>
         </div>
       </div>

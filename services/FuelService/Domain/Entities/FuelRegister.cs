@@ -15,6 +15,8 @@ public class FuelRegister
 {
     public Guid Id { get; set; }
     public Guid RouteId { get; set; }
+    public Guid? VehicleId { get; set; } // ID del vehículo
+    public Guid? DriverId { get; set; } // ID del conductor
     public VehicleMachineryTypes VehicleMachinery { get; set; }
     public FuelRegisterType Type { get; set; }
     public DateTimeOffset CompletedAt { get; set; }

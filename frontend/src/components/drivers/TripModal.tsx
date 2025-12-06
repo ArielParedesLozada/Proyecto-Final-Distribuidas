@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Clock, Route, Car, Calendar } from "lucide-react";
+import { Route, Car, Calendar, Clock } from "lucide-react";
 import ScrollableContainer from "../../shared/ScrollableContainer";
 import type { Trip } from "./DriverTrips";
 
@@ -12,8 +12,8 @@ type VehicleInfo = {
 type Props = {
     trip: Trip;
     onClose: () => void;
-    onAddObs?: (tripId: string, text: string) => void;
     vehicle?: VehicleInfo;
+    onAddObs?: (tripId: string, text: string) => void;
 };
 
 const fmt = (ts?: number | null) => (ts ? new Date(ts).toLocaleString() : "—");
@@ -30,8 +30,9 @@ function formatRelative(targetTs: number, now: number): { text: string; future: 
     return { text: future ? `en ${body}` : `hace ${body}`, future };
 }
 
-const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
+const TripModal: React.FC<Props> = ({ trip, onClose, vehicle, onAddObs }) => {
     const [obs, setObs] = useState("");
+    const tripObservations = trip.observations ?? [];
 
     const [nowTick, setNowTick] = useState(() => Date.now());
     useEffect(() => {
@@ -105,7 +106,7 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
 
             {/* Cuerpo con scroll interno */}
             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-5 md:space-y-6">
-                {/* ====== Datos del viaje (layout móvil mejorado) ====== */}
+                {/* ====== Datos del viaje ====== */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {/* Estado */}
                     <div className="fuel-card p-3 md:p-4 text-center">
@@ -125,26 +126,32 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
                         </div>
                     </div>
 
-                    {/* Programado (ocupa 2 col en móvil y 2 en md) */}
+                    {/* Programado */}
                     <div className="fuel-card p-3 md:p-4 text-center col-span-2 md:col-span-2">
                         <div className="text-slate-400 text-xs md:text-sm mb-1 flex items-center justify-center gap-2">
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <span>Programado</span>
                         </div>
-                        <div className="font-semibold text-white text-sm md:text-base">{fmt(trip.programadoAt)}</div>
+                        <div className="font-semibold text-white text-sm md:text-base">
+                            {fmt(trip.programadoAt)}
+                        </div>
                         {programadoBadge}
                     </div>
 
                     {/* Inicio */}
                     <div className="fuel-card p-3 md:p-4 text-center col-span-1 md:col-span-2">
                         <div className="text-slate-400 text-xs md:text-sm mb-1">Inicio</div>
-                        <div className="font-semibold text-emerald-400 text-sm md:text-base">{fmt(trip.inicioAt)}</div>
+                        <div className="font-semibold text-emerald-400 text-sm md:text-base">
+                            {fmt(trip.inicioAt)}
+                        </div>
                     </div>
 
                     {/* Fin */}
                     <div className="fuel-card p-3 md:p-4 text-center col-span-1 md:col-span-2">
                         <div className="text-slate-400 text-xs md:text-sm mb-1">Fin</div>
-                        <div className="font-semibold text-amber-400 text-sm md:text-base">{fmt(trip.finAt)}</div>
+                        <div className="font-semibold text-amber-400 text-sm md:text-base">
+                            {fmt(trip.finAt)}
+                        </div>
                     </div>
                 </div>
 
@@ -158,10 +165,10 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
                     </div>
 
                     <div className="space-y-2 max-h-[42vh] md:max-h-[32vh] overflow-y-auto pr-1">
-                        {trip.observations.length === 0 && (
+                        {tripObservations.length === 0 && (
                             <p className="text-slate-400 text-center text-sm">Sin observaciones aún</p>
                         )}
-                        {trip.observations.map((o) => (
+                        {tripObservations.map((o) => (
                             <div key={o.id} className="fuel-card p-2 md:p-3">
                                 <div className="text-sm text-white mb-1">{o.text}</div>
                                 <div className="text-xs text-slate-500">{fmt(o.ts)}</div>
@@ -169,7 +176,7 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
                         ))}
                     </div>
 
-                    {/* Agregar observación solo en EnCurso (apilado en móvil) */}
+                    {/* Agregar observación solo en EnCurso */}
                     {trip.estado === "EnCurso" && (
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                             <input
@@ -181,10 +188,10 @@ const TripModal: React.FC<Props> = ({ trip, onClose, onAddObs, vehicle }) => {
                             <button
                                 className="fuel-button w-full sm:w-auto px-5 md:px-6"
                                 onClick={() => {
-                                    if (obs.trim()) {
-                                        onAddObs?.(trip.id, obs.trim());
-                                        setObs("");
-                                    }
+                                    const text = obs.trim();
+                                    if (!text) return;
+                                    onAddObs?.(trip.id, text);
+                                    setObs("");
                                 }}
                             >
                                 Agregar

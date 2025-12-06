@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Car, AlertCircle } from 'lucide-react';
 import type { Vehicle } from '../../../types/vehicle';
 import { VEHICLE_MACHINERY, VEHICLE_MACHINERY_LABELS } from '../../../utils/constants';
@@ -7,6 +7,7 @@ interface DriverForm {
   id: string;
   full_name: string;
   license_number: string;
+  capabilities?: number; // 1=Liviana, 2=Pesada, 3=Ambas
 }
 
 export interface VehicleFormData {
@@ -21,6 +22,26 @@ export interface VehicleFormData {
   status: number;
   driver_id?: string;
 }
+
+// Mapeo de tipos de vehículos a marcas permitidas (definido fuera del componente para reutilización)
+const VEHICLE_TYPE_BRANDS: Record<string, string[]> = {
+  'camioneta': [
+    'Toyota', 'Nissan', 'Ford', 'Chevrolet', 'Mitsubishi', 'Isuzu', 'Mazda', 'Honda'
+  ],
+  'camion': [
+    'Scania', 'MAN', 'Iveco', 'Volvo', 'Isuzu', 'Mercedes-Benz', 'Freightliner', 'Kenworth'
+  ],
+  'automovil': [
+    'Toyota', 'Nissan', 'Ford', 'Chevrolet', 'Volkswagen', 'Hyundai', 'Kia',
+    'Mazda', 'Honda', 'Mitsubishi', 'Subaru', 'BMW', 'Audi', 'Mercedes-Benz'
+  ],
+  'moto': [
+    'Honda', 'Yamaha', 'Kawasaki', 'Suzuki', 'KTM', 'Ducati', 'Harley-Davidson', 'BMW'
+  ],
+  'bus': [
+    'Mercedes-Benz', 'Scania', 'MAN', 'Iveco', 'Volvo', 'Marcopolo', 'Busscar', 'Caio'
+  ]
+};
 
 interface VehicleFormModalProps {
   isOpen: boolean;
@@ -55,7 +76,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string | number>>({});
 
   // Vehicle types
-  const vehicleTypes = [
+  const allVehicleTypes = [
     { value: 'camioneta', label: 'Camioneta' },
     { value: 'camion', label: 'Camión' },
     { value: 'automovil', label: 'Automóvil' },
@@ -63,12 +84,53 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
     { value: 'bus', label: 'Bus' }
   ];
 
-  // Vehicle brands
-  const vehicleBrands = [
-    'Toyota', 'Nissan', 'Ford', 'Chevrolet', 'Volkswagen', 'Hyundai', 'Kia',
-    'Mazda', 'Honda', 'Mitsubishi', 'Subaru', 'Isuzu', 'Mercedes-Benz',
-    'BMW', 'Audi', 'Volvo', 'Scania', 'MAN', 'Iveco'
-  ];
+  // Mapeo de tipos de vehículos según maquinaria
+  // Pesado (machinery = 1): camion, bus
+  // Liviano (machinery = 0): camioneta, automovil, moto
+  const VEHICLE_TYPES_BY_MACHINERY: Record<number, string[]> = {
+    0: ['camioneta', 'automovil', 'moto'], // Liviano
+    1: ['camion', 'bus'] // Pesado
+  };
+
+  // Filtrar tipos de vehículos según la maquinaria seleccionada
+  const availableVehicleTypes = useMemo(() => {
+    if (formData.machinery === undefined || formData.machinery === null) {
+      return []; // No mostrar tipos si no hay maquinaria seleccionada
+    }
+    const allowedTypes = VEHICLE_TYPES_BY_MACHINERY[formData.machinery] || [];
+    return allVehicleTypes.filter(type => allowedTypes.includes(type.value));
+  }, [formData.machinery]);
+
+  // Obtener marcas filtradas según el tipo seleccionado
+  const availableBrands = useMemo(() => {
+    if (!formData.type) {
+      return []; // No mostrar marcas si no hay tipo seleccionado
+    }
+    return VEHICLE_TYPE_BRANDS[formData.type] || [];
+  }, [formData.type]);
+
+  // Filtrar conductores según el tipo de maquinaria del vehículo
+  // Lógica:
+  // - Vehículo pesado (machinery = 1) → Solo conductores con capabilities = 2 (Pesada) o 3 (Ambas)
+  // - Vehículo liviano (machinery = 0) → Solo conductores con capabilities = 1 (Liviana) o 3 (Ambas)
+  const availableDrivers = useMemo(() => {
+    if (formData.machinery === undefined || formData.machinery === null) {
+      // Si no se especifica el tipo de maquinaria, mostrar todos los conductores
+      return drivers;
+    }
+
+    if (formData.machinery === 1) {
+      // Vehículo pesado: solo conductores con licencia pesada (2) o ambas (3)
+      return drivers.filter(driver => 
+        driver.capabilities === 2 || driver.capabilities === 3
+      );
+    } else {
+      // Vehículo liviano: solo conductores con licencia liviana (1) o ambas (3)
+      return drivers.filter(driver => 
+        driver.capabilities === 1 || driver.capabilities === 3
+      );
+    }
+  }, [drivers, formData.machinery]);
 
   const vehicleMachinery = [
     { value: VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_LIVIANO, label: VEHICLE_MACHINERY_LABELS[VEHICLE_MACHINERY.VEHICLE_MACHINERY_TYPES_LIVIANO] },
@@ -80,11 +142,18 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (vehicle) {
+        const vehicleType = vehicle.type;
+        const vehicleBrand = vehicle.brand;
+        
+        // Validar que la marca sea válida para el tipo (por si acaso hay datos inconsistentes)
+        const allowedBrands = VEHICLE_TYPE_BRANDS[vehicleType] || [];
+        const isValidBrand = allowedBrands.includes(vehicleBrand);
+        
         setFormData({
           plate: vehicle.plate,
           machinery: vehicle.machinery,
-          type: vehicle.type,
-          brand: vehicle.brand,
+          type: vehicleType,
+          brand: isValidBrand ? vehicleBrand : '', // Limpiar marca si no es válida
           model: vehicle.model,
           year: vehicle.year,
           capacity_liters: vehicle.capacity_liters,
@@ -195,10 +264,58 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   };
 
   const handleInputChange = (field: keyof VehicleFormData, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+
+      // Si cambia el tipo de maquinaria, limpiar el tipo de vehículo si no es válido
+      if (field === 'machinery') {
+        const newMachinery = value as number;
+        const allowedTypes = VEHICLE_TYPES_BY_MACHINERY[newMachinery] || [];
+        
+        // Si el tipo de vehículo actual no está en los tipos permitidos para la nueva maquinaria, limpiarlo
+        if (prev.type && !allowedTypes.includes(prev.type)) {
+          newData.type = '';
+          newData.brand = ''; // También limpiar la marca ya que depende del tipo
+        }
+      }
+
+      // Si cambia el tipo de vehículo, limpiar la marca si no es válida para el nuevo tipo
+      if (field === 'type') {
+        const newType = value as string;
+        const allowedBrands = VEHICLE_TYPE_BRANDS[newType] || [];
+        
+        // Si la marca actual no está en las marcas permitidas para el nuevo tipo, limpiarla
+        if (prev.brand && !allowedBrands.includes(prev.brand)) {
+          newData.brand = '';
+        }
+      }
+
+      // Si cambia el tipo de maquinaria, validar y limpiar el conductor si no es válido
+      if (field === 'machinery') {
+        const newMachinery = value as number;
+        const selectedDriver = drivers.find(d => d.id === prev.driver_id);
+        
+        // Si hay un conductor seleccionado, verificar si es válido para el nuevo tipo de maquinaria
+        if (selectedDriver && selectedDriver.capabilities !== undefined) {
+          if (newMachinery === 1) {
+            // Vehículo pesado: solo conductores con capabilities = 2 (Pesada) o 3 (Ambas)
+            if (selectedDriver.capabilities !== 2 && selectedDriver.capabilities !== 3) {
+              newData.driver_id = '';
+            }
+          } else {
+            // Vehículo liviano: solo conductores con capabilities = 1 (Liviana) o 3 (Ambas)
+            if (selectedDriver.capabilities !== 1 && selectedDriver.capabilities !== 3) {
+              newData.driver_id = '';
+            }
+          }
+        }
+      }
+
+      return newData;
+    });
 
     // Clear error when user starts typing
     if (errors[field]) {
@@ -342,9 +459,14 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   onChange={(e) => handleInputChange('type', e.target.value)}
                   className="fuel-input"
                   required
+                  disabled={!formData.machinery && formData.machinery !== 0}
                 >
-                  <option value="">Seleccione un tipo...</option>
-                  {vehicleTypes.map(type => (
+                  <option value="">
+                    {!formData.machinery && formData.machinery !== 0
+                      ? 'Primero seleccione el tipo de maquinaria...'
+                      : 'Seleccione un tipo...'}
+                  </option>
+                  {availableVehicleTypes.map(type => (
                     <option key={type.value} value={type.value}>
                       {type.label}
                     </option>
@@ -356,6 +478,11 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                     {errors.type}
                   </div>
                 )}
+                {(!formData.machinery && formData.machinery !== 0) && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Seleccione primero el tipo de maquinaria para ver los tipos de vehículo disponibles
+                  </p>
+                )}
               </div>
 
               {/* Marca */}
@@ -366,9 +493,14 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   onChange={(e) => handleInputChange('brand', e.target.value)}
                   className="fuel-input"
                   required
+                  disabled={!formData.type}
                 >
-                  <option value="">Seleccione una marca...</option>
-                  {vehicleBrands.map(brand => (
+                  <option value="">
+                    {!formData.type 
+                      ? 'Primero seleccione un tipo de vehículo...' 
+                      : 'Seleccione una marca...'}
+                  </option>
+                  {availableBrands.map(brand => (
                     <option key={brand} value={brand}>
                       {brand}
                     </option>
@@ -379,6 +511,11 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                     <AlertCircle className="w-3 h-3" />
                     {errors.brand}
                   </div>
+                )}
+                {!formData.type && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Seleccione primero un tipo de vehículo para ver las marcas disponibles
+                  </p>
                 )}
               </div>
 
@@ -469,14 +606,27 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                   value={formData.driver_id || ''}
                   onChange={(e) => handleInputChange('driver_id', e.target.value || '')}
                   className="fuel-input"
+                  disabled={availableDrivers.length === 0 && formData.machinery !== undefined && formData.machinery !== null}
                 >
-                  <option value="">Seleccione un conductor...</option>
-                  {drivers.map(driver => (
+                  <option value="">
+                    {availableDrivers.length === 0 && formData.machinery !== undefined && formData.machinery !== null
+                      ? 'No hay conductores disponibles con la licencia adecuada...'
+                      : 'Seleccione un conductor...'}
+                  </option>
+                  {availableDrivers.map(driver => (
                     <option key={driver.id} value={driver.id}>
                       {driver.full_name} ({driver.license_number})
                     </option>
                   ))}
                 </select>
+                {formData.machinery !== undefined && formData.machinery !== null && availableDrivers.length === 0 && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    No hay conductores disponibles con la licencia adecuada para este tipo de vehículo.
+                    {formData.machinery === 1 
+                      ? ' Se requiere licencia tipo Pesada o Ambas.'
+                      : ' Se requiere licencia tipo Liviana o Ambas.'}
+                  </p>
+                )}
               </div>
             </div>
 

@@ -8,12 +8,14 @@ import EmptyState from '../../shared/EmptyState';
 import Tabs from '../../shared/Tabs';
 import Pagination from '../../shared/Pagination';
 import { VEHICLE_STATUS } from '../../utils/constants';
+import { formatErrorMessage } from '../../utils/errorTranslations';
 
 interface Driver {
   id: string;
   full_name: string;
   license_number: string;
   availability: number;
+  capabilities?: number; // 1=Liviana, 2=Pesada, 3=Ambas
 }
 
 const SupervisorVehicles: React.FC = () => {
@@ -268,23 +270,25 @@ const SupervisorVehicles: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      // El estado se calcula automáticamente en el backend basado en asignaciones
-      // Si queremos cambiar a DISPONIBLE, desasignamos el conductor
-      // Si queremos cambiar a OCUPADO, no hacemos nada (ya debe tener conductor asignado)
-      
-      if (newStatus === VEHICLE_STATUS.AVAILABLE && selectedVehicle.driver) {
-        // Cambiar a DISPONIBLE = Desasignar conductor
-        await api(`/vehicles/${selectedVehicle.id}/assign`, {
-          method: 'DELETE'
+      // Si queremos cambiar a DISPONIBLE, usar el endpoint SetStatus que valida rutas activas
+      if (newStatus === VEHICLE_STATUS.AVAILABLE) {
+        // Usar el endpoint SetStatus que tiene la validación de rutas activas
+        await api(`/vehicles/${selectedVehicle.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: VEHICLE_STATUS.AVAILABLE })
         });
-        addToast('Conductor desasignado exitosamente', 'success');
-      } else if (newStatus === VEHICLE_STATUS.OCCUPIED && !selectedVehicle.driver) {
-        // Si intenta cambiar a OCUPADO sin conductor, mostrar error
-        addToast('No se puede cambiar a OCUPADO sin asignar un conductor', 'error');
-        return;
+        addToast('Estado del vehículo actualizado exitosamente', 'success');
+      } else if (newStatus === VEHICLE_STATUS.OCCUPIED) {
+        // Para cambiar a OCUPADO, usar SetStatus también
+        await api(`/vehicles/${selectedVehicle.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: VEHICLE_STATUS.OCCUPIED })
+        });
+        addToast('Estado del vehículo actualizado exitosamente', 'success');
       } else {
         // Si ya está en el estado deseado, no hacer nada
         addToast('El vehículo ya está en el estado seleccionado', 'info');
+        return;
       }
 
       await Promise.all([
@@ -296,11 +300,14 @@ const SupervisorVehicles: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating status:', error);
       
-      // Manejar errores específicos
-      if (error.message?.includes('VEHICLE_NOT_FOUND')) {
+      const errorMessage = formatErrorMessage(error.message || 'Error al actualizar estado');
+      
+      if (error.message?.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
+        addToast(errorMessage, 'error');
+      } else if (error.message?.includes('VEHICLE_NOT_FOUND')) {
         addToast('Vehículo no encontrado', 'error');
       } else {
-        addToast('Error al actualizar estado', 'error');
+        addToast(errorMessage, 'error');
       }
       
       throw error;
@@ -547,8 +554,14 @@ const SupervisorVehicles: React.FC = () => {
         onClose={handleAssignModalClose}
         onSubmit={handleAssignDriverSubmit}
         vehiclePlate={selectedVehicle?.plate || ''}
+        vehicleMachinery={selectedVehicle?.machinery}
         isLoading={isSubmitting}
-        drivers={drivers}
+        drivers={drivers.map(d => ({
+          id: d.id,
+          full_name: d.full_name,
+          license_number: d.license_number,
+          capabilities: d.capabilities
+        }))}
       />
 
       {/* Modal de Cambiar Estado */}

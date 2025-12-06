@@ -44,7 +44,7 @@ public class JWTAuthService : AuthService.AuthServiceBase
                     break;
                 case "SUPERVISOR":
                     scopes.AddRange(new[] {
-                        "drivers:read:all", "drivers:read:own", "vehicles:read:all", "vehicles:assign", "drivers:update:any",
+                        "drivers:read:all", "drivers:read:own", "vehicles:read:all", "vehicles:assign", "vehicles:update:any", "drivers:update:any",
                         "routes:create", "routes:read:all", "routes:update:any", "routes:delete" ,"routes:assign",
                     });
                     break;
