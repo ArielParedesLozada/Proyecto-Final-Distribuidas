@@ -7,7 +7,7 @@ public class AppDatabase : DbContext
 {
     public AppDatabase(DbContextOptions<AppDatabase> options) : base(options) { }
 
-    public DbSet<FuelRegister> FuelRegisters { get; set; }
+    public DbSet<FuelRegister> Routes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -17,11 +17,6 @@ public class AppDatabase : DbContext
             entity.HasKey(r => new { r.Id, r.VehicleMachinery });
 
             entity.HasIndex(r => r.VehicleMachinery);
-            entity.HasIndex(r => r.RouteId);
-            entity.HasIndex(r => r.VehicleId);
-            entity.HasIndex(r => r.DriverId);
-            entity.HasIndex(r => r.CompletedAt);
-            entity.HasIndex(r => r.Timestamp);
         });
     }
 
