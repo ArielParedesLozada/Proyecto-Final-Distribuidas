@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FuelService.Data.Migrations
 {
     [DbContext(typeof(AppDatabase))]
-    [Migration("20251206043737_DistributedMachinery")]
-    partial class DistributedMachinery
+    [Migration("20251207024534_AddDistributedMachinery")]
+    partial class AddDistributedMachinery
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -50,6 +50,9 @@ namespace FuelService.Data.Migrations
 
                     b.Property<Guid>("RouteId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone");

@@ -19,6 +19,7 @@ public class FuelRegister
     public Guid VehicleId { get; set; }
     public VehicleMachineryTypes VehicleMachinery { get; set; }
     public FuelRegisterType Type { get; set; }
+    public DateTimeOffset StartedAt { get; set; }
     public DateTimeOffset CompletedAt { get; set; }
     public DateTimeOffset Timestamp { get; set; }
     public double EstimatedFuelConsumptionLiters { get; set; }

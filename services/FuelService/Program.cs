@@ -6,6 +6,7 @@ using FuelService.Domain.UseCases;
 // using FuelService.Infraestructure.ConsumerFactory;
 using FuelService.Queue.Consumer;
 using FuelService.Queue.Events;
+using Steeltoe.Discovery.Eureka;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +23,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services
     .AddDatabase(CONNECTION_STRING)
-    .AddJwtAuth(JWT_SECRET, 2, JWT_ISSUER);
+    .AddJwtAuth(JWT_SECRET, 2, JWT_ISSUER)
+    .AddEurekaDiscoveryClient();
 builder.Services.AddScoped<IConsumptionAction<FuelRegisterEvent>, RouteEndedConsumptionAction>();
 
 builder.Services.AddHostedService(sp =>

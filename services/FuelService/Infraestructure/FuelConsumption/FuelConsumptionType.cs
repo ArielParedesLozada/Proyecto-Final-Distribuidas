@@ -20,6 +20,7 @@ public class FuelConsumptionType
             VehicleId = @event.VehicleId,
             VehicleMachinery = (VehicleMachineryTypes)@event.VehicleMachinery,
             CompletedAt = @event.CompletedAt,
+            StartedAt = @event.StartedAt,
             EstimatedFuelConsumptionLiters = @event.EstimatedFuelConsumptionLiters,
             RealFuelConsumptionLiters = @event.RealFuelConsumptionLiters,
             RealDistanceKm = @event.RealDistanceKm,

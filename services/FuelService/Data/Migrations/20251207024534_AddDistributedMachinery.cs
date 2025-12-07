@@ -5,7 +5,7 @@
 namespace FuelService.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class DistributedMachinery : Migration
+    public partial class AddDistributedMachinery : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
