@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Google.Protobuf.WellKnownTypes;
 using Npgsql;
 using ChoferService.Proto;
+using RoutesProto;
 
 // ALIAS para evitar conflicto de nombres:
 using VehicleModel = VehiclesService.Models.Vehicle;
@@ -159,9 +160,78 @@ public class VehiclesGrpc : VehiclesService.Proto.VehiclesService.VehiclesServic
         var v = await _db.Vehicles.FirstOrDefaultAsync(x => x.Id == id);
         if (v is null) throw new RpcException(new(StatusCode.NotFound, "VEHICLE_NOT_FOUND"));
 
+        // Si se intenta cambiar a "disponible" (status = 1), validar que no tenga rutas activas y desasignar conductor
+        if (req.Status == 1)
+        {
+            var bearer = GetAuthorization(ctx);
+            try
+            {
+                // Buscar rutas directamente por VehicleId (más eficiente y directo)
+                var routesResponse = await _routeClient.GetRoutesByVehicle(id.ToString(), bearer);
+                
+                // Verificar que la respuesta no sea null
+                if (routesResponse != null && routesResponse.Routes != null)
+                {
+                    // Verificar rutas activas: Assigned (1) o Started (2)
+                    // RouteStates enum: ROUTE_STATE_UNASSIGNED=0, ROUTE_STATE_ASSIGNED=1, ROUTE_STATE_STARTED=2, ROUTE_STATE_COMPLETED=3
+                    var activeRoutes = routesResponse.Routes
+                        .Where(r => r != null && ((int)r.Status == 1 || (int)r.Status == 2)) // Assigned o Started
+                        .ToList();
+
+                    if (activeRoutes.Any())
+                    {
+                        throw new RpcException(new Status(
+                            StatusCode.FailedPrecondition,
+                            $"VEHICLE_IN_ACTIVE_ROUTE: El vehículo está siendo utilizado en una ruta activa. No se puede cambiar a disponible mientras tenga rutas asignadas o en curso."
+                        ));
+                    }
+                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+            {
+                // Si no se encuentran rutas, permitir el cambio (el vehículo no tiene rutas)
+                _log.LogInformation("No se encontraron rutas para vehículo {VehicleId}, permitiendo cambio a disponible", id);
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.PermissionDenied || ex.StatusCode == StatusCode.Unimplemented)
+            {
+                // Si hay problemas de permisos o el método no está implementado, loguear pero permitir el cambio
+                // (puede ser que RouteService no esté actualizado o haya problemas de permisos)
+                _log.LogWarning("No se pudo verificar rutas activas para vehículo {VehicleId}: {Error} (StatusCode: {StatusCode})", 
+                    id, ex.Message, ex.StatusCode);
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.FailedPrecondition)
+            {
+                // Re-lanzar el error de rutas activas
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Capturar cualquier otra excepción (por ejemplo, problemas de conexión)
+                _log.LogError(ex, "Error inesperado al verificar rutas activas para vehículo {VehicleId}", id);
+                // En caso de error inesperado, permitir el cambio pero loguear el error
+            }
+            
+            // Si no hay rutas activas, desasignar el conductor automáticamente
+            var activeAssignment = await _db.DriverVehicles
+                .FirstOrDefaultAsync(x => x.VehicleId == id && x.UnassignedAt == null);
+            
+            if (activeAssignment != null)
+            {
+                activeAssignment.UnassignedAt = DateTimeOffset.UtcNow;
+                _log.LogInformation("Desasignando conductor {DriverId} del vehículo {VehicleId} al cambiar a disponible", 
+                    activeAssignment.DriverId, id);
+            }
+        }
+
         v.Status = (short)req.Status;
         await _db.SaveChangesAsync();
-        return new VehicleResponse { Vehicle = Map(v) };
+        
+        // Retornar el vehículo con estado calculado dinámicamente
+        var hasActiveAssignment = await _db.DriverVehicles
+            .AsNoTracking()
+            .AnyAsync(x => x.VehicleId == id && x.UnassignedAt == null);
+        
+        return new VehicleResponse { Vehicle = MapWithDynamicStatus(v, hasActiveAssignment ? new List<Guid> { id } : new List<Guid>()) };
     }
     [Authorize(Policy = "VehiclesEndAnyOrOwn")]
     public override async Task<VehicleProto> UpdateVehicleRouteEnding(UpdateVehicleRouteEndingRequest request, ServerCallContext context)

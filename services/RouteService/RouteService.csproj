@@ -10,6 +10,7 @@
     <Protobuf Include="../Protos/routes.proto" ProtoRoot="../Protos" GrpcServices="Server" AdditionalImportDirs="../Protos"/>
     <Protobuf Include="../Protos/vehicles.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos"/>
     <Protobuf Include="../Protos/drivers.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos"/>
+    <Protobuf Include="../Protos/fuel.proto" ProtoRoot="../Protos" GrpcServices="Client" AdditionalImportDirs="../Protos"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -6,16 +6,19 @@ import cors from 'cors';
 import crypto from 'crypto';
 import { DriverRoutes } from './routes/drivers.js';
 import { VehicleRoutes } from './routes/vehicles.js';
+import { GeocodingRoutes } from './routes/geocoding.js';
 import { EurekaClient } from "./eureka/EurekaClient.js";
 import { ServiceDiscovery } from './eureka/ServiceDiscovery.js';
 import { VehicleClient } from './grpc/vehiclesClient.js';
 import { DriverClient } from './grpc/driversClient.js';
+import { FuelClient } from './grpc/fuelClient.js';
+import { FuelRoutes } from './routes/fuel.js';
 import { CommonRoutes } from './routes/CommonRoutes.js';
 
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+dotenv.config({ path: path.join(__dirname, '../config.env'), override: true });
 
 const app = express();
 // ✅ CORS explícito (incluye Authorization)
@@ -29,6 +32,19 @@ app.use(cors({
 app.use((req, _res, next) => {
   console.log(`[${req.method}] ${req.path} auth=${req.headers.authorization ? 'yes' : 'no'}`);
   next();
+});
+
+// Parsear JSON body, pero excluir rutas que van al proxy
+// El proxy necesita el stream original, así que no parseamos el body para esas rutas
+app.use((req, res, next) => {
+  // Excluir rutas que van a servicios externos vía proxy
+  if (req.path.startsWith('/routes/') || req.path.startsWith('/admin/') || req.path.startsWith('/auth/')) {
+    // Para estas rutas, NO parsear el body - el proxy lo manejará
+    next();
+  } else {
+    // Para otras rutas, parsear JSON normalmente
+    express.json()(req, res, next);
+  }
 });
 
 //Usa Eureka
@@ -58,19 +74,26 @@ const vehicleRoutes = new VehicleRoutes(vehicleClient)
 const driverClient = new DriverClient(serviceDiscovery, process.env.DRIVER_PROTO_PATH || "../services/Protos/drivers.proto")
 await driverClient.start()
 const driverRoutes = new DriverRoutes(driverClient)
+const fuelClient = new FuelClient(serviceDiscovery, process.env.FUEL_PROTO_PATH || "../services/Protos/fuel.proto")
+await fuelClient.start()
+const fuelRoutes = new FuelRoutes(fuelClient)
+const geocodingRoutes = new GeocodingRoutes()
 await adminRoutes.start()
 await authRoutes.start()
 await vehicleRoutes.start()
 await driverRoutes.start()
 await routeRoutes.start()
+await geocodingRoutes.start()
+await fuelRoutes.start()
 
 
 app.use(adminRoutes.router)
 app.use(authRoutes.router)
 app.use(routeRoutes.router)
-app.use(express.json());
 app.use('/', vehicleRoutes.router);
 app.use('/', driverRoutes.router);
+app.use('/', geocodingRoutes.router);
+app.use('/', fuelRoutes.router);
 
 // Manejador de errores de JWT (express-jwt)
 app.use((err, req, res, next) => {

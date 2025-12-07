@@ -29,7 +29,14 @@ export class ServiceDiscovery {
             const instance = instances[Math.floor(Math.random() * instances.length)];
 
             const host = instance.hostName || instance.ipAddr;
-            const port = instance.port.$;
+            // Usar httpPort de metadata si está disponible, sino usar el puerto principal
+            let port = instance.port.$;
+            if (instance.metadata && instance.metadata.httpPort) {
+                port = parseInt(instance.metadata.httpPort, 10);
+                console.log(`[ServiceDiscovery] ${name} usando httpPort de metadata: ${port} (puerto principal: ${instance.port.$})`);
+            } else {
+                console.log(`[ServiceDiscovery] ${name} usando puerto principal: ${port} (metadata:`, instance.metadata, ')');
+            }
 
             const result = { host, port };
             this.circuitBreaker.registerSuccess(name);
@@ -56,10 +63,32 @@ export class ServiceDiscovery {
 
     /**
      * Construye una dirección gRPC (host:port)
+     * Usa grpcPort de metadata si está disponible
      */
-    getGrpcAddress(serviceName) {
-        const instance = this.getInstance(serviceName);
-        if (!instance) return null;
-        return `${instance.host}:${instance.port}`;
+    async getGrpcAddress(serviceName) {
+        const name = serviceName.toUpperCase();
+        try {
+            const instances = await this.eurekaClient.getInstancesByAppId(name);
+            if (!instances || instances.length === 0) {
+                console.log(`[ServiceDiscovery] No instances found for ${name}`);
+                return null;
+            }
+            const instance = instances[Math.floor(Math.random() * instances.length)];
+            const host = instance.hostName || instance.ipAddr;
+            // Usar grpcPort de metadata si está disponible, sino usar el puerto principal
+            let port = instance.port.$;
+            if (instance.metadata && instance.metadata.grpcPort) {
+                port = parseInt(instance.metadata.grpcPort, 10);
+                console.log(`[ServiceDiscovery] ${name} usando grpcPort de metadata: ${port} (puerto principal: ${instance.port.$})`);
+            } else {
+                console.log(`[ServiceDiscovery] ${name} usando puerto principal para gRPC: ${port} (metadata:`, instance.metadata, ')');
+            }
+            const address = `${host}:${port}`;
+            console.log(`[ServiceDiscovery] Dirección gRPC para ${name}: ${address}`);
+            return address;
+        } catch (err) {
+            console.error(`⚠️ Error obteniendo dirección gRPC para ${name}:`, err.message);
+            return null;
+        }
     }
 }

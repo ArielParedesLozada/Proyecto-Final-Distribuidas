@@ -34,4 +34,32 @@ public class RouteClient
         var req = new DeleteRoutesByDriverCascadeRequest { DriverId = driverId };
         return await _routes.DeleteRoutesByDriverCascadeAsync(req, MakeCallOptions(bearer));
     }
+    
+    /// <summary>
+    /// Obtiene las rutas activas (Assigned o Started) para una asignación de vehículo-conductor
+    /// </summary>
+    public async Task<ListRoutesResponse> GetRoutesByDriverVehicle(string driverVehicleId, string? bearer)
+    {
+        var req = new ListRoutesByDriverVehicleRequest 
+        { 
+            DriverVehicleId = driverVehicleId,
+            Page = 1,
+            PageSize = 100 // Obtener todas las rutas activas
+        };
+        return await _routes.GetRoutesByDriverVehicleAsync(req, MakeCallOptions(bearer));
+    }
+    
+    /// <summary>
+    /// Obtiene las rutas para un vehículo por su ID
+    /// </summary>
+    public async Task<ListRoutesResponse> GetRoutesByVehicle(string vehicleId, string? bearer)
+    {
+        var req = new ListRoutesByVehicleRequest 
+        { 
+            VehicleId = vehicleId,
+            Page = 1,
+            PageSize = 100 // Obtener todas las rutas
+        };
+        return await _routes.GetRoutesByVehicleAsync(req, MakeCallOptions(bearer));
+    }
 }

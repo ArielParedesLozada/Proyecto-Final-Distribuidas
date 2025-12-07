@@ -35,6 +35,15 @@ message Route {
   double real_distance_km = 15;
   double estimated_fuel_consumption_liters = 16;
   double real_fuel_consumption_liters = 17;
+  repeated RouteObservation observations = 18;
+}
+
+message RouteObservation {
+  string id = 1;
+  string route_id = 2;
+  string text = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string created_by = 5;
 }
 
 //Request
@@ -85,10 +94,11 @@ message StartRouteRequest {
   string id = 1;
 }
 //Request cuando finaliza una ruta
+// Los datos reales son requeridos y deben ser proporcionados por el conductor
 message EndRouteRequest {
   string id = 1;
-  double real_fuel_consumption_liters = 2;
-  double real_distance_km = 3;
+  double real_fuel_consumption_liters = 2; // Litros reales de gasolina consumidos (requerido, debe ser > 0)
+  double real_distance_km = 3; // Kilómetros reales recorridos (requerido, debe ser > 0)
 }
 //Request para ver las rutas de un conductor
 message ListRoutesByDriverRequest {
@@ -102,9 +112,23 @@ message ListRoutesByDriverVehicleRequest {
   int32 page = 3;
   int32 page_size = 4;
 }
+message ListRoutesByVehicleRequest {
+  string vehicle_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
 message GetMyRoutesRequest {
   int32 page = 2;
   int32 page_size = 3;
+}
+
+message CreateObservationRequest {
+  string route_id = 1;
+  string text = 2;
+}
+
+message CreateObservationResponse {
+  RouteObservation observation = 1;
 }
 //Responses
 message ListRoutesResponse {
@@ -122,7 +146,7 @@ message DeleteRouteByVehicleCascadeRequest {
   string vehicle_id = 1;
 }
 message DeleteRouteByDriverVehicleCascadeRequest {
-  string driver_vehicle = 1;
+    string driver_vehicle = 1;
 }
 
 service RoutesService {
@@ -171,6 +195,12 @@ service RoutesService {
     };
   }
 
+  rpc GetRoutesByVehicle(ListRoutesByVehicleRequest) returns (ListRoutesResponse) {
+    option (google.api.http) = {
+      get: "/vehicles/{vehicle_id}"
+    };
+  }
+
   rpc GetMyRoutes(GetMyRoutesRequest) returns (ListRoutesResponse) {
     option (google.api.http) = {
       get: "/my"
@@ -208,4 +238,11 @@ service RoutesService {
   rpc DeleteRoutesByDriverCascade (DeleteRoutesByDriverCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByVehicleCascade (DeleteRouteByVehicleCascadeRequest) returns (google.protobuf.Empty);
   rpc DeleteRoutesByDriverVehicleCascade (DeleteRouteByDriverVehicleCascadeRequest) returns (google.protobuf.Empty);
+
+  rpc AddObservation (CreateObservationRequest) returns (CreateObservationResponse) {
+    option (google.api.http) = {
+      post: "/{route_id}/observations"
+      body: "*"
+    };
+  }
 }

@@ -1,0 +1,261 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+option csharp_namespace = "FuelService.Proto";
+
+package fuel.v1;
+
+// Servicio de reportes de combustible
+service FuelService {
+  // Reporte por tipo de maquinaria
+  rpc GetReportByMachineryType(ReportByMachineryTypeRequest) returns (ReportByMachineryTypeResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/machinery-type"
+    };
+  }
+
+  // Comparación entre consumo estimado y real
+  rpc GetConsumptionComparison(ConsumptionComparisonRequest) returns (ConsumptionComparisonResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/consumption-comparison"
+    };
+  }
+
+  // Reporte general de consumo
+  rpc GetGeneralConsumptionReport(GeneralConsumptionReportRequest) returns (GeneralConsumptionReportResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/general"
+    };
+  }
+
+  // Registrar consumo de combustible cuando se completa una ruta
+  rpc RegisterFuelConsumption(RegisterFuelConsumptionRequest) returns (RegisterFuelConsumptionResponse) {
+    option (google.api.http) = {
+      post: "/api/fuel/register"
+      body: "*"
+    };
+  }
+
+  // Reporte por vehículo
+  rpc GetReportByVehicle(ReportByVehicleRequest) returns (ReportByVehicleResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/vehicle"
+    };
+  }
+
+  // Reporte por chofer/conductor
+  rpc GetReportByDriver(ReportByDriverRequest) returns (ReportByDriverResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/driver"
+    };
+  }
+
+  // Reporte por ruta
+  rpc GetReportByRoute(ReportByRouteRequest) returns (ReportByRouteResponse) {
+    option (google.api.http) = {
+      get: "/api/fuel/reports/route"
+    };
+  }
+}
+
+// Tipos de maquinaria
+enum VehicleMachineryType {
+  LIVIANO = 0;
+  PESADO = 1;
+}
+
+// Request para reporte por tipo de maquinaria
+message ReportByMachineryTypeRequest {
+  optional VehicleMachineryType machinery_type = 1; // Si no se especifica, retorna todos
+  optional string start_date = 2; // ISO 8601 format
+  optional string end_date = 3;   // ISO 8601 format
+}
+
+// Response para reporte por tipo de maquinaria
+message ReportByMachineryTypeResponse {
+  repeated MachineryTypeReport reports = 1;
+  double total_estimated_consumption = 2;
+  double total_real_consumption = 3;
+  double total_distance_km = 4;
+  int32 total_registers = 5;
+}
+
+message MachineryTypeReport {
+  VehicleMachineryType machinery_type = 1;
+  double total_estimated_consumption = 2;
+  double total_real_consumption = 3;
+  double total_distance_km = 4;
+  int32 register_count = 5;
+  double average_consumption_per_km = 6;
+  double difference_liters = 7; // real - estimado
+  double difference_percentage = 8; // ((real - estimado) / estimado) * 100
+}
+
+// Request para comparación de consumo
+message ConsumptionComparisonRequest {
+  optional VehicleMachineryType machinery_type = 1;
+  optional string start_date = 2;
+  optional string end_date = 3;
+}
+
+// Response para comparación de consumo
+message ConsumptionComparisonResponse {
+  repeated ConsumptionComparisonItem items = 1;
+  ComparisonSummary summary = 2;
+}
+
+message ConsumptionComparisonItem {
+  string route_id = 1;
+  VehicleMachineryType machinery_type = 2;
+  double estimated_consumption = 3;
+  double real_consumption = 4;
+  double distance_km = 5;
+  double difference_liters = 6;
+  double difference_percentage = 7;
+  string completed_at = 8; // ISO 8601
+}
+
+message ComparisonSummary {
+  double total_estimated = 1;
+  double total_real = 2;
+  double total_difference = 3;
+  double average_difference_percentage = 4;
+  int32 total_routes = 5;
+  int32 routes_over_estimate = 6; // Rutas que consumieron más de lo estimado
+  int32 routes_under_estimate = 7; // Rutas que consumieron menos de lo estimado
+}
+
+// Request para reporte general
+message GeneralConsumptionReportRequest {
+  optional string start_date = 1;
+  optional string end_date = 2;
+}
+
+// Response para reporte general
+message GeneralConsumptionReportResponse {
+  GeneralReportSummary summary = 1;
+  repeated MachineryTypeReport by_machinery = 2;
+  repeated DailyConsumption daily_consumption = 3;
+}
+
+message GeneralReportSummary {
+  double total_estimated_consumption = 1;
+  double total_real_consumption = 2;
+  double total_distance_km = 3;
+  int32 total_registers = 4;
+  double average_consumption_per_km = 5;
+  double total_difference = 6;
+  double average_difference_percentage = 7;
+}
+
+message DailyConsumption {
+  string date = 1; // YYYY-MM-DD
+  double estimated_consumption = 2;
+  double real_consumption = 3;
+  double distance_km = 4;
+  int32 register_count = 5;
+}
+
+// Request para registrar consumo de combustible
+message RegisterFuelConsumptionRequest {
+  string route_id = 1;
+  string vehicle_id = 2; // ID del vehículo
+  string driver_id = 3; // ID del conductor
+  VehicleMachineryType machinery_type = 4;
+  double estimated_fuel_consumption_liters = 5;
+  double real_fuel_consumption_liters = 6;
+  double real_distance_km = 7;
+  string completed_at = 8; // ISO 8601
+}
+
+// Response para registrar consumo de combustible
+message RegisterFuelConsumptionResponse {
+  string id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Request para reporte por vehículo
+message ReportByVehicleRequest {
+  optional string vehicle_id = 1; // Si no se especifica, retorna todos
+  optional string start_date = 2;
+  optional string end_date = 3;
+}
+
+// Response para reporte por vehículo
+message ReportByVehicleResponse {
+  repeated VehicleReport reports = 1;
+  double total_estimated_consumption = 2;
+  double total_real_consumption = 3;
+  double total_distance_km = 4;
+  int32 total_registers = 5;
+}
+
+message VehicleReport {
+  string vehicle_id = 1;
+  int32 route_count = 2;
+  double total_estimated_consumption = 3;
+  double total_real_consumption = 4;
+  double total_distance_km = 5;
+  double average_consumption_per_km = 6;
+  double difference_liters = 7;
+  double difference_percentage = 8;
+}
+
+// Request para reporte por chofer
+message ReportByDriverRequest {
+  optional string driver_id = 1; // Si no se especifica, retorna todos
+  optional string start_date = 2;
+  optional string end_date = 3;
+}
+
+// Response para reporte por chofer
+message ReportByDriverResponse {
+  repeated DriverReport reports = 1;
+  double total_estimated_consumption = 2;
+  double total_real_consumption = 3;
+  double total_distance_km = 4;
+  int32 total_registers = 5;
+}
+
+message DriverReport {
+  string driver_id = 1;
+  int32 route_count = 2;
+  double total_estimated_consumption = 3;
+  double total_real_consumption = 4;
+  double total_distance_km = 5;
+  double average_consumption_per_km = 6;
+  double difference_liters = 7;
+  double difference_percentage = 8;
+}
+
+// Request para reporte por ruta
+message ReportByRouteRequest {
+  optional string route_id = 1; // Si no se especifica, retorna todas
+  optional string start_date = 2;
+  optional string end_date = 3;
+}
+
+// Response para reporte por ruta
+message ReportByRouteResponse {
+  repeated RouteReport reports = 1;
+  double total_estimated_consumption = 2;
+  double total_real_consumption = 3;
+  double total_distance_km = 4;
+  int32 total_registers = 5;
+}
+
+message RouteReport {
+  string route_id = 1;
+  string vehicle_id = 2;
+  string driver_id = 3;
+  VehicleMachineryType machinery_type = 4;
+  double estimated_consumption = 5;
+  double real_consumption = 6;
+  double distance_km = 7;
+  double difference_liters = 8;
+  double difference_percentage = 9;
+  string completed_at = 10; // ISO 8601
+}
+
