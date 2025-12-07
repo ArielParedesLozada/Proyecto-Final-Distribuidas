@@ -53,6 +53,7 @@ const serviceDiscovery = new ServiceDiscovery(eurekaClient)
 const authRoutes = new CommonRoutes("AUTH-SERVICE","/auth",serviceDiscovery)
 const adminRoutes = new CommonRoutes("ADMIN-SERVICE","/admin",serviceDiscovery)
 const routeRoutes = new CommonRoutes("ROUTES-SERVICE","/routes",serviceDiscovery)
+const fuelService = new CommonRoutes("FUEL-SERVICE", "/fuel", serviceDiscovery)
 const vehicleClient = new VehicleClient(serviceDiscovery, process.env.VEHICLE_PROTO_PATH || "../services/Protos/vehicles.proto")
 await vehicleClient.start()
 const vehicleRoutes = new VehicleRoutes(vehicleClient)
@@ -65,12 +66,14 @@ await authRoutes.start()
 await vehicleRoutes.start()
 await driverRoutes.start()
 await routeRoutes.start()
+await fuelService.start()
 await geocodingRoutes.start()
 
 
 app.use(adminRoutes.router)
 app.use(authRoutes.router)
 app.use(routeRoutes.router)
+app.use(fuelService.router)
 app.use(express.json());
 app.use('/', geocodingRoutes.router);
 app.use('/', vehicleRoutes.router);

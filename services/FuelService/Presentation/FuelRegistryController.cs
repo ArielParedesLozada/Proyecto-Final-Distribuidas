@@ -9,7 +9,6 @@ using System.Linq.Expressions;
 namespace FuelService.Presentation;
 
 [ApiController]
-[Route("api/fuel")]
 public class FuelReportsController : ControllerBase
 {
     private readonly IRepository<FuelRegister, Guid> _repository;
