@@ -8,9 +8,7 @@ class EditRouteCheckings
 {
     public static void CheckEditIsValid(RouteDomain routeToUpdate, EditRouteRequest request)
     {
-        // Solo se puede editar si NO está activa/iniciada (Started)
-        // Se pueden editar: Unassigned, Assigned, Completed
-        if (routeToUpdate.Status == RouteStatesDomain.Started)
+        if (routeToUpdate.Status is RouteStatesDomain.Started or RouteStatesDomain.Completed or RouteStatesDomain.Assigned)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_EDITABLE"));
         DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
         DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
