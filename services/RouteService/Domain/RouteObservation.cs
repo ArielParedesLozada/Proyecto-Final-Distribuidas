@@ -8,4 +8,3 @@ public class RouteObservation
     public DateTimeOffset CreatedAt { get; set; }
     public Guid? CreatedBy { get; set; } // User ID of the creator
 }
-

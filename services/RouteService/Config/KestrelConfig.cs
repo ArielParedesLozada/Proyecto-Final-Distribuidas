@@ -8,9 +8,6 @@ public static class KestrelConfig
     {
         webHostBuilder.ConfigureKestrel(options =>
         {
-            // Deshabilitar MinRequestBodyDataRate para evitar timeouts con proxies
-            options.Limits.MinRequestBodyDataRate = null;
-            
             options.ListenLocalhost(http1Port, listenOptions =>
             {
                 listenOptions.Protocols = HttpProtocols.Http1;

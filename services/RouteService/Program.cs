@@ -4,11 +4,12 @@ using DriverService = ChoferService.Proto.DriversService.DriversServiceClient;
 using RouteService.Clients;
 using RouteService.Config;
 using RouteService.Services;
-using RouteService.Queue.Publisher;
 using Steeltoe.Discovery.Eureka;
 using Serilog;
 using Serilog.Events;
 using RouteService.Infraestructure.Distance;
+using RabbitMQ.Client;
+using RouteService.Queue.Publishers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,9 +21,12 @@ var JWT_SECRET = Environment.GetEnvironmentVariable("JWT_SECRET")!;
 var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
 var HTTP1 = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2 = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
-var SEQ_URL = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5341";
 var RABBITMQ_HOST = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
 var RABBITMQ_PORT = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672");
+var RABBITMQ_USER = Environment.GetEnvironmentVariable("RABBITMQ_USER") ?? "guest";
+var RABBITMQ_PASSWORD = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
+
+var SEQ_URL = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5341";
 // Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -49,24 +53,23 @@ builder.Services
 builder.Services.AddLazyGrpcClient<VehicleService, VehicleClient>("vehicle-service");
 builder.Services.AddLazyGrpcClient<DriverService, DriverClient>("driver-service");
 
-// RabbitMQ Publisher para FuelService
-builder.Services.AddSingleton<FuelConsumptionPublisher>(sp =>
-    new FuelConsumptionPublisher(
-        RABBITMQ_HOST,
-        RABBITMQ_PORT,
-        "fuel.events", // Exchange
-        "fuel.consumption.registered" // Routing key
-    ));
-
-// FuelClient ahora usa RabbitMQ en lugar de gRPC
-builder.Services.AddScoped<FuelClient>(sp =>
-{
-    var publisher = sp.GetRequiredService<FuelConsumptionPublisher>();
-    return new FuelClient(publisher);
-});
-
 builder.Services.AddScoped<IDistanceService, PostgisDistanceService>();
 builder.Services.AddScoped<DistanceValidator>();
+//
+builder.Services.AddSingleton<ConnectionFactory>(sp =>
+    new ConnectionFactory
+    {
+        HostName = RABBITMQ_HOST,
+        Port = RABBITMQ_PORT,
+        UserName = RABBITMQ_USER,
+        Password = RABBITMQ_PASSWORD,
+    });
+
+builder.Services.AddSingleton<IRouteEventPublisher>(sp =>
+{
+    var factory = sp.GetRequiredService<ConnectionFactory>();
+    return new RabbitRouteEventPublisher(factory, exchangeName: "fuel_events");
+});
 
 var app = builder.Build();
 

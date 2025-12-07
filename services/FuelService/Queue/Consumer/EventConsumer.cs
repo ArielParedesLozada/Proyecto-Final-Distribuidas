@@ -3,164 +3,71 @@ using System.Text.Json;
 using FuelService.Domain.UseCases;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
-using Serilog;
 
 namespace FuelService.Queue.Consumer;
 
 public class EventConsumer<TDataConsumption> : BackgroundService
 {
-    private readonly IConsumptionAction<TDataConsumption> _action;
-    private IChannel? _channel;
-    private IConnection? _connection;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly string _host;
     private readonly int _port;
     private readonly string _queueName;
     private readonly string _topic;
-    private readonly int _maxRetries = 10;
-    private readonly TimeSpan _retryDelay = TimeSpan.FromSeconds(5);
 
-    public EventConsumer(string host, int port, string queue, string topic, IConsumptionAction<TDataConsumption> action)
+    private IChannel _channel = null!;
+
+    public EventConsumer(
+        string host,
+        int port,
+        string queue,
+        string topic,
+        IServiceScopeFactory scopeFactory)
     {
         _host = host;
         _port = port;
         _queueName = queue;
         _topic = topic;
-        _action = action;
+        _scopeFactory = scopeFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                await ConnectAndConsumeAsync(cancellationToken);
-            }
-            catch (BrokerUnreachableException ex)
-            {
-                Log.Warning(ex, "⚠️ RabbitMQ no está disponible en {Host}:{Port}. Reintentando en {Delay} segundos...", 
-                    _host, _port, _retryDelay.TotalSeconds);
-                
-                // Esperar antes de reintentar
-                await Task.Delay(_retryDelay, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "❌ Error inesperado en EventConsumer. Reintentando en {Delay} segundos...", 
-                    _retryDelay.TotalSeconds);
-                await Task.Delay(_retryDelay, cancellationToken);
-            }
-        }
-    }
-
-    private async Task ConnectAndConsumeAsync(CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory()
         {
             HostName = _host,
             Port = _port,
-            AutomaticRecoveryEnabled = true,
-            NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
         };
 
-        Log.Information("🔌 Intentando conectar a RabbitMQ en {Host}:{Port}...", _host, _port);
-        
-        _connection = await factory.CreateConnectionAsync(cancellationToken);
-        _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
-        
-        await _channel.ExchangeDeclareAsync(
-            exchange: _topic,
-            type: ExchangeType.Topic,
-            durable: true,
-            autoDelete: false,
-            cancellationToken: cancellationToken
-        );
-        
-        await _channel.QueueDeclareAsync(
-            queue: _queueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            cancellationToken: cancellationToken
-        );
-        
-        await _channel.QueueBindAsync(
-            queue: _queueName,
-            exchange: _topic,
-            routingKey: "#",
-            cancellationToken: cancellationToken
-        );
-        
-        Log.Information("✅ Conectado a RabbitMQ. Escuchando en queue: {QueueName}, exchange: {Exchange}", 
-            _queueName, _topic);
-        
+        var connection = await factory.CreateConnectionAsync(cancellationToken);
+        _channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken); // <--- Guardamos el canal
+
+        await _channel.ExchangeDeclareAsync(_topic, ExchangeType.Topic, durable: true, cancellationToken: cancellationToken);
+        await _channel.QueueDeclareAsync(_queueName, durable: true, exclusive: false, autoDelete: false, cancellationToken: cancellationToken);
+        await _channel.QueueBindAsync(_queueName, _topic, routingKey: "#", cancellationToken: cancellationToken);
+
         var consumer = new AsyncEventingBasicConsumer(_channel);
         consumer.ReceivedAsync += HandleMessage;
-        
-        await _channel.BasicConsumeAsync(
-            queue: _queueName, 
-            autoAck: false, 
-            consumer: consumer, 
-            cancellationToken: cancellationToken
-        );
 
-        // Esperar hasta que se cancele
-        await Task.Delay(Timeout.Infinite, cancellationToken);
+        await _channel.BasicConsumeAsync(_queueName, autoAck: false, consumer: consumer, cancellationToken: cancellationToken);
     }
 
     private async Task HandleMessage(object sender, BasicDeliverEventArgs ea)
     {
-        if (_channel == null)
-        {
-            Log.Warning("⚠️ Canal no disponible para procesar mensaje");
-            return;
-        }
+        using var scope = _scopeFactory.CreateScope();
+        var action = scope.ServiceProvider.GetRequiredService<IConsumptionAction<TDataConsumption>>();
 
         try
         {
             var json = Encoding.UTF8.GetString(ea.Body.ToArray());
             var obj = JsonSerializer.Deserialize<TDataConsumption>(json);
-            
-            if (obj == null)
-            {
-                Log.Warning("⚠️ No se pudo deserializar el mensaje");
-                await _channel.BasicNackAsync(ea.DeliveryTag, false, false);
-                return;
-            }
-            
-            await _action.OnConsume(obj);
-            await _channel.BasicAckAsync(ea.DeliveryTag, false);
-            
-            Log.Debug("✅ Mensaje procesado correctamente");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "❌ Error al procesar mensaje. Rechazando mensaje.");
-            try
-            {
-                await _channel.BasicNackAsync(ea.DeliveryTag, false, true);
-            }
-            catch (Exception nackEx)
-            {
-                Log.Error(nackEx, "❌ Error al hacer NACK del mensaje");
-            }
-        }
-    }
 
-    public override void Dispose()
-    {
-        try
-        {
-            _channel?.CloseAsync().Wait();
-            _connection?.CloseAsync().Wait();
-            _channel?.Dispose();
-            _connection?.Dispose();
+            await action.OnConsume(obj!);
+            await _channel.BasicAckAsync(ea.DeliveryTag, false);
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Log.Warning(ex, "⚠️ Error al cerrar conexión RabbitMQ");
+            System.Console.WriteLine($"ERROR: {e.Message}");
+            await _channel.BasicNackAsync(ea.DeliveryTag, false, true);
         }
-        base.Dispose();
     }
 }

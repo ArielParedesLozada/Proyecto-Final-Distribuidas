@@ -7,11 +7,8 @@ export class GrpcRoutesBase {
     }
 
     async grpc(res) {
-        // Solo hacer retry si el cliente no está disponible
-        if (!this.client.client) {
-            await this.client.retryClient();
-        }
-        const client = this.client.client;
+        await this.client.retryClient()
+        const client = this.client.client
         if (!client) {
             res.status(503).json({
                 error: `${this.serviceName} unavailable`,

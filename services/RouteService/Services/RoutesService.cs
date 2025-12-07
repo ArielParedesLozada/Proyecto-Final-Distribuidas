@@ -1,6 +1,7 @@
 using RouteService.Data.Repository;
 using RoutesProtoService = RoutesProto.RoutesService.RoutesServiceBase;
 using Route = RouteService.Domain.Route;
+using RouteObservation = RouteService.Domain.RouteObservation;
 using RouteStatesDomain = RouteService.Domain.RouteStates;
 using RouteProto = RoutesProto.Route;
 using Microsoft.AspNetCore.Authorization;
@@ -12,27 +13,27 @@ using FuelConsumptionService = RouteService.Domain.FuelConsumptionService;
 using RouteService.Infraestructure.Distance;
 using DomainEnum = System.Enum;
 using RouteService.Infraestructure.UseCases;
-using Microsoft.EntityFrameworkCore;
-using RouteService.Data.Databases;
+using RouteService.Queue.Publishers;
+using RouteService.Queue.Events;
 namespace RouteService.Services;
 
 public class RoutesService : RoutesProtoService
 {
     private readonly IRepository<Route, Guid> _repository;
+    private readonly IRepository<RouteObservation, Guid> _observations;
     private readonly VehicleClient _vehicleClient;
     private readonly DriverClient _driverClient;
-    private readonly FuelClient _fuelClient;
     private readonly DistanceValidator _distanceValidator;
-    private readonly AppDatabase _dbContext;
+    private readonly IRouteEventPublisher _publisher;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, FuelClient fuelClient, DistanceValidator distanceValidator, AppDatabase dbContext)
+    public RoutesService(IRepository<Route, Guid> repository, IRepository<RouteObservation, Guid> observations, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator, IRouteEventPublisher publisher)
     {
         _repository = repository;
+        _observations = observations;
         _vehicleClient = vehicleClient;
         _driverClient = driverClient;
-        _fuelClient = fuelClient;
         _distanceValidator = distanceValidator;
-        _dbContext = dbContext;
+        _publisher = publisher;
     }
     private static string? GetAuthorization(ServerCallContext ctx)
     {
@@ -41,53 +42,20 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:read:all")]
     public override async Task<ListRoutesResponse> ListRoutes(ListRoutesRequest request, ServerCallContext context)
     {
-        try
+        int page = request.Page <= 0 ? 1 : request.Page;
+        int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+        var (routes, totalCount) = await _repository.GetAllPagedAsync(page, pageSize);
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var response = new ListRoutesResponse
         {
-            int page = request.Page <= 0 ? 1 : request.Page;
-            int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
-            var (routes, totalCount) = await _repository.GetAllPagedAsync(page, pageSize);
-            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            var response = new ListRoutesResponse
-            {
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = totalPages
-            };
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages
+        };
 
-            // Optimización: cargar todas las observaciones de una vez en lugar de hacer una consulta por cada ruta
-            Dictionary<Guid, List<Domain.RouteObservation>> observationsByRouteId = new();
-            
-            if (routes.Any())
-            {
-                var routeIds = routes.Select(r => r.Id).ToList();
-                var allObservations = await _dbContext.RouteObservations
-                    .Where(o => routeIds.Contains(o.RouteId))
-                    .OrderByDescending(o => o.CreatedAt)
-                    .ToListAsync();
+        response.Routes.AddRange(routes.Select(MapToProto));
 
-                // Crear un diccionario de observaciones por RouteId para acceso rápido
-                observationsByRouteId = allObservations
-                    .GroupBy(o => o.RouteId)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-            }
-
-            // Mapear las rutas usando el diccionario de observaciones
-            foreach (var route in routes)
-            {
-                var observations = observationsByRouteId.GetValueOrDefault(route.Id);
-                response.Routes.Add(MapToProtoWithObservations(route, observations));
-            }
-
-            return response;
-        }
-        catch (RpcException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new RpcException(new Status(StatusCode.Internal, $"INTERNAL_ERROR: {ex.Message}"));
-        }
+        return response;
     }
     [Authorize(Policy = "routes:create")]
     public override async Task<RouteProto> CreateRoute(CreateRouteRequest request, ServerCallContext context)
@@ -121,120 +89,92 @@ public class RoutesService : RoutesProtoService
     [Authorize(Policy = "routes:update:any")]
     public override async Task<RouteProto> EditRoute(EditRouteRequest request, ServerCallContext context)
     {
-        try
+        var id = Guid.Parse(request.Id);
+        var routeToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, $"ROUTE_NOT_FOUND"));
+
+        EditRouteCheckings.CheckEditIsValid(routeToUpdate, request);
+
+        if (!string.IsNullOrWhiteSpace(request.DriverVehicleId))
         {
-            var id = Guid.Parse(request.Id);
-            var routeToUpdate = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, $"ROUTE_NOT_FOUND"));
+            if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleGuid))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_VEHICLE_ID_INVALID"));
 
-            EditRouteCheckings.CheckEditIsValid(routeToUpdate, request);
+            var assignmentRow = await _vehicleClient.GetDriverVehicleExists(
+                request.DriverVehicleId,
+                GetAuthorization(context)
+            ) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
 
-            if (!string.IsNullOrWhiteSpace(request.DriverVehicleId))
-            {
-                if (!Guid.TryParse(request.DriverVehicleId, out var driverVehicleGuid))
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_VEHICLE_ID_INVALID"));
-
-                var assignmentRow = await _vehicleClient.GetDriverVehicleExists(
-                    request.DriverVehicleId,
-                    GetAuthorization(context)
-                ) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
-
-                routeToUpdate.DriverVehicleId = driverVehicleGuid;
-                routeToUpdate.DriverId = Guid.Parse(assignmentRow.DriverId);
-                routeToUpdate.VehicleId = Guid.Parse(assignmentRow.VehicleId);
-            }
-            DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
-            DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
-            DateTimeOffset? newStarted = request.StartedAt?.ToDateTimeOffset();
-            DateTimeOffset? newCompleted = request.CompletedAt?.ToDateTimeOffset();
-            bool shouldRecalculateDistance = false;
-
-            if (request.CoordinateStart != null)
-            {
-                var newStart = new Domain.Coordinate(
-                    request.CoordinateStart.Latitude,
-                    request.CoordinateStart.Longitude
-                );
-                if (routeToUpdate.CoordinatesStart == null || !newStart.Equals(routeToUpdate.CoordinatesStart))
-                {
-                    routeToUpdate.CoordinatesStart = newStart;
-                    shouldRecalculateDistance = true;
-                }
-            }
-            if (request.CoordinateStop != null)
-            {
-                var newStop = new Domain.Coordinate(
-                    request.CoordinateStop.Latitude,
-                    request.CoordinateStop.Longitude
-                );
-
-                if (routeToUpdate.CoordinatesStop == null || !newStop.Equals(routeToUpdate.CoordinatesStop))
-                {
-                    routeToUpdate.CoordinatesStop = newStop;
-                    shouldRecalculateDistance = true;
-                }
-            }
-
-            if (shouldRecalculateDistance)
-            {
-                // Validar que distance_km sea válido antes de recalcular
-                if (request.DistanceKm <= 0)
-                {
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_DISTANCE: distance_km debe ser mayor a 0 cuando se cambian las coordenadas"));
-                }
-                // Asegurar que las coordenadas no sean null antes de validar
-                if (routeToUpdate.CoordinatesStart == null || routeToUpdate.CoordinatesStop == null)
-                {
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_COORDINATES: las coordenadas de inicio y fin son requeridas"));
-                }
-                routeToUpdate.EstimatedDistanceKm = await _distanceValidator.ValidateDistanceAsync(
-                    request.DistanceKm,
-                    routeToUpdate.CoordinatesStart,
-                    routeToUpdate.CoordinatesStop
-                );
-            }
-
-            if (request.RealDistanceKm > 0)
-            {
-                if (routeToUpdate.CoordinatesStart == null || routeToUpdate.CoordinatesStop == null)
-                {
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_COORDINATES: las coordenadas de inicio y fin son requeridas para validar la distancia real"));
-                }
-                routeToUpdate.RealDistanceKm = await _distanceValidator.ValidateDistanceAsync(
-                    request.RealDistanceKm,
-                    routeToUpdate.CoordinatesStart,
-                    routeToUpdate.CoordinatesStop
-                );
-            }
-            routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
-            routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
-
-            routeToUpdate.CreatedAt = newCreated ?? routeToUpdate.CreatedAt;
-            routeToUpdate.AssignedAt = newAssigned ?? routeToUpdate.AssignedAt;
-            routeToUpdate.StartedAt = newStarted ?? routeToUpdate.StartedAt;
-            routeToUpdate.CompletedAt = newCompleted ?? routeToUpdate.CompletedAt;
-            // Convertir el enum de protobuf al enum del dominio usando el valor numérico
-            // Ambos enums tienen los mismos valores (0=Unassigned, 1=Assigned, 2=Started, 3=Completed)
-            var statusValue = (int)request.Status;
-            if (statusValue >= 0 && statusValue <= 3)
-            {
-                routeToUpdate.Status = (RouteStatesDomain)statusValue;
-            }
-            if (request.EstimatedFuelConsumptionLiters > 0)
-                routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
-
-            if (request.RealFuelConsumptionLiters > 0)
-                routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
-            var updated = await _repository.UpdateAsync(routeToUpdate);
-            return MapToProto(updated);
+            routeToUpdate.DriverVehicleId = driverVehicleGuid;
+            routeToUpdate.DriverId = Guid.Parse(assignmentRow.DriverId);
+            routeToUpdate.VehicleId = Guid.Parse(assignmentRow.VehicleId);
         }
-        catch (RpcException)
+        DateTimeOffset? newCreated = request.CreatedAt?.ToDateTimeOffset();
+        DateTimeOffset? newAssigned = request.AssignedAt?.ToDateTimeOffset();
+        DateTimeOffset? newStarted = request.StartedAt?.ToDateTimeOffset();
+        DateTimeOffset? newCompleted = request.CompletedAt?.ToDateTimeOffset();
+        bool shouldRecalculateDistance = false;
+
+        if (request.CoordinateStart != null)
         {
-            throw;
+            var newStart = new Domain.Coordinate(
+                request.CoordinateStart.Latitude,
+                request.CoordinateStart.Longitude
+            );
+            if (!newStart.Equals(routeToUpdate.CoordinatesStart))
+            {
+                routeToUpdate.CoordinatesStart = newStart;
+                shouldRecalculateDistance = true;
+            }
         }
-        catch (Exception ex)
+        if (request.CoordinateStop != null)
         {
-            throw new RpcException(new Status(StatusCode.Internal, $"INTERNAL_ERROR: {ex.Message}"));
+            var newStop = new Domain.Coordinate(
+                request.CoordinateStop.Latitude,
+                request.CoordinateStop.Longitude
+            );
+
+            if (!newStop.Equals(routeToUpdate.CoordinatesStop))
+            {
+                routeToUpdate.CoordinatesStop = newStop;
+                shouldRecalculateDistance = true;
+            }
         }
+
+        if (shouldRecalculateDistance)
+        {
+            routeToUpdate.EstimatedDistanceKm = await _distanceValidator.ValidateDistanceAsync(
+                request.DistanceKm,
+                routeToUpdate.CoordinatesStart,
+                routeToUpdate.CoordinatesStop
+            );
+        }
+
+        if (request.RealDistanceKm > 0)
+        {
+            routeToUpdate.RealDistanceKm = await _distanceValidator.ValidateDistanceAsync(
+                request.RealDistanceKm,
+                routeToUpdate.CoordinatesStart,
+                routeToUpdate.CoordinatesStop
+            );
+        }
+        routeToUpdate.OriginName = request.OriginName ?? routeToUpdate.OriginName;
+        routeToUpdate.DestinationName = request.DestinationName ?? routeToUpdate.DestinationName;
+
+        routeToUpdate.CreatedAt = newCreated ?? routeToUpdate.CreatedAt;
+        routeToUpdate.AssignedAt = newAssigned ?? routeToUpdate.AssignedAt;
+        routeToUpdate.StartedAt = newStarted ?? routeToUpdate.StartedAt;
+        routeToUpdate.CompletedAt = newCompleted ?? routeToUpdate.CompletedAt;
+        if (DomainEnum.IsDefined(typeof(RouteStatesDomain), request.Status))
+        {
+            routeToUpdate.Status = (RouteStatesDomain)request.Status;
+        }
+        if (request.EstimatedFuelConsumptionLiters > 0)
+            routeToUpdate.EstimatedFuelConsumptionLiters = request.EstimatedFuelConsumptionLiters;
+
+        if (request.RealFuelConsumptionLiters > 0)
+            routeToUpdate.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
+        var updated = await _repository.UpdateAsync(routeToUpdate);
+        return MapToProto(updated);
     }
 
     [Authorize(Policy = "routes:delete")]
@@ -245,34 +185,10 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
         }
         var route = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "NOT FOUND"));
-        
-        // No se puede eliminar una ruta que está en curso (Started)
-        if (route.Status == RouteStatesDomain.Started)
+        if (route.Status == RouteStatesDomain.Assigned || route.Status == RouteStatesDomain.Started)
         {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE: No se puede eliminar una ruta en curso"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "ROUTE_NOT_DELETABLE"));
         }
-        
-        // Si la ruta está asignada, primero desasignarla para liberar al conductor
-        if (route.Status == RouteStatesDomain.Assigned && route.DriverId.HasValue)
-        {
-            var bearer = GetAuthorization(context);
-            var driverId = route.DriverId.Value.ToString();
-            
-            // Desasignar la ruta (liberar al conductor)
-            route.AssignedAt = null;
-            route.DriverVehicleId = null;
-            route.DriverId = null;
-            route.VehicleId = null;
-            route.Status = RouteStatesDomain.Unassigned;
-            
-            // Liberar al conductor (marcarlo como disponible)
-            await _driverClient.SetDriverAvailability(driverId, 1, bearer);
-            
-            // Actualizar la ruta antes de eliminarla
-            await _repository.UpdateAsync(route);
-        }
-        
-        // Ahora se puede eliminar la ruta
         await _repository.DeleteAsync(route);
         return new Empty();
     }
@@ -284,7 +200,8 @@ public class RoutesService : RoutesProtoService
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
         }
         var route = await _repository.GetByIdAsync(id) ?? throw new RpcException(new Status(StatusCode.NotFound, "NOT FOUND"));
-        return MapToProto(route);
+        var response = MapToProto(route);
+        return response;
     }
     [Authorize(Policy = "routes:read:all")]
     public async override Task<ListRoutesResponse> GetRoutesByDriver(ListRoutesByDriverRequest request, ServerCallContext context)
@@ -300,10 +217,7 @@ public class RoutesService : RoutesProtoService
         }
         var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && vehicleIds.Contains(r.DriverVehicleId.Value));
         var response = new ListRoutesResponse();
-        foreach (var route in routes)
-        {
-            response.Routes.Add(MapToProto(route));
-        }
+        response.Routes.AddRange(routes.Select(MapToProto));
         return response;
     }
     [Authorize(Policy = "routes:read:all")]
@@ -315,25 +229,7 @@ public class RoutesService : RoutesProtoService
         }
         var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && r.DriverVehicleId.Value == driverVehicleId);
         var response = new ListRoutesResponse();
-        foreach (var route in routes)
-        {
-            response.Routes.Add(MapToProto(route));
-        }
-        return response;
-    }
-    [Authorize(Policy = "routes:read:all")]
-    public override async Task<ListRoutesResponse> GetRoutesByVehicle(ListRoutesByVehicleRequest request, ServerCallContext context)
-    {
-        if (!Guid.TryParse(request.VehicleId, out var vehicleId))
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
-        }
-        var routes = await _repository.FindAsync(r => r.VehicleId.HasValue && r.VehicleId.Value == vehicleId);
-        var response = new ListRoutesResponse();
-        foreach (var route in routes)
-        {
-            response.Routes.Add(MapToProto(route));
-        }
+        response.Routes.AddRange(routes.Select(MapToProto));
         return response;
     }
     [Authorize(Policy = "routes:read:own")]
@@ -356,10 +252,7 @@ public class RoutesService : RoutesProtoService
         }
         var routes = await _repository.FindAsync(r => r.DriverVehicleId.HasValue && assignmentIds.Contains(r.DriverVehicleId.Value));
         var response = new ListRoutesResponse();
-        foreach (var route in routes)
-        {
-            response.Routes.Add(MapToProto(route));
-        }
+        response.Routes.AddRange(routes.Select(MapToProto));
         return response;
     }
     [Authorize(Policy = "routes:assign")]
@@ -376,34 +269,13 @@ public class RoutesService : RoutesProtoService
         var assignment = await _vehicleClient.GetDriverVehicleExists(driverVehicleId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "ASSIGNMENT_NOT_FOUND"));
         var driverId = assignment.DriverId;
         var vehicleId = assignment.VehicleId;
-        var driverGuid = Guid.Parse(driverId);
-        
-        // Verificar si el conductor realmente tiene rutas activas (Assigned o Started)
-        // Esto corrige el problema cuando se borra la BD de rutas pero los conductores quedan marcados como ocupados
-        var activeRoutes = await _repository.FindAsync(r => 
-            r.DriverId.HasValue && 
-            r.DriverId.Value == driverGuid && 
-            (r.Status == RouteStatesDomain.Assigned || r.Status == RouteStatesDomain.Started));
-        
-        // Si el conductor tiene rutas activas, no está disponible
-        if (activeRoutes.Any())
+        if (!(await _driverClient.DriverIsAvailable(driverId, bearer)))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_AVAILABLE"));
         }
-        
-        // Si el conductor no tiene rutas activas pero está marcado como ocupado (availability = 2),
-        // sincronizar su estado a disponible (availability = 1) antes de asignar
-        var driverIsAvailable = await _driverClient.DriverIsAvailable(driverId, bearer);
-        if (!driverIsAvailable)
-        {
-            // El conductor está marcado como ocupado pero no tiene rutas activas
-            // Sincronizar su estado a disponible
-            await _driverClient.SetDriverAvailability(driverId, 1, bearer);
-        }
-        
         route.AssignedAt = DateTimeOffset.UtcNow;
         route.DriverVehicleId = Guid.Parse(driverVehicleId);
-        route.DriverId = driverGuid;
+        route.DriverId = Guid.Parse(driverId);
         route.VehicleId = Guid.Parse(vehicleId);
         route.Status = RouteStatesDomain.Assigned;
         await _driverClient.SetDriverAvailability(driverId, 2, bearer);
@@ -478,51 +350,36 @@ public class RoutesService : RoutesProtoService
         var driver = await _driverClient.FindDriverByUserIdAsync(userId, bearer) ?? throw new RpcException(new Status(StatusCode.NotFound, "DRIVER_NOT_FOUND"));
         if (route.DriverId != Guid.Parse(driver))
             throw new RpcException(new Status(StatusCode.PermissionDenied, "NOT_OWNER_OF_ROUTE"));
-        // Validar que los datos reales sean proporcionados y válidos
-        if (request.RealDistanceKm <= 0)
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_DISTANCE_TRAVELED_MUST_BE_GREATER_THAN_ZERO"));
-        }
-        
-        if (request.RealFuelConsumptionLiters <= 0)
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_FUEL_CONSUMPTION_MUST_BE_GREATER_THAN_ZERO"));
-        }
-
-        // Validar distancia real (debe ser razonable respecto a las coordenadas)
-        var validatedRealDistance = await _distanceValidator.ValidateDistanceAsync(
-            request.RealDistanceKm,
-            route.CoordinatesStart,
-            route.CoordinatesStop
-        );
-        
         route.CompletedAt = DateTimeOffset.UtcNow;
-        route.RealDistanceKm = validatedRealDistance;
-        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters;
+        if (request.RealDistanceKm > 0)
+        {
+            var validatedRealDistance = await _distanceValidator.ValidateDistanceAsync(
+                request.RealDistanceKm,
+                route.CoordinatesStart,
+                route.CoordinatesStop
+            );
+            route.RealDistanceKm = validatedRealDistance;
+        }
+        else
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_DISTANCE_TRAVELED_MUST_BE_PROVIDED"));
+        }
         route.Status = RouteStatesDomain.Completed;
-        
         var vehicleId = route.VehicleId.HasValue ? route.VehicleId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "VEHICLE_NOT_FOUND_CORRUP_ROUTE"));
         var driverId = route.DriverId.HasValue ? route.DriverId.Value.ToString() : throw new RpcException(new Status(StatusCode.InvalidArgument, "DRIVER_NOT_FOUND_CORRUP_ROUTE"));
-        
-        // Obtener el vehículo para saber el tipo de maquinaria
-        var vehicle = await _vehicleClient.GetVehicle(vehicleId, bearer);
-        var machineryType = vehicle?.Machinery ?? 0; // 0 = LIVIANO por defecto
-        
-        await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer);
+        route.RealFuelConsumptionLiters = request.RealFuelConsumptionLiters > 0 ? request.RealFuelConsumptionLiters : throw new RpcException(new Status(StatusCode.InvalidArgument, "REAL_FUEL_CONSUMPTION_MUST_BE_PROVIDED"));
+        var vehicleMachinery = (await _vehicleClient.UpdateVehicleRouteEnded(vehicleId, route, bearer)).Machinery;
+        var message = CreateMessage(route, (VehicleMachineryTypes)vehicleMachinery);
+        if (vehicleMachinery == VehiclesService.Proto.VehicleMachineryTypes.Liviano)
+        {
+            await _publisher.PublishRouteEndedAsync(topic: "liviano", message);
+        }
+        else if (vehicleMachinery == VehiclesService.Proto.VehicleMachineryTypes.Pesado)
+        {
+            await _publisher.PublishRouteEndedAsync(topic: "pesado", message);
+        }
         await _driverClient.SetDriverAvailability(driverId, 1, bearer);
         await _repository.UpdateAsync(route);
-        
-        // Registrar consumo de combustible en FuelService
-        try
-        {
-            await _fuelClient.RegisterFuelConsumption(route, (int)machineryType, bearer);
-        }
-        catch (Exception ex)
-        {
-            // Log el error pero no fallar la finalización de la ruta
-            Console.WriteLine($"[RoutesService] Error al registrar consumo en FuelService: {ex.Message}");
-        }
-        
         return MapToProto(route);
     }
     [Authorize(Policy = "routes:delete")]
@@ -557,22 +414,34 @@ public class RoutesService : RoutesProtoService
         return new Empty();
     }
 
-    [Authorize(Policy = "routes:read:own")]
+    [Authorize(Policy = "routes:read:all")]
+    public override async Task<ListRoutesResponse> GetRoutesByVehicle(ListRoutesByVehicleRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.VehicleId, out var vehicleId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
+        }
+        var routes = await _repository.FindAsync(r => r.VehicleId.HasValue && r.VehicleId.Value == vehicleId);
+        var response = new ListRoutesResponse();
+        foreach (var route in routes)
+        {
+            response.Routes.Add(MapToProto(route));
+        }
+        return response;
+    }
+
     public override async Task<CreateObservationResponse> AddObservation(CreateObservationRequest request, ServerCallContext context)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "OBSERVATION_TEXT_REQUIRED"));
         }
-
         if (!Guid.TryParse(request.RouteId, out var routeId))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ROUTE_ID"));
         }
-
         // Verificar que la ruta existe
         var route = await _repository.GetByIdAsync(routeId) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
-
         // Verificar que el usuario es el dueño de la ruta (si es conductor)
         var userId = context.GetHttpContext().User.FindFirst("sub")?.Value;
         if (!string.IsNullOrWhiteSpace(userId) && route.DriverId.HasValue)
@@ -585,8 +454,7 @@ public class RoutesService : RoutesProtoService
             }
         }
 
-        // Crear la observación
-        var observation = new Domain.RouteObservation
+        var observation = new RouteObservation
         {
             Id = Guid.NewGuid(),
             RouteId = routeId,
@@ -595,8 +463,7 @@ public class RoutesService : RoutesProtoService
             CreatedBy = userId != null && Guid.TryParse(userId, out var userIdGuid) ? userIdGuid : null
         };
 
-        _dbContext.RouteObservations.Add(observation);
-        await _dbContext.SaveChangesAsync();
+        await _observations.CreateAsync(observation);
 
         var response = new CreateObservationResponse
         {
@@ -612,13 +479,12 @@ public class RoutesService : RoutesProtoService
 
         return response;
     }
-
     private RouteProto MapToProto(Route route)
     {
         return MapToProtoWithObservations(route, null);
     }
 
-    private RouteProto MapToProtoWithObservations(Route route, List<Domain.RouteObservation>? observations)
+    private RouteProto MapToProtoWithObservations(Route route, List<RouteObservation>? observations)
     {
         var proto = new RouteProto
         {
@@ -659,7 +525,6 @@ public class RoutesService : RoutesProtoService
             RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? 0
         };
 
-        // Agregar observaciones si están disponibles
         if (observations != null && observations.Any())
         {
             foreach (var obs in observations)
@@ -676,5 +541,23 @@ public class RoutesService : RoutesProtoService
         }
 
         return proto;
+    }
+
+    private FuelRegisterEvent CreateMessage(Route route, VehicleMachineryTypes machinery)
+    {
+        return new FuelRegisterEvent
+        {
+            Id = Guid.NewGuid(),
+            RouteId = route.Id,
+            DriverId = route.DriverId ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            VehicleId = route.VehicleId ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            RealDistanceKm = route.RealDistanceKm ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            StartedAt = route.StartedAt ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            CompletedAt = route.CompletedAt ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? throw new Exception("NOT_SUITABLE_VALUE"),
+            VehicleMachinery = machinery,
+            Timestamp = DateTimeOffset.UtcNow,
+        };
     }
 }
