@@ -1,6 +1,7 @@
 using RouteService.Data.Repository;
 using RoutesProtoService = RoutesProto.RoutesService.RoutesServiceBase;
 using Route = RouteService.Domain.Route;
+using RouteObservation = RouteService.Domain.RouteObservation;
 using RouteStatesDomain = RouteService.Domain.RouteStates;
 using RouteProto = RoutesProto.Route;
 using Microsoft.AspNetCore.Authorization;
@@ -19,14 +20,16 @@ namespace RouteService.Services;
 public class RoutesService : RoutesProtoService
 {
     private readonly IRepository<Route, Guid> _repository;
+    private readonly IRepository<RouteObservation, Guid> _observations;
     private readonly VehicleClient _vehicleClient;
     private readonly DriverClient _driverClient;
     private readonly DistanceValidator _distanceValidator;
     private readonly IRouteEventPublisher _publisher;
 
-    public RoutesService(IRepository<Route, Guid> repository, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator, IRouteEventPublisher publisher)
+    public RoutesService(IRepository<Route, Guid> repository, IRepository<RouteObservation, Guid> observations, VehicleClient vehicleClient, DriverClient driverClient, DistanceValidator distanceValidator, IRouteEventPublisher publisher)
     {
         _repository = repository;
+        _observations = observations;
         _vehicleClient = vehicleClient;
         _driverClient = driverClient;
         _distanceValidator = distanceValidator;
@@ -411,9 +414,79 @@ public class RoutesService : RoutesProtoService
         return new Empty();
     }
 
-    private static RouteProto MapToProto(Route route)
+    [Authorize(Policy = "routes:read:all")]
+    public override async Task<ListRoutesResponse> GetRoutesByVehicle(ListRoutesByVehicleRequest request, ServerCallContext context)
     {
-        return new RouteProto
+        if (!Guid.TryParse(request.VehicleId, out var vehicleId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ID"));
+        }
+        var routes = await _repository.FindAsync(r => r.VehicleId.HasValue && r.VehicleId.Value == vehicleId);
+        var response = new ListRoutesResponse();
+        foreach (var route in routes)
+        {
+            response.Routes.Add(MapToProto(route));
+        }
+        return response;
+    }
+
+    public override async Task<CreateObservationResponse> AddObservation(CreateObservationRequest request, ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "OBSERVATION_TEXT_REQUIRED"));
+        }
+        if (!Guid.TryParse(request.RouteId, out var routeId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "INVALID_ROUTE_ID"));
+        }
+        // Verificar que la ruta existe
+        var route = await _repository.GetByIdAsync(routeId) ?? throw new RpcException(new Status(StatusCode.NotFound, "ROUTE_NOT_FOUND"));
+        // Verificar que el usuario es el dueño de la ruta (si es conductor)
+        var userId = context.GetHttpContext().User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrWhiteSpace(userId) && route.DriverId.HasValue)
+        {
+            var bearer = GetAuthorization(context);
+            var driverId = await _driverClient.FindDriverByUserIdAsync(userId, bearer);
+            if (driverId != null && Guid.Parse(driverId) != route.DriverId.Value)
+            {
+                throw new RpcException(new Status(StatusCode.PermissionDenied, "NOT_OWNER_OF_ROUTE"));
+            }
+        }
+
+        var observation = new RouteObservation
+        {
+            Id = Guid.NewGuid(),
+            RouteId = routeId,
+            Text = request.Text.Trim(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedBy = userId != null && Guid.TryParse(userId, out var userIdGuid) ? userIdGuid : null
+        };
+
+        await _observations.CreateAsync(observation);
+
+        var response = new CreateObservationResponse
+        {
+            Observation = new RoutesProto.RouteObservation
+            {
+                Id = observation.Id.ToString(),
+                RouteId = observation.RouteId.ToString(),
+                Text = observation.Text,
+                CreatedAt = Timestamp.FromDateTimeOffset(observation.CreatedAt),
+                CreatedBy = observation.CreatedBy?.ToString() ?? string.Empty
+            }
+        };
+
+        return response;
+    }
+    private RouteProto MapToProto(Route route)
+    {
+        return MapToProtoWithObservations(route, null);
+    }
+
+    private RouteProto MapToProtoWithObservations(Route route, List<RouteObservation>? observations)
+    {
+        var proto = new RouteProto
         {
             Id = route.Id.ToString(),
             DriverVehicleId = route.DriverVehicleId?.ToString() ?? string.Empty,
@@ -451,6 +524,23 @@ public class RoutesService : RoutesProtoService
             EstimatedFuelConsumptionLiters = route.EstimatedFuelConsumptionLiters ?? 0,
             RealFuelConsumptionLiters = route.RealFuelConsumptionLiters ?? 0
         };
+
+        if (observations != null && observations.Any())
+        {
+            foreach (var obs in observations)
+            {
+                proto.Observations.Add(new RoutesProto.RouteObservation
+                {
+                    Id = obs.Id.ToString(),
+                    RouteId = obs.RouteId.ToString(),
+                    Text = obs.Text,
+                    CreatedAt = Timestamp.FromDateTimeOffset(obs.CreatedAt),
+                    CreatedBy = obs.CreatedBy?.ToString() ?? string.Empty
+                });
+            }
+        }
+
+        return proto;
     }
 
     private FuelRegisterEvent CreateMessage(Route route, VehicleMachineryTypes machinery)
