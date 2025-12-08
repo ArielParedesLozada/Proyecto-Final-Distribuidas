@@ -33,7 +33,7 @@ services:
 
   authservice:
     container_name: ad-pf-auth-service
-    image: aparedeslozada/ad-proyecto-final-auth-service:4
+    image: aparedeslozada/ad-proyecto-final-auth-service:6
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -58,11 +58,11 @@ services:
       SEQ_URL: "http://host.docker.internal:5341"
 
       # Eureka interno por Docker
-      STEELTOE__EUREKA__CLIENT__SERVICEURL__DEFAULTZONE: "http://eureka:8761/eureka/"
-      STEELTOE__EUREKA__INSTANCE__HOSTNAME: "authservice"
-      STEELTOE__EUREKA__INSTANCE__PORT: "7037"
-      STEELTOE__EUREKA__INSTANCE__METADATAMAP__HTTPPORT: "5121"
-      STEELTOE__EUREKA__INSTANCE__METADATAMAP__GRPCPORT: "7037"
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "authservice"
+      eureka__instance__port: "7037"
+      eureka__instance__metadataMap__httpPort: "5121"
+      eureka__instance__metadataMap__grpcPort: "7037"
     networks:
       - adpfnetwork
 

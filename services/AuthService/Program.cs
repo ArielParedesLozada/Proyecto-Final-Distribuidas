@@ -31,6 +31,8 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog(Log.Logger);
+builder.Configuration.AddEnvironmentVariables();
+
 
 builder.WebHost.ConfigureKestrelPorts(HTTP1_PORT, HTTP2_PORT);
 builder.Services
