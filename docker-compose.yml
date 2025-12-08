@@ -1,0 +1,71 @@
+services:
+  normaldb:
+    container_name: ad-pf-db
+    image: postgres:latest
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+      POSTGRES_DB: proyecto-distribuidas
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - adpfnetwork
+
+  eureka:
+    container_name: ad-pf-eureka
+    image: steeltoeoss/eureka-server # Imagen funcional de Eureka OSS
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
+    networks:
+      - adpfnetwork
+
+  authservice:
+    container_name: ad-pf-auth-service
+    image: aparedeslozada/ad-proyecto-final-auth-service:4
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+    ports:
+      - "5121:5121"
+      - "7037:7037"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_TIME: "2"
+
+      HTTP1_PORT: "5121"
+      HTTP2_PORT: "7037"
+
+      # ⚠ IMPORTANTE: entre contenedores NO se usa host.docker.internal
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+
+      SERVICE_NAME: "AUTH-SERVICE"
+
+      # SEQ dentro de la PC (si va en host)
+      SEQ_URL: "http://host.docker.internal:5341"
+
+      # Eureka interno por Docker
+      STEELTOE__EUREKA__CLIENT__SERVICEURL__DEFAULTZONE: "http://eureka:8761/eureka/"
+      STEELTOE__EUREKA__INSTANCE__HOSTNAME: "authservice"
+      STEELTOE__EUREKA__INSTANCE__PORT: "7037"
+      STEELTOE__EUREKA__INSTANCE__METADATAMAP__HTTPPORT: "5121"
+      STEELTOE__EUREKA__INSTANCE__METADATAMAP__GRPCPORT: "7037"
+    networks:
+      - adpfnetwork
+
+networks:
+  adpfnetwork:
+    driver: bridge
