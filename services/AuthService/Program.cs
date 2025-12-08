@@ -5,6 +5,8 @@ using Steeltoe.Discovery.Eureka;
 using ChoferService.Proto;
 using Serilog;
 using Serilog.Events;
+using AuthService.Data.Databases;
+using Microsoft.EntityFrameworkCore;
 
 DotNetEnv.Env.Load();
 
@@ -46,7 +48,8 @@ var app = builder.Build();
 // ====== Seed Database ======
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AuthService.Data.Databases.AppDatabase>();
+    var db = scope.ServiceProvider.GetRequiredService<AppDatabase>();
+    await db.Database.MigrateAsync();
     await AuthService.Data.Seed.UserSeeder.SeedAsync(db);
 }
 
