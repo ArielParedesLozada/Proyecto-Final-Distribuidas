@@ -8,11 +8,11 @@ public static class KestrelConfig
     {
         webHostBuilder.ConfigureKestrel(options =>
         {
-            options.ListenLocalhost(http1Port, listenOptions =>
+            options.ListenAnyIP(http1Port, listenOptions =>
             {
                 listenOptions.Protocols = HttpProtocols.Http1;
             });
-            options.ListenLocalhost(http2Port, listenOptions =>
+            options.ListenAnyIP(http2Port, listenOptions =>
             {
                 listenOptions.Protocols = HttpProtocols.Http2;
             });

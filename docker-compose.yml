@@ -31,9 +31,33 @@ services:
     networks:
       - adpfnetwork
 
+  gateway:
+    container_name: ad-pf-gateway
+    image: aparedeslozada/ad-proyecto-final-gateway:3
+    restart: unless-stopped
+    depends_on:
+      - eureka
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      FRONTEND_ORIGIN: http://localhost:5173
+      DRIVERS_PROTO: /app/Protos/drivers.proto
+      VEHICLES_PROTO: /app/Protos/vehicles.proto
+      JWT_SECRET: b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473
+      JWT_ISSUER: http://authservice:5121
+      APP_NAME: api-gateway
+      HOST: gateway
+      IP: 0.0.0.0
+      EUREKA_HOST: eureka
+      EUREKA_PORT: 8761
+    networks:
+      - adpfnetwork
+
   authservice:
     container_name: ad-pf-auth-service
-    image: aparedeslozada/ad-proyecto-final-auth-service:6
+    image: aparedeslozada/ad-proyecto-final-auth-service:7
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -45,27 +69,21 @@ services:
       JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
       JWT_ISSUER: "http://authservice:5121"
       JWT_TIME: "2"
-
       HTTP1_PORT: "5121"
       HTTP2_PORT: "7037"
-
-      # ⚠ IMPORTANTE: entre contenedores NO se usa host.docker.internal
       CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
-
-      SERVICE_NAME: "AUTH-SERVICE"
-
-      # SEQ dentro de la PC (si va en host)
       SEQ_URL: "http://host.docker.internal:5341"
-
       # Eureka interno por Docker
       eureka__client__serviceUrl: "http://eureka:8761/eureka"
       eureka__instance__hostName: "authservice"
+      eureka__instance__appName: "AUTH-SERVICE"
       eureka__instance__port: "7037"
       eureka__instance__metadataMap__httpPort: "5121"
       eureka__instance__metadataMap__grpcPort: "7037"
     networks:
       - adpfnetwork
-
+    
+  
 networks:
   adpfnetwork:
     driver: bridge
