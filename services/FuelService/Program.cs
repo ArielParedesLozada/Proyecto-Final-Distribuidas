@@ -1,11 +1,13 @@
 //
 using FuelService.Config;
 using FuelService.Data;
+using FuelService.Data.Databases;
 using FuelService.Domain.Entities;
 using FuelService.Domain.UseCases;
 // using FuelService.Infraestructure.ConsumerFactory;
 using FuelService.Queue.Consumer;
 using FuelService.Queue.Events;
+using Microsoft.EntityFrameworkCore;
 using Steeltoe.Discovery.Eureka;
 
 
@@ -43,6 +45,13 @@ builder.Services.AddHostedService(sp =>
 
 builder.Services.AddControllers();
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDatabase>();
+    await db.Database.MigrateAsync();
+}
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

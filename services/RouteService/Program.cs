@@ -10,6 +10,8 @@ using Serilog.Events;
 using RouteService.Infraestructure.Distance;
 using RabbitMQ.Client;
 using RouteService.Queue.Publishers;
+using RouteService.Data.Databases;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +74,12 @@ builder.Services.AddSingleton<IRouteEventPublisher>(sp =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDatabase>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
