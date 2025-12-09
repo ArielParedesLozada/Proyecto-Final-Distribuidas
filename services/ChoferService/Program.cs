@@ -24,6 +24,7 @@ DotNetEnv.Env.Load();
 // ====== Configuración Serilog (solo SEQ) ======
 var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "DRIVER-SERVICE";
 var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5134";
+var PORT = int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "5122");
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -36,6 +37,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+builder.WebHost.ConfigureKestrelPorts(PORT);
 
 Log.Information("🚀 Iniciando ChoferService - enviando logs a {SeqUrl}", seqUrl);
 
@@ -69,15 +71,15 @@ builder.Services.AddDbContext<DriversDb>(opt => opt.UseNpgsql(connectionString))
 
 // ====== JWT ======
 var jwtSecret =
-    Cfg("Jwt:Secret", "JWT:Secret", "JWT_SECRET")
+    Cfg("JWT_SECRET", "Jwt:Secret", "JWT:Secret")
     ?? throw new InvalidOperationException("JWT secret no configurado (Jwt:Secret / JWT_SECRET).");
 
 var jwtIssuer =
-    Cfg("Jwt:Issuer", "JWT:Issuer", "JWT_ISSUER")
+    Cfg("JWT_ISSUER", "Jwt:Issuer", "JWT:Issuer")
     ?? "http://localhost:5121";
 
 var jwtAudience =
-    Cfg("Jwt:Audience", "JWT:Audience", "JWT_AUDIENCE")
+    Cfg("JWT_AUDIENCE", "Jwt:Audience", "JWT:Audience")
     ?? jwtIssuer;
 
 Log.Information("[CHOFER] JWT configurado. Fingerprint={Fp} Issuer={Issuer} Audience={Audience}",
@@ -158,6 +160,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DriversDb>();
+    await db.Database.MigrateAsync();
     await DriversSeeder.SeedAsync(db);
     Log.Information("✅ Base de datos inicializada correctamente");
 }

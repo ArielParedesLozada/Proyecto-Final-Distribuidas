@@ -24,6 +24,7 @@ DotNetEnv.Env.Load();
 // ====== Configuración de Serilog ======
 var serviceName = Environment.GetEnvironmentVariable("SERVICE_NAME") ?? "VEHCILE-SERVICE";
 var seqUrl = Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5134";
+var PORT= int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "5124") ;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -39,7 +40,7 @@ Log.Information("🚀 Iniciando VehiclesService... enviando logs a {SeqUrl}", se
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog(); // 🔗 Integrar Serilog con el host
-
+builder.WebHost.ConfigureKestrelPorts(PORT);
 // ====== Configuración de variables ======
 string Conn(string key) =>
     Environment.GetEnvironmentVariable(key) ??

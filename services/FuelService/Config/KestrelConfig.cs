@@ -1,20 +1,16 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-namespace RouteService.Config;
+namespace FuelService.Config;
 
 public static class KestrelConfig
 {
-    public static void ConfigureKestrelPorts(this ConfigureWebHostBuilder webHostBuilder, int http1Port, int http2Port)
+    public static void ConfigureKestrelPorts(this ConfigureWebHostBuilder webHostBuilder, int http1Port)
     {
         webHostBuilder.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(http1Port, listenOptions =>
             {
                 listenOptions.Protocols = HttpProtocols.Http1;
-            });
-            options.ListenAnyIP(http2Port, listenOptions =>
-            {
-                listenOptions.Protocols = HttpProtocols.Http2;
             });
         });
     }

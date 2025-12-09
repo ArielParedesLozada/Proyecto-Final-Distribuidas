@@ -10,6 +10,8 @@ using Serilog.Events;
 using RouteService.Infraestructure.Distance;
 using RabbitMQ.Client;
 using RouteService.Queue.Publishers;
+using RouteService.Data.Databases;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,7 @@ DotNetEnv.Env.Load();
 
 var CONNECTION_STRING = Environment.GetEnvironmentVariable("CONNECTION_STRING")!;
 var JWT_SECRET = Environment.GetEnvironmentVariable("JWT_SECRET")!;
+var JWT_TIME= double.Parse(Environment.GetEnvironmentVariable("JWT_TIME") ?? "2");
 var JWT_ISSUER = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
 var HTTP1 = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
 var HTTP2 = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);
@@ -47,7 +50,7 @@ builder.WebHost.ConfigureKestrelPorts(HTTP1, HTTP2);
 builder.Services
     .AddDatabase(CONNECTION_STRING)
     .AddEurekaDiscoveryClient()
-    .AddJwtAuth(JWT_SECRET, 2, JWT_ISSUER)
+    .AddJwtAuth(JWT_SECRET, JWT_TIME, JWT_ISSUER)
     .AddGrpc()
     .AddJsonTranscoding();
 builder.Services.AddLazyGrpcClient<VehicleService, VehicleClient>("vehicle-service");
@@ -72,6 +75,12 @@ builder.Services.AddSingleton<IRouteEventPublisher>(sp =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDatabase>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

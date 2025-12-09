@@ -1,0 +1,373 @@
+services:
+  normaldb:
+    container_name: ad-pf-db
+    image: postgres:latest
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+      POSTGRES_DB: proyecto-distribuidas
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - adpfnetwork
+
+  postgisdb:
+    container_name: ad-pf-postgisdb
+    image: postgis/postgis:17-master
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./data/postgis:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - adpfnetwork
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - adpfnetwork
+
+  seq:
+    image: datalust/seq:latest
+    container_name: ad-pf-seq
+    restart: unless-stopped
+    ports:
+      - "5431:80"
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=admin123
+      # Contraseña real: GanimaVeloz
+    volumes:
+      - ./docker/seq/volumes:/data
+    networks:
+      - adpfnetwork
+
+  eureka:
+    container_name: ad-pf-eureka
+    image: steeltoeoss/eureka-server # Imagen funcional de Eureka OSS
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      EUREKA_SERVER_ENABLE_SELF_PRESERVATION: "false"
+    networks:
+      - adpfnetwork
+
+  gateway:
+    container_name: ad-pf-gateway
+    image: aparedeslozada/ad-proyecto-final-gateway:3
+    # build:
+    #   context: ./
+    #   dockerfile: ./gateway/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - eureka
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      FRONTEND_ORIGIN: http://localhost:5173
+      DRIVER_PROTO_PATH: /app/Protos/drivers.proto
+      VEHICLE_PROTO_PATH: /app/Protos/vehicles.proto
+      JWT_SECRET: b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473
+      JWT_ISSUER: http://authservice:5121
+      APP_NAME: api-gateway
+      HOST: gateway
+      IP: 0.0.0.0
+      EUREKA_HOST: eureka
+      EUREKA_PORT: 8761
+    networks:
+      - adpfnetwork
+
+  authservice:
+    container_name: ad-pf-auth-service
+    image: aparedeslozada/ad-proyecto-final-auth-service:7
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/AuthService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+      - seq
+    ports:
+      - "5121:5121"
+      - "7037:7037"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_TIME: "2"
+      HTTP1_PORT: "5121"
+      HTTP2_PORT: "7037"
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      SEQ_URL: "http://seq:80"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "authservice"
+      eureka__instance__appName: "AUTH-SERVICE"
+      eureka__instance__port: "7037"
+      eureka__instance__metadataMap__httpPort: "5121"
+      eureka__instance__metadataMap__grpcPort: "7037"
+    networks:
+      - adpfnetwork
+
+  vehicleservice:
+    container_name: ad-pf-vehicle-service
+    image: aparedeslozada/ad-proyecto-final-vehicle-service:5
+    # build:
+    #   context: ./services
+    #   dockerfile: ./VehicleService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+      - seq
+    ports:
+      - "5124:5124"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_AUDIENCE: "http://authservice:5121"
+      JWT_TIME: "2"
+      PORT: "5124"
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      SEQ_URL: "http://seq:80"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "vehicleservice"
+      eureka__instance__appName: "VEHICLE-SERVICE"
+      eureka__instance__port: "5124"
+      eureka__instance__preferIpAddress: true
+    networks:
+      - adpfnetwork
+
+  adminservice:
+    container_name: ad-pf-admin-service
+    image: aparedeslozada/ad-proyecto-final-admin-service:1
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/AdminService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+      - seq
+    ports:
+      - "5123:5123"
+      - "7039:7039"
+    environment:
+      AUTH_AUTHORITY: "http://authservice:5121"
+      HTTP1_PORT: "5123"
+      HTTP2_PORT: "7039"
+      SEQ_URL: "http://seq:80"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "adminservice"
+      eureka__instance__appName: "ADMIN-SERVICE"
+      eureka__instance__port: "7039"
+      eureka__instance__metadataMap__httpPort: "5123"
+      eureka__instance__metadataMap__grpcPort: "7039"
+    networks:
+      - adpfnetwork
+
+  driverservice:
+    container_name: ad-pf-driver-service
+    image: aparedeslozada/ad-proyecto-final-driver-service:2
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/ChoferService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+      - seq
+    ports:
+      - "5122:5122"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_AUDIENCE: "http://authservice:5121"
+      PORT: "5122"
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      SEQ_URL: "http://seq:80"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "driverservice"
+      eureka__instance__appName: "DRIVER-SERVICE"
+      eureka__instance__port: "5122"
+      eureka__instance__preferIpAddress: true
+    networks:
+      - adpfnetwork
+
+  routeservice:
+    container_name: ad-pf-route-service
+    image: aparedeslozada/ad-proyecto-final-route-service:1
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/RouteService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - postgisdb
+      - eureka
+      - seq
+    ports:
+      - "5125:5125"
+      - "7040:7040"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_TIME: "2"
+
+      HTTP1_PORT: "5125"
+      HTTP2_PORT: "7040"
+
+      CONNECTION_STRING: "Host=postgisdb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+
+      SEQ_URL: "http://seq:80"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "routeservice"
+      eureka__instance__appName: "ROUTES-SERVICE"
+      eureka__instance__port: "7040"
+      eureka__instance__metadataMap__httpPort: "5125"
+      eureka__instance__metadataMap__grpcPort: "7040"
+    networks:
+      - adpfnetwork
+  coordinator:
+    image: citusdata/citus:latest
+    container_name: ad-pf-citus-coordinator
+    restart: unless-stopped
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./data/citus/coordinator:/var/lib/postgresql/data
+      - ./init/citus/coordinator:/docker-entrypoint-initdb.d
+    depends_on:
+      worker1:
+        condition: service_healthy # <-- IMPORTANTE
+      worker2:
+        condition: service_healthy # <-- IMPORTANTE
+    networks:
+      - adpfnetwork
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d proyecto-distribuidas -c 'SELECT 1'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker1:
+    image: citusdata/citus:latest
+    container_name: ad-pf-citus-worker1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./data/citus/worker1:/var/lib/postgresql/data
+      - ./init/citus/worker:/docker-entrypoint-initdb.d
+    networks:
+      - adpfnetwork
+    # AÑADIR HEALTHCHECK
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker2:
+    image: citusdata/citus:latest
+    container_name: ad-pf-citus-worker2
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./data/citus/worker2:/var/lib/postgresql/data
+      - ./init/citus/worker:/docker-entrypoint-initdb.d
+    networks:
+      - adpfnetwork
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fuelservice:
+    container_name: ad-pf-fuel-service
+    image: aparedeslozada/ad-proyecto-final-fuel-service:2
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/FuelService/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      seq:
+        condition: service_started
+      eureka:
+        condition: service_started
+      coordinator:
+        condition: service_healthy
+    ports:
+      - "5126:5126"
+    environment:
+      CONNECTION_STRING: "Host=coordinator;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      JWT_SECRET: b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473
+      JWT_ISSUER: http://authservice:5121
+      JWT_TIME: 2
+      PORT: 5126
+      SEQ_URL: http://seq:80
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      QUEUE_NAME: routes_ended_queue
+      eureka__client__serviceUrl: http://eureka:8761/eureka
+      eureka__instance__appName: FUEL-SERVICE
+      eureka__instance__hostName: fuelservice
+      eureka__instance__port: "5126"
+      eureka__instance__preferIpAddress: true
+      eureka__instance__metadataMap__httpPort: "5126"
+    networks:
+      - adpfnetwork
+
+networks:
+  adpfnetwork:
+    driver: bridge

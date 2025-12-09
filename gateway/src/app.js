@@ -16,7 +16,9 @@ import { CommonRoutes } from './routes/CommonRoutes.js';
 // 📦 Cargar SOLO config.env (override cualquier otra fuente)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: path.join(__dirname, '../.env') });
+}
 
 const app = express();
 // ✅ CORS explícito (incluye Authorization)

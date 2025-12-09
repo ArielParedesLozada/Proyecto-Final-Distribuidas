@@ -1,4 +1,4 @@
-@FuelService_HostAddress = http://localhost:5167
+@FuelService_HostAddress = http://localhost:5126
 
 GET {{FuelService_HostAddress}}/weatherforecast/
 Accept: application/json
