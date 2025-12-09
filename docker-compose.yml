@@ -86,6 +86,9 @@ services:
   gateway:
     container_name: ad-pf-gateway
     image: aparedeslozada/ad-proyecto-final-gateway:3
+    # build:
+    #   context: ./
+    #   dockerfile: ./gateway/Dockerfile
     restart: unless-stopped
     depends_on:
       - eureka
@@ -110,6 +113,9 @@ services:
   authservice:
     container_name: ad-pf-auth-service
     image: aparedeslozada/ad-proyecto-final-auth-service:7
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/AuthService/Dockerfile
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -139,6 +145,9 @@ services:
   vehicleservice:
     container_name: ad-pf-vehicle-service
     image: aparedeslozada/ad-proyecto-final-vehicle-service:5
+    # build:
+    #   context: ./services
+    #   dockerfile: ./VehicleService/Dockerfile
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -166,6 +175,9 @@ services:
   adminservice:
     container_name: ad-pf-admin-service
     image: aparedeslozada/ad-proyecto-final-admin-service:1
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/AdminService/Dockerfile
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -192,6 +204,9 @@ services:
   driverservice:
     container_name: ad-pf-driver-service
     image: aparedeslozada/ad-proyecto-final-driver-service:2
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/ChoferService/Dockerfile
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -218,6 +233,9 @@ services:
   routeservice:
     container_name: ad-pf-route-service
     image: aparedeslozada/ad-proyecto-final-route-service:1
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/RouteService/Dockerfile
     restart: unless-stopped
     depends_on:
       - postgisdb
@@ -318,6 +336,9 @@ services:
   fuelservice:
     container_name: ad-pf-fuel-service
     image: aparedeslozada/ad-proyecto-final-fuel-service:2
+    # build:
+    #   context: ./services
+    #   dockerfile: ./services/FuelService/Dockerfile
     restart: unless-stopped
     depends_on:
       seq:
