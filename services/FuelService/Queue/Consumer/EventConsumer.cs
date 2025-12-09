@@ -13,16 +13,17 @@ public class EventConsumer<TDataConsumption> : BackgroundService
     private readonly int _port;
     private readonly string _queueName;
     private readonly string _topic;
-
     private IChannel _channel = null!;
-
+    private ILogger<EventConsumer<TDataConsumption>> _logger;
     public EventConsumer(
+        ILogger<EventConsumer<TDataConsumption>> logger,
         string host,
         int port,
         string queue,
         string topic,
         IServiceScopeFactory scopeFactory)
     {
+        _logger = logger;
         _host = host;
         _port = port;
         _queueName = queue;
@@ -67,6 +68,7 @@ public class EventConsumer<TDataConsumption> : BackgroundService
         catch (Exception e)
         {
             System.Console.WriteLine($"ERROR: {e.Message}");
+            _logger.LogError(e, "Ocurrio el error al recibir un mensaje");
             await _channel.BasicNackAsync(ea.DeliveryTag, false, true);
         }
     }

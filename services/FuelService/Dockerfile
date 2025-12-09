@@ -6,7 +6,6 @@ WORKDIR /src
 
 # Copiar csproj y restaurar dependencias
 COPY FuelService/FuelService.csproj FuelService/
-COPY Protos/ Protos/
 RUN dotnet restore FuelService/FuelService.csproj
 
 # Copiar todo el código
@@ -25,15 +24,14 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Variables de entorno obligatorias
-ENV ASPNETCORE_URLS=http://0.0.0.0:5121
+ENV ASPNETCORE_URLS=http://0.0.0.0:5126
 ENV DOTNET_ENVIRONMENT=Production
 
 # -------------------------
 # PUERTOS COMUNICADOS POR TUS ENV VARIABLES
 # Pero deben exponerse para Docker
 # -------------------------
-EXPOSE 5121 
-EXPOSE 7037  
+EXPOSE 5126
 
 # ===========================
 # ENTRYPOINT
