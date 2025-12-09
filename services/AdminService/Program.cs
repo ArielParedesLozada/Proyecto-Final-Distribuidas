@@ -34,8 +34,6 @@ try
     builder.Host.UseSerilog();
 
     // ====== 4️⃣ Cargar variables de entorno ======
-    var IP_USER_SERVICE = Environment.GetEnvironmentVariable("IP_USER_SERVICE")!;
-    var IP_DRIVER_SERVICE = Environment.GetEnvironmentVariable("IP_DRIVER_SERVICE")!;
     var AUTH_AUTHORITY = Environment.GetEnvironmentVariable("AUTH_AUTHORITY")!;
     var HTTP1_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP1_PORT")!);
     var HTTP2_PORT = int.Parse(Environment.GetEnvironmentVariable("HTTP2_PORT")!);

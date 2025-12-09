@@ -109,6 +109,55 @@ services:
     networks:
       - adpfnetwork
 
+  adminservice:
+      container_name: ad-pf-admin-service
+      image: aparedeslozada/ad-proyecto-final-admin-service:1
+      restart: unless-stopped
+      depends_on:
+        - normaldb
+        - eureka
+      ports:
+        - "5123:5123"
+        - "7039:7039"
+      environment:
+        AUTH_AUTHORITY: "http://authservice:5121"
+        HTTP1_PORT: "5123"
+        HTTP2_PORT: "7039"
+        SEQ_URL: "http://host.docker.internal:5341"
+        # Eureka interno por Docker
+        eureka__client__serviceUrl: "http://eureka:8761/eureka"
+        eureka__instance__hostName: "adminservice"
+        eureka__instance__appName: "ADMIN-SERVICE"
+        eureka__instance__port: "7039"
+        eureka__instance__metadataMap__httpPort: "5123"
+        eureka__instance__metadataMap__grpcPort: "7039"
+      networks:
+        - adpfnetwork
+  
+  driverservice:
+    container_name: ad-pf-driver-service
+    image: aparedeslozada/ad-proyecto-final-driver-service:1
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+    ports:
+      - "5122:5122"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_AUDIENCE: "http://authservice:5121"
+      PORT: "5122"
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      SEQ_URL: "http://host.docker.internal:5341"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "driverservice"
+      eureka__instance__appName: "DRIVER-SERVICE"
+      eureka__instance__port: "5122"
+      eureka__instance__preferIpAddress: true
+    networks:
+      - adpfnetwork
     
   
 networks:
