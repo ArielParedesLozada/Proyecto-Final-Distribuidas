@@ -68,7 +68,7 @@ services:
       - SEQ_FIRSTRUN_ADMINPASSWORD=admin123
       # Contraseña real: GanimaVeloz
     volumes:
-      - ./docker/seq/volumes:/data
+      - ./data/seq/volumes:/data
     networks:
       - adpfnetwork
 
@@ -365,6 +365,19 @@ services:
       eureka__instance__port: "5126"
       eureka__instance__preferIpAddress: true
       eureka__instance__metadataMap__httpPort: "5126"
+    networks:
+      - adpfnetwork
+  
+  frontend:
+    container_name: ad-pf-frontend
+    image: aparedeslozada/ad-proyecto-final-frontend:1
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: http://gateway:4000
     networks:
       - adpfnetwork
 

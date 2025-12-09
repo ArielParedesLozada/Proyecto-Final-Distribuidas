@@ -33,7 +33,7 @@ const AdminRoutes: React.FC = () => {
   const { addToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'create' | 'list' | 'assign'>('create');
-  
+
   // Estado para la lista de rutas
   const [routes, setRoutes] = useState<RouteProto[]>([]);
   const [allRoutes, setAllRoutes] = useState<RouteProto[]>([]); // Todas las rutas sin filtrar
@@ -42,20 +42,20 @@ const AdminRoutes: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 5;
-  
+
   // Estado para almacenar información de conductores (driver_id -> Driver)
   const [driversMap, setDriversMap] = useState<Record<string, Driver>>({});
-  
+
   // Estado para almacenar información de vehículos (vehicle_id -> Vehicle)
   const [vehiclesMap, setVehiclesMap] = useState<Record<string, Vehicle>>({});
-  
+
   // Estado para controlar qué rutas tienen las observaciones expandidas
   const [expandedObservations, setExpandedObservations] = useState<Set<string>>(new Set());
-  
+
   // Estado para el filtro por conductor
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('');
   const [allDriversForFilter, setAllDriversForFilter] = useState<Driver[]>([]);
-  
+
   // Estado para el filtro de rutas sin asignar
   const [showUnassignedOnly, setShowUnassignedOnly] = useState<boolean>(false);
 
@@ -87,7 +87,7 @@ const AdminRoutes: React.FC = () => {
       loadAllDriversForFilter();
     }
   }, [activeTab, currentPage]);
-  
+
   // Cargar información del conductor cuando se selecciona en el filtro
   useEffect(() => {
     if (selectedDriverFilter && !driversMap[selectedDriverFilter]) {
@@ -107,21 +107,21 @@ const AdminRoutes: React.FC = () => {
   // Filtrar rutas cuando cambia el filtro de conductor, rutas sin asignar o la página
   useEffect(() => {
     if (allRoutes.length === 0) return; // Esperar a que se carguen las rutas
-    
+
     let filteredRoutes = allRoutes;
-    
+
     // Aplicar filtro de rutas sin asignar si está activo
     if (showUnassignedOnly) {
-      filteredRoutes = filteredRoutes.filter(route => 
+      filteredRoutes = filteredRoutes.filter(route =>
         route.status === 'ROUTE_STATE_UNASSIGNED' || !route.driverId
       );
     }
-    
+
     // Aplicar filtro por conductor si está seleccionado
     if (selectedDriverFilter) {
       filteredRoutes = filteredRoutes.filter(route => route.driverId === selectedDriverFilter);
     }
-    
+
     // Aplicar paginación
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -129,7 +129,7 @@ const AdminRoutes: React.FC = () => {
     setTotalCount(filteredRoutes.length);
     setTotalPages(Math.ceil(filteredRoutes.length / pageSize) || 1);
   }, [selectedDriverFilter, showUnassignedOnly, allRoutes, currentPage, pageSize]);
-  
+
   // Cargar todos los conductores para el filtro
   const loadAllDriversForFilter = async () => {
     try {
@@ -162,7 +162,7 @@ const AdminRoutes: React.FC = () => {
   const mapRouteFromApi = (route: any): RouteProto => {
     // Mapear observaciones si vienen en la respuesta
     const observations = route.observations || [];
-    
+
     return {
       id: route.id || route.route_id || '',
       driverVehicleId: route.driver_vehicle_id || route.driverVehicleId || '',
@@ -207,7 +207,7 @@ const AdminRoutes: React.FC = () => {
       return null;
     }
   };
-  
+
   const loadVehicleById = async (vehicleId: string): Promise<Vehicle | null> => {
     try {
       const response = await api<VehicleResponse>(`/vehicles/${vehicleId}`);
@@ -227,14 +227,14 @@ const AdminRoutes: React.FC = () => {
       // Mapear las rutas al formato correcto
       const mappedRoutes = (response.routes || []).map(mapRouteFromApi);
       setAllRoutes(mappedRoutes);
-      
+
       // Aplicar paginación inicial
       const startIndex = (currentPage - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       setRoutes(mappedRoutes.slice(startIndex, endIndex));
       setTotalPages(Math.ceil(mappedRoutes.length / pageSize));
       setTotalCount(mappedRoutes.length);
-      
+
       // Cargar información de conductores y vehículos para rutas asignadas
       const uniqueDriverIds = new Set<string>();
       const uniqueVehicleIds = new Set<string>();
@@ -246,14 +246,14 @@ const AdminRoutes: React.FC = () => {
           uniqueVehicleIds.add(route.vehicleId);
         }
       });
-      
+
       // Cargar información de conductores que aún no tenemos
       const driversToLoad = Array.from(uniqueDriverIds).filter(id => !driversMap[id]);
       if (driversToLoad.length > 0) {
         const driversData = await Promise.all(
           driversToLoad.map(id => loadDriverById(id))
         );
-        
+
         const newDriversMap: Record<string, Driver> = { ...driversMap };
         driversData.forEach((driver, index) => {
           if (driver) {
@@ -262,14 +262,14 @@ const AdminRoutes: React.FC = () => {
         });
         setDriversMap(newDriversMap);
       }
-      
+
       // Cargar información de vehículos que aún no tenemos
       const vehiclesToLoad = Array.from(uniqueVehicleIds).filter(id => !vehiclesMap[id]);
       if (vehiclesToLoad.length > 0) {
         const vehiclesData = await Promise.all(
           vehiclesToLoad.map(id => loadVehicleById(id))
         );
-        
+
         const newVehiclesMap: Record<string, Vehicle> = { ...vehiclesMap };
         vehiclesData.forEach((vehicle, index) => {
           if (vehicle) {
@@ -291,7 +291,7 @@ const AdminRoutes: React.FC = () => {
     setIsLoading(true);
     try {
       console.log('🔄 Creando ruta...', data);
-      
+
       const response = await api<RouteProto>('/routes/', {
         method: 'POST',
         body: JSON.stringify({
@@ -311,7 +311,7 @@ const AdminRoutes: React.FC = () => {
 
       console.log('✅ Ruta creada:', response);
       addToast('Ruta creada exitosamente', 'success');
-      
+
       // Cambiar a la tab de lista y recargar
       setActiveTab('list');
       loadRoutes();
@@ -370,11 +370,11 @@ const AdminRoutes: React.FC = () => {
       console.log(`🔄 Cargando assignments para driver ${driverId}...`);
       const response = await api<AssignmentsResponse>(`/drivers/${driverId}/assignments`);
       console.log('📦 Assignments recibidos:', response);
-      
+
       // Filtrar solo assignments activos (sin unassigned_at)
       const activeAssignments = (response.items || []).filter(a => !a.unassigned_at);
       console.log('✅ Assignments activos:', activeAssignments.length);
-      
+
       // Enriquecer con información de vehículos
       const enrichedAssignments = await Promise.all(
         activeAssignments.map(async (assignment) => {
@@ -382,11 +382,11 @@ const AdminRoutes: React.FC = () => {
             console.log(`🔄 Cargando vehículo ${assignment.vehicle_id}...`);
             const vehicleResponse = await api<any>(`/vehicles/${assignment.vehicle_id}`);
             console.log(`📦 Respuesta vehículo ${assignment.vehicle_id}:`, vehicleResponse);
-            
+
             // La API puede devolver { vehicle: {...} } o directamente el vehículo
             const vehicle = vehicleResponse.vehicle || vehicleResponse;
             console.log(`🚗 Vehículo procesado:`, vehicle);
-            
+
             // Manejar tanto camelCase como snake_case
             const enriched = {
               ...assignment,
@@ -411,10 +411,10 @@ const AdminRoutes: React.FC = () => {
           }
         })
       );
-      
+
       console.log('✅ Assignments enriquecidos finales:', enrichedAssignments);
       setAssignments(enrichedAssignments);
-      
+
       // Si había un assignment seleccionado que ya no está disponible, limpiarlo
       if (selectedAssignmentId && !enrichedAssignments.find(a => a.assignment_id === selectedAssignmentId)) {
         setSelectedAssignmentId('');
@@ -465,19 +465,19 @@ const AdminRoutes: React.FC = () => {
       });
 
       addToast('Ruta asignada exitosamente', 'success');
-      
+
       // Limpiar formulario
       setSelectedRouteId('');
       setSelectedDriverId('');
       setSelectedAssignmentId('');
       setAssignments([]);
-      
+
       // Recargar datos
       await Promise.all([
         loadUnassignedRoutes(),
         loadRoutes(),
       ]);
-      
+
       // Cambiar a la tab de lista para ver la ruta asignada
       setActiveTab('list');
     } catch (error: any) {
@@ -489,7 +489,7 @@ const AdminRoutes: React.FC = () => {
     }
   };
 
-  const getRouteStatusLabel = (status: string | undefined): string => {
+  const getRouteStatusLabel = (status: string | number | undefined): string => {
     const statusMap: Record<string, string> = {
       'ROUTE_STATE_UNASSIGNED': 'Sin Asignar',
       'ROUTE_STATE_ASSIGNED': 'Asignada',
@@ -499,7 +499,7 @@ const AdminRoutes: React.FC = () => {
     return status ? statusMap[status] || 'Desconocido' : 'Desconocido';
   };
 
-  const getRouteStatusColor = (status: string | undefined): string => {
+  const getRouteStatusColor = (status: string | number | undefined): string => {
     const colorMap: Record<string, string> = {
       'ROUTE_STATE_UNASSIGNED': 'text-yellow-400 bg-yellow-400/20 border-yellow-400/30',
       'ROUTE_STATE_ASSIGNED': 'text-blue-400 bg-blue-400/20 border-blue-400/30',
@@ -512,11 +512,11 @@ const AdminRoutes: React.FC = () => {
   // Función para verificar si una ruta puede ser eliminada (solo si NO está activa/iniciada)
   const canDeleteRoute = (status: string | number | undefined): boolean => {
     if (status === undefined) return false;
-    const statusStr = typeof status === 'string' ? status : 
+    const statusStr = typeof status === 'string' ? status :
       status === 0 ? 'ROUTE_STATE_UNASSIGNED' :
-      status === 1 ? 'ROUTE_STATE_ASSIGNED' :
-      status === 2 ? 'ROUTE_STATE_STARTED' :
-      status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
+        status === 1 ? 'ROUTE_STATE_ASSIGNED' :
+          status === 2 ? 'ROUTE_STATE_STARTED' :
+            status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
     return statusStr !== 'ROUTE_STATE_STARTED';
   };
 
@@ -525,11 +525,11 @@ const AdminRoutes: React.FC = () => {
   // NO se puede editar: Started (activa)
   const canEditRoute = (status: string | number | undefined): boolean => {
     if (status === undefined) return false;
-    const statusStr = typeof status === 'string' ? status : 
+    const statusStr = typeof status === 'string' ? status :
       status === 0 ? 'ROUTE_STATE_UNASSIGNED' :
-      status === 1 ? 'ROUTE_STATE_ASSIGNED' :
-      status === 2 ? 'ROUTE_STATE_STARTED' :
-      status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
+        status === 1 ? 'ROUTE_STATE_ASSIGNED' :
+          status === 2 ? 'ROUTE_STATE_STARTED' :
+            status === 3 ? 'ROUTE_STATE_COMPLETED' : '';
     return statusStr !== 'ROUTE_STATE_STARTED';
   };
 
@@ -685,11 +685,10 @@ const AdminRoutes: React.FC = () => {
                   disabled={!!selectedDriverFilter} // Bloquear si hay un conductor seleccionado
                   className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <label 
-                  htmlFor="unassigned-filter" 
-                  className={`text-sm font-medium cursor-pointer ${
-                    selectedDriverFilter ? 'text-slate-500 cursor-not-allowed' : 'text-white'
-                  }`}
+                <label
+                  htmlFor="unassigned-filter"
+                  className={`text-sm font-medium cursor-pointer ${selectedDriverFilter ? 'text-slate-500 cursor-not-allowed' : 'text-white'
+                    }`}
                 >
                   Mostrar solo rutas sin asignar
                 </label>
@@ -730,7 +729,7 @@ const AdminRoutes: React.FC = () => {
                   </button>
                 )}
               </div>
-              
+
               {/* Información de filtros activos */}
               {(selectedDriverFilter || showUnassignedOnly) && (
                 <div className="pt-3 border-t border-slate-700">
@@ -768,11 +767,10 @@ const AdminRoutes: React.FC = () => {
                               <button
                                 onClick={() => handleEditRoute(route)}
                                 disabled={!canEditRoute(route.status)}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${
-                                  canEditRoute(route.status)
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${canEditRoute(route.status)
                                     ? 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 hover:border-blue-600/50'
                                     : 'bg-slate-600/20 text-slate-500 border-slate-600/30 cursor-not-allowed'
-                                }`}
+                                  }`}
                                 title={canEditRoute(route.status) ? 'Editar ruta' : 'No se puede editar una ruta en curso'}
                               >
                                 <Edit className="w-4 h-4" />
@@ -781,11 +779,10 @@ const AdminRoutes: React.FC = () => {
                               <button
                                 onClick={() => handleDeleteRoute(route)}
                                 disabled={!canDeleteRoute(route.status) || isDeleting === route.id}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${
-                                  canDeleteRoute(route.status)
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${canDeleteRoute(route.status)
                                     ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border-red-600/30 hover:border-red-600/50'
                                     : 'bg-slate-600/20 text-slate-500 border-slate-600/30 cursor-not-allowed'
-                                }`}
+                                  }`}
                                 title={canDeleteRoute(route.status) ? 'Eliminar ruta' : 'No se puede eliminar una ruta en curso'}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -892,7 +889,7 @@ const AdminRoutes: React.FC = () => {
                                       const obsDate = obs.createdAt || obs.created_at;
                                       const obsText = obs.text || '';
                                       const obsId = obs.id || '';
-                                      
+
                                       // Parsear fecha si viene como Timestamp de protobuf
                                       let dateStr = 'Fecha desconocida';
                                       if (obsDate) {
@@ -903,7 +900,7 @@ const AdminRoutes: React.FC = () => {
                                           dateStr = new Date(obsDate).toLocaleString('es-ES');
                                         }
                                       }
-                                      
+
                                       return (
                                         <div
                                           key={obsId}
@@ -949,7 +946,7 @@ const AdminRoutes: React.FC = () => {
                   <>
                     <h3 className="text-lg font-semibold text-white mb-2">No hay rutas para este conductor</h3>
                     <p className="text-slate-400 mb-4">
-                      {driversMap[selectedDriverFilter] 
+                      {driversMap[selectedDriverFilter]
                         ? `El conductor ${driversMap[selectedDriverFilter].full_name} no tiene rutas asignadas.`
                         : 'Este conductor no tiene rutas asignadas.'}
                     </p>
@@ -984,7 +981,7 @@ const AdminRoutes: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 backdrop-blur-sm">
               <h2 className="text-xl font-semibold text-white mb-6">Asignar Ruta a Conductor y Vehículo</h2>
-              
+
               <form onSubmit={(e) => { e.preventDefault(); handleAssignRoute(); }} className="space-y-6">
                 {/* Select de Ruta */}
                 <div>
@@ -1009,15 +1006,14 @@ const AdminRoutes: React.FC = () => {
                           });
                         }
                       }}
-                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${
-                        assignErrors.route ? 'border-red-500' : 'border-slate-600'
-                      }`}
+                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${assignErrors.route ? 'border-red-500' : 'border-slate-600'
+                        }`}
                       required
                     >
                       <option value="">Seleccione una ruta sin asignar...</option>
                       {unassignedRoutes.map((route) => (
                         <option key={route.id} value={route.id}>
-                          {route.originName || 'Sin origen'} → {route.destinationName || 'Sin destino'} 
+                          {route.originName || 'Sin origen'} → {route.destinationName || 'Sin destino'}
                           {' '}({route.distanceKm ? `${route.distanceKm.toFixed(2)} km` : 'N/A'})
                         </option>
                       ))}
@@ -1058,9 +1054,8 @@ const AdminRoutes: React.FC = () => {
                           });
                         }
                       }}
-                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${
-                        assignErrors.driver ? 'border-red-500' : 'border-slate-600'
-                      }`}
+                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${assignErrors.driver ? 'border-red-500' : 'border-slate-600'
+                        }`}
                       required
                     >
                       <option value="">Seleccione un conductor disponible...</option>
@@ -1109,9 +1104,8 @@ const AdminRoutes: React.FC = () => {
                           });
                         }
                       }}
-                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${
-                        assignErrors.assignment ? 'border-red-500' : 'border-slate-600'
-                      }`}
+                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors ${assignErrors.assignment ? 'border-red-500' : 'border-slate-600'
+                        }`}
                       required
                       disabled={!selectedDriverId || isLoadingAssignments}
                     >
@@ -1163,17 +1157,16 @@ const AdminRoutes: React.FC = () => {
                       isLoadingDrivers ||
                       isLoadingAssignments
                     }
-                    className={`flex-1 px-4 py-3 rounded-lg transition-colors ${
-                      isAssigning ||
-                      !selectedRouteId ||
-                      !selectedDriverId ||
-                      !selectedAssignmentId ||
-                      isLoadingUnassignedRoutes ||
-                      isLoadingDrivers ||
-                      isLoadingAssignments
+                    className={`flex-1 px-4 py-3 rounded-lg transition-colors ${isAssigning ||
+                        !selectedRouteId ||
+                        !selectedDriverId ||
+                        !selectedAssignmentId ||
+                        isLoadingUnassignedRoutes ||
+                        isLoadingDrivers ||
+                        isLoadingAssignments
                         ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
+                      }`}
                   >
                     {isAssigning ? (
                       <span className="flex items-center justify-center gap-2">
@@ -1249,7 +1242,7 @@ const AdminRoutes: React.FC = () => {
                 <p className="text-slate-300">
                   ¿Estás seguro de que deseas eliminar la ruta de <span className="font-semibold text-white">{routeToDelete.originName || 'Sin origen'}</span> a <span className="font-semibold text-white">{routeToDelete.destinationName || 'Sin destino'}</span>?
                 </p>
-                
+
                 <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-3">
                   <div className="flex gap-2">
                     <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />

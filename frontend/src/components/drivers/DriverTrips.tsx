@@ -11,7 +11,7 @@ import TripFilters, {
 } from "../../shared/TripFilters";
 import api from "../../api/api";
 import type { ListRoutesResponse, RouteProto, RouteObservationProto } from "../../types/trip";
-import type { VehicleResponse } from "../../types/vehicle";
+import type { Vehicle, VehicleResponse } from "../../types/vehicle";
 
 export type TripObservation = {
     id: string;
@@ -436,13 +436,12 @@ const DriverTrips: React.FC<Props> = ({
                                     <div className="text-sm text-slate-400">ID: {trip.id}</div>
 
                                     <span
-                                        className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                                            trip.estado === "Finalizado"
+                                        className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${trip.estado === "Finalizado"
                                                 ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30"
                                                 : trip.estado === "EnCurso"
-                                                ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
-                                                : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
-                                        }`}
+                                                    ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
+                                                    : "bg-amber-600/20 text-amber-400 border border-amber-600/30"
+                                            }`}
                                     >
                                         {trip.estado}
                                     </span>
@@ -455,38 +454,38 @@ const DriverTrips: React.FC<Props> = ({
                                         onClick={async () => {
                                             setSelectedTrip(trip);
                                             setSelectedTripVehicle(null); // Resetear primero
-                                            
+
                                             // Obtener información del vehículo de la ruta
                                             const routeData = apiRoutesData.find(r => (r.id || "") === trip.id);
                                             if (!routeData) {
                                                 console.log("⚠️ No se encontró routeData para el viaje:", trip.id);
                                                 return;
                                             }
-                                            
+
                                             console.log("🔍 RouteData encontrado:", routeData);
-                                            
+
                                             let vehicleId: string | undefined = undefined;
-                                            
+
                                             // Intentar obtener vehicle_id directamente
                                             vehicleId = routeData?.vehicleId || routeData?.vehicle_id;
                                             console.log("🚗 vehicleId directo:", vehicleId);
-                                            
+
                                             // Si no hay vehicle_id, intentar obtener desde driver_vehicle_id (assignment)
                                             if (!vehicleId) {
                                                 const driverVehicleId = routeData?.driverVehicleId || routeData?.driver_vehicle_id;
                                                 console.log("🔑 driverVehicleId:", driverVehicleId);
-                                                
+
                                                 if (driverVehicleId) {
                                                     try {
                                                         // Obtener el assignment para obtener el vehicle_id
                                                         // Primero intentar obtener el driverId del usuario actual
                                                         const driverId = routeData?.driverId || routeData?.driver_id;
                                                         console.log("👤 driverId:", driverId);
-                                                        
+
                                                         if (driverId) {
                                                             const assignmentsResponse = await api<any>(`/drivers/${driverId}/assignments`);
                                                             console.log("📦 Assignments recibidos:", assignmentsResponse);
-                                                            
+
                                                             // Buscar el assignment que coincida con driver_vehicle_id
                                                             const assignment = (assignmentsResponse.items || []).find(
                                                                 (a: any) => {
@@ -495,7 +494,7 @@ const DriverTrips: React.FC<Props> = ({
                                                                     return assignmentId === driverVehicleId && !a.unassigned_at;
                                                                 }
                                                             );
-                                                            
+
                                                             if (assignment) {
                                                                 vehicleId = assignment.vehicle_id;
                                                                 console.log("✅ Assignment encontrado, vehicleId:", vehicleId);
@@ -515,14 +514,14 @@ const DriverTrips: React.FC<Props> = ({
                                                     }
                                                 }
                                             }
-                                            
+
                                             if (vehicleId) {
                                                 try {
                                                     console.log("🔄 Cargando vehículo:", vehicleId);
                                                     const vehicleResponse = await api<VehicleResponse>(`/vehicles/${vehicleId}`);
-                                                    const vehicle = vehicleResponse.vehicle || vehicleResponse;
+                                                    const vehicle: Vehicle = vehicleResponse.vehicle;
                                                     console.log("✅ Vehículo cargado:", vehicle);
-                                                    
+
                                                     setSelectedTripVehicle({
                                                         placa: vehicle.plate || "",
                                                         tipo: vehicle.type || "",
@@ -546,7 +545,7 @@ const DriverTrips: React.FC<Props> = ({
                                             onClick={() => handleStart(trip.id)}
                                             disabled={isStarting === trip.id}
                                         >
-                                            <Play className="w-4 h-4" /> 
+                                            <Play className="w-4 h-4" />
                                             {isStarting === trip.id ? "Iniciando..." : "Iniciar"}
                                         </button>
                                     )}
@@ -562,7 +561,7 @@ const DriverTrips: React.FC<Props> = ({
                                             }}
                                             disabled={isFinishing === trip.id || tripToFinish !== null}
                                         >
-                                            <CheckCircle className="w-4 h-4" /> 
+                                            <CheckCircle className="w-4 h-4" />
                                             {isFinishing === trip.id ? "Finalizando..." : "Finalizar"}
                                         </button>
                                     )}
@@ -609,9 +608,9 @@ const DriverTrips: React.FC<Props> = ({
             {tripToFinish && (() => {
                 const routeData = apiRoutesData.find(r => (r.id || "") === tripToFinish.id);
                 const distanciaEstimada = tripToFinish.estimado || 0;
-                const consumoEstimado = routeData?.estimatedFuelConsumptionLiters || 
-                                       routeData?.estimated_fuel_consumption_liters || 0;
-                
+                const consumoEstimado = routeData?.estimatedFuelConsumptionLiters ||
+                    routeData?.estimated_fuel_consumption_liters || 0;
+
                 return (
                     <FinishTripModal
                         key={tripToFinish.id}
