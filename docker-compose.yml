@@ -43,8 +43,8 @@ services:
       NODE_ENV: production
       PORT: 4000
       FRONTEND_ORIGIN: http://localhost:5173
-      DRIVERS_PROTO: /app/Protos/drivers.proto
-      VEHICLES_PROTO: /app/Protos/vehicles.proto
+      DRIVER_PROTO_PATH: /app/Protos/drivers.proto
+      VEHICLE_PROTO_PATH: /app/Protos/vehicles.proto
       JWT_SECRET: b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473
       JWT_ISSUER: http://authservice:5121
       APP_NAME: api-gateway
@@ -82,6 +82,33 @@ services:
       eureka__instance__metadataMap__grpcPort: "7037"
     networks:
       - adpfnetwork
+  
+  vehicleservice:
+    container_name: ad-pf-vehicle-service
+    image: aparedeslozada/ad-proyecto-final-vehicle-service:5
+    restart: unless-stopped
+    depends_on:
+      - normaldb
+      - eureka
+    ports:
+      - "5124:5124"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_AUDIENCE: "http://authservice:5121"
+      JWT_TIME: "2"
+      PORT: "5124"
+      CONNECTION_STRING: "Host=normaldb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      SEQ_URL: "http://host.docker.internal:5341"
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "vehicleservice"
+      eureka__instance__appName: "VEHICLE-SERVICE"
+      eureka__instance__port: "5124"
+      eureka__instance__preferIpAddress: true
+    networks:
+      - adpfnetwork
+
     
   
 networks:
