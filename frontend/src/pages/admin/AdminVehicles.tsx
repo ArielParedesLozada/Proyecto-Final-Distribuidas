@@ -27,13 +27,13 @@ const AdminVehicles: React.FC = () => {
   // State
   const [vehicles, setVehicles] = useState<VehicleWithDriver[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [activeAssignments, setActiveAssignments] = useState<Array<{vehicle_id: string, driver_id: string}>>([]);
+  const [activeAssignments, setActiveAssignments] = useState<Array<{ vehicle_id: string, driver_id: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleWithDriver | null>(null);
   const [activeTab, setActiveTab] = useState<'unassigned' | 'assigned'>('unassigned');
-  
+
   // Nuevos modales
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -92,21 +92,21 @@ const AdminVehicles: React.FC = () => {
         capabilitiesType: typeof d.capabilities,
         rawDriver: d // Mostrar el objeto completo para debug
       })));
-      
+
       // Asegurar que capabilities esté presente y sea un número
       const driversWithCapabilities = response.drivers.map(d => ({
         ...d,
-        capabilities: d.capabilities !== undefined && d.capabilities !== null 
-          ? Number(d.capabilities) 
+        capabilities: d.capabilities !== undefined && d.capabilities !== null
+          ? Number(d.capabilities)
           : undefined
       }));
-      
+
       console.log('✅ Conductores procesados con capabilities:', driversWithCapabilities.map(d => ({
         id: d.id,
         name: d.full_name,
         capabilities: d.capabilities
       })));
-      
+
       setDrivers(driversWithCapabilities);
     } catch (error: any) {
       console.error('❌ Error fetching drivers:', error);
@@ -118,7 +118,7 @@ const AdminVehicles: React.FC = () => {
   const fetchActiveAssignments = async () => {
     try {
       console.log('🔄 Cargando asignaciones activas...');
-      const response = await api<{ active_assignments: Array<{vehicle_id: string, driver_id: string}> }>('/vehicles/active-assignments');
+      const response = await api<{ active_assignments: Array<{ vehicle_id: string, driver_id: string }> }>('/vehicles/active-assignments');
       console.log('🔗 Asignaciones activas recibidas:', response.active_assignments);
       setActiveAssignments(response.active_assignments);
     } catch (error: any) {
@@ -132,30 +132,30 @@ const AdminVehicles: React.FC = () => {
     try {
       setIsLoading(true);
       console.log('🔄 Cargando vehículos sin asignar página:', page);
-      
+
       // Get all vehicles first
       const response = await api<ListVehiclesResponse>('/vehicles?page=1&page_size=1000');
-      
+
       // Filter vehicles with status DISPONIBLE (1)
       const unassignedVehiclesList = response.vehicles.filter(vehicle => {
         console.log(`🔍 Vehículo ${vehicle.plate}: status = ${vehicle.status}, machinery = ${vehicle.machinery}, machineryType = ${typeof vehicle.machinery}`);
-        
+
         // Return true if DISPONIBLE (status = 1)
         return vehicle.status === VEHICLE_STATUS.AVAILABLE;
       });
-      
+
       // Calculate pagination
       const totalCount = unassignedVehiclesList.length;
       const totalPages = Math.ceil(totalCount / unassignedPageSize);
       const startIndex = (page - 1) * unassignedPageSize;
       const endIndex = startIndex + unassignedPageSize;
       const paginatedVehicles = unassignedVehiclesList.slice(startIndex, endIndex);
-      
+
       setUnassignedVehicles(paginatedVehicles);
       setUnassignedTotalCount(totalCount);
       setUnassignedTotalPages(totalPages);
       setUnassignedCurrentPage(page);
-      
+
       console.log('🚗 Vehículos sin asignar cargados:', {
         page,
         totalCount,
@@ -175,15 +175,15 @@ const AdminVehicles: React.FC = () => {
     try {
       setIsLoading(true);
       console.log('🔄 Cargando vehículos asignados página:', page);
-      
+
       // Get all vehicles first
       const response = await api<ListVehiclesResponse>('/vehicles?page=1&page_size=1000');
-      
+
       // Filter vehicles with status OCUPADO (2) and enrich with driver data
       const assignedVehiclesList = response.vehicles
         .filter(vehicle => {
           console.log(`🔍 Vehículo asignado ${vehicle.plate}: status = ${vehicle.status}, machinery = ${vehicle.machinery}, machineryType = ${typeof vehicle.machinery}`);
-          
+
           // Return true if OCUPADO (status = 2)
           return vehicle.status === VEHICLE_STATUS.OCCUPIED;
         })
@@ -191,7 +191,7 @@ const AdminVehicles: React.FC = () => {
           // Find the assignment for this vehicle
           const assignment = activeAssignments.find(assignment => assignment.vehicle_id === vehicle.id);
           const driver = assignment ? drivers.find(d => d.id === assignment.driver_id) : null;
-          
+
           return {
             ...vehicle,
             driver_id: assignment?.driver_id || undefined,
@@ -202,19 +202,19 @@ const AdminVehicles: React.FC = () => {
             } : undefined
           };
         });
-      
+
       // Calculate pagination
       const totalCount = assignedVehiclesList.length;
       const totalPages = Math.ceil(totalCount / assignedPageSize);
       const startIndex = (page - 1) * assignedPageSize;
       const endIndex = startIndex + assignedPageSize;
       const paginatedVehicles = assignedVehiclesList.slice(startIndex, endIndex);
-      
+
       setAssignedVehicles(paginatedVehicles);
       setAssignedTotalCount(totalCount);
       setAssignedTotalPages(totalPages);
       setAssignedCurrentPage(page);
-      
+
       console.log('🚗 Vehículos asignados cargados:', {
         page,
         totalCount,
@@ -244,10 +244,10 @@ const AdminVehicles: React.FC = () => {
     try {
       setIsSubmitting(true);
       console.log('🔄 Creando vehículo:', vehicleData);
-      
+
       // Separar driver_id del resto de datos
       const { driver_id, ...vehicleDataWithoutDriver } = vehicleData;
-      
+
       const response = await api<{ vehicle: Vehicle }>('/vehicles', {
         method: 'POST',
         body: JSON.stringify(vehicleDataWithoutDriver)
@@ -283,7 +283,7 @@ const AdminVehicles: React.FC = () => {
       ]);
     } catch (error: any) {
       console.error('❌ Error creating vehicle:', error);
-      
+
       if (error.status === 403) {
         addToast('No tienes permisos para crear vehículos', 'error');
       } else if (error.status === 401) {
@@ -304,10 +304,10 @@ const AdminVehicles: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      
+
       // Separar driver_id del resto de datos
       const { driver_id, ...vehicleDataWithoutDriver } = vehicleData;
-      
+
       await api(`/vehicles/${editingVehicle.id}`, {
         method: 'PUT',  // ← Cambiado de PATCH a PUT
         body: JSON.stringify(vehicleDataWithoutDriver)
@@ -378,7 +378,7 @@ const AdminVehicles: React.FC = () => {
       ]);
     } catch (error: any) {
       console.error('Error updating vehicle:', error);
-      
+
       if (error.status === 403) {
         addToast('No tienes permisos para actualizar vehículos', 'error');
       } else if (error.status === 401) {
@@ -411,12 +411,12 @@ const AdminVehicles: React.FC = () => {
     if (machinery === undefined || machinery === null) {
       return undefined;
     }
-    
+
     // Si ya es un número, retornarlo
     if (typeof machinery === 'number') {
       return machinery;
     }
-    
+
     // Si es string, convertir según el valor
     if (typeof machinery === 'string') {
       if (machinery === 'VEHICLE_MACHINERY_TYPES_PESADO' || machinery === 'PESADO' || machinery === '1') {
@@ -431,7 +431,7 @@ const AdminVehicles: React.FC = () => {
         return parsed;
       }
     }
-    
+
     return undefined;
   };
 
@@ -490,7 +490,7 @@ const AdminVehicles: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      
+
       // Si queremos cambiar a DISPONIBLE, usar el endpoint SetStatus que valida rutas activas
       if (newStatus === VEHICLE_STATUS.AVAILABLE) {
         // Usar el endpoint SetStatus que tiene la validación de rutas activas
@@ -520,9 +520,9 @@ const AdminVehicles: React.FC = () => {
       ]);
     } catch (error: any) {
       console.error('Error updating status:', error);
-      
+
       const errorMessage = formatErrorMessage(error.message || 'Error al actualizar estado');
-      
+
       if (error.message?.includes('VEHICLE_IN_ACTIVE_ROUTE')) {
         addToast(errorMessage, 'error');
       } else if (error.message?.includes('VEHICLE_NOT_FOUND')) {
@@ -530,7 +530,7 @@ const AdminVehicles: React.FC = () => {
       } else {
         addToast(errorMessage, 'error');
       }
-      
+
       throw error;
     } finally {
       setIsSubmitting(false);
@@ -606,7 +606,7 @@ const AdminVehicles: React.FC = () => {
           </h1>
           <p className="text-slate-400">Administra y asigna vehículos a conductores del sistema</p>
         </div>
-        
+
         <button
           onClick={() => setIsModalOpen(true)}
           className="fuel-button flex items-center gap-2"
@@ -630,7 +630,7 @@ const AdminVehicles: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="fuel-card p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-600/20 border border-green-600/30">
@@ -642,7 +642,7 @@ const AdminVehicles: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="fuel-card p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-yellow-600/20 border border-yellow-600/30">
@@ -654,7 +654,7 @@ const AdminVehicles: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="fuel-card p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-600/20 border border-blue-600/30">
@@ -668,7 +668,6 @@ const AdminVehicles: React.FC = () => {
           </div>
         </div>
       )}
-
 
       {/* Tabs */}
       {!isLoading && (
@@ -692,7 +691,7 @@ const AdminVehicles: React.FC = () => {
                         </div>
                         <h2 className="text-xl font-semibold text-white">Vehículos Sin Asignar</h2>
                       </div>
-                      
+
                       <VehicleTable
                         vehicles={unassignedVehicles}
                         isLoading={isLoading}
@@ -722,7 +721,7 @@ const AdminVehicles: React.FC = () => {
                       </div>
                       <h2 className="text-xl font-semibold text-white">Vehículos Sin Asignar</h2>
                     </div>
-                    
+
                     <EmptyState
                       icon={Car}
                       title="No hay vehículos sin asignar"
@@ -746,7 +745,7 @@ const AdminVehicles: React.FC = () => {
                         </div>
                         <h2 className="text-xl font-semibold text-white">Vehículos Asignados</h2>
                       </div>
-                      
+
                       <VehicleTable
                         vehicles={assignedVehicles}
                         isLoading={isLoading}
@@ -776,7 +775,7 @@ const AdminVehicles: React.FC = () => {
                       </div>
                       <h2 className="text-xl font-semibold text-white">Vehículos Asignados</h2>
                     </div>
-                    
+
                     <EmptyState
                       icon={Car}
                       title="No hay vehículos asignados"
@@ -806,16 +805,7 @@ const AdminVehicles: React.FC = () => {
       />
 
       {/* Modal de Asignar Conductor */}
-      {isAssignModalOpen && selectedVehicle && (
-        console.log('🔧 Pasando vehicleMachinery al modal:', {
-          selectedVehicleMachinery: selectedVehicle.machinery,
-          machineryType: typeof selectedVehicle.machinery,
-          machineryValue: selectedVehicle.machinery,
-          machineryIsUndefined: selectedVehicle.machinery === undefined,
-          machineryIsNull: selectedVehicle.machinery === null,
-          vehicleComplete: selectedVehicle
-        }) || null
-      )}
+      {isAssignModalOpen && !!selectedVehicle}
       <AssignDriverModal
         isOpen={isAssignModalOpen}
         onClose={handleAssignModalClose}
