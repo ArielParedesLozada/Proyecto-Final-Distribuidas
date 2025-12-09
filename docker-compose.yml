@@ -19,6 +19,35 @@ services:
       retries: 10
     networks:
       - adpfnetwork
+  
+  postgisdb:
+    container_name: ad-pf-postgisdb
+    image: postgis/postgis:17-master
+    restart: unless-stopped
+    shm_size: 128mb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: proyecto-distribuidas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clave_piola
+    volumes:
+      - ./data/postgis:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - adpfnetwork
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
   eureka:
     container_name: ad-pf-eureka
@@ -136,7 +165,7 @@ services:
   
   driverservice:
     container_name: ad-pf-driver-service
-    image: aparedeslozada/ad-proyecto-final-driver-service:1
+    image: aparedeslozada/ad-proyecto-final-driver-service:2
     restart: unless-stopped
     depends_on:
       - normaldb
@@ -156,6 +185,41 @@ services:
       eureka__instance__appName: "DRIVER-SERVICE"
       eureka__instance__port: "5122"
       eureka__instance__preferIpAddress: true
+    networks:
+      - adpfnetwork
+  
+  routeservice:
+    container_name: ad-pf-route-service
+    image: aparedeslozada/ad-proyecto-final-route-service:1
+    restart: unless-stopped
+    depends_on:
+      - postgisdb
+      - eureka
+    ports:
+      - "5125:5125"
+      - "7040:7040"
+    environment:
+      JWT_SECRET: "b674d61f8fa4763520494479868548fc0fa05e571b8103e96bdcabaeddf51473"
+      JWT_ISSUER: "http://authservice:5121"
+      JWT_TIME: "2"
+
+      HTTP1_PORT: "5125"
+      HTTP2_PORT: "7040"
+      
+      CONNECTION_STRING: "Host=postgisdb;Port=5432;Database=proyecto-distribuidas;Username=postgres;Password=clave_piola"
+      
+      SEQ_URL: "http://host.docker.internal:5341"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      # Eureka interno por Docker
+      eureka__client__serviceUrl: "http://eureka:8761/eureka"
+      eureka__instance__hostName: "routeservice"
+      eureka__instance__appName: "ROUTES-SERVICE"
+      eureka__instance__port: "7040"
+      eureka__instance__metadataMap__httpPort: "5125"
+      eureka__instance__metadataMap__grpcPort: "7040"
     networks:
       - adpfnetwork
     

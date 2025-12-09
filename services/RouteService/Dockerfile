@@ -25,15 +25,15 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Variables de entorno obligatorias
-ENV ASPNETCORE_URLS=http://0.0.0.0:5121
+ENV ASPNETCORE_URLS=http://0.0.0.0:5125
 ENV DOTNET_ENVIRONMENT=Production
 
 # -------------------------
 # PUERTOS COMUNICADOS POR TUS ENV VARIABLES
 # Pero deben exponerse para Docker
 # -------------------------
-EXPOSE 5121 
-EXPOSE 7037  
+EXPOSE 5125 
+EXPOSE 7040  
 
 # ===========================
 # ENTRYPOINT
